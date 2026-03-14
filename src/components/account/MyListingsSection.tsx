@@ -267,7 +267,7 @@ export default function MyListingsSection() {
                       ) : (
                         <>
                           <Link 
-                            href={`/bai-viet/${property.slug || property.id}`}
+                            href={`/bai-viet/${property.slug}`}
                             className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-md transition-all" 
                             title="Sửa"
                           >
