@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/lib/prisma';
-import { projectsWhereInput } from '../../generated/prisma/models';
+import { type projectsWhereInput } from '../../generated/prisma/models';
 // GET - Lấy danh sách tất cả dự án
 export async function GET(request: NextRequest) {
   try {

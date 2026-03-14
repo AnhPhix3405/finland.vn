@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/lib/prisma';
-import { brokersWhereInput } from '../../generated/prisma/models';
+import {type brokersWhereInput } from '../../generated/prisma/models';
 
 // GET - Lấy danh sách tất cả môi giới
 export async function GET(request: NextRequest) {
