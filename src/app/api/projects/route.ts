@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/lib/prisma';
-import { type projectsWhereInput } from '../../generated/prisma/models';
+import { Prisma } from '@prisma/client';
 // GET - Lấy danh sách tất cả dự án
 export async function GET(request: NextRequest) {
   try {
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Tạo điều kiện where
-    const where: projectsWhereInput = {};
+    const where: Prisma.projectsWhereInput = {};
 
     if (status) {
       where.status = status;

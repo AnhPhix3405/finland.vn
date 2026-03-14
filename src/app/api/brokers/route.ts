@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/lib/prisma';
-import {type brokersWhereInput } from '../../generated/prisma/models';
+import { Prisma } from '@prisma/client';
 
 // GET - Lấy danh sách tất cả môi giới
 export async function GET(request: NextRequest) {
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Tạo điều kiện where
-    const where: brokersWhereInput = {};
+    const where: Prisma.brokersWhereInput = {};
 
     if (is_active !== null && is_active !== undefined) {
       where.is_active = is_active === 'true';
