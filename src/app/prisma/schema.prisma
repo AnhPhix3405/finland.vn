@@ -1,0 +1,190 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model activity_logs {
+  id          String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  action      String  @db.VarChar(50)
+  target_type String  @db.VarChar(50)
+  target_id   String? @db.Uuid
+  detail      String?
+}
+
+model attachments {
+  id            String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  url           String
+  secure_url    String
+  size_bytes    BigInt?
+  original_name String?   @db.VarChar(255)
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
+  public_id     String?
+  target_type   String?   @db.VarChar(50)
+  target_id     String?   @db.Uuid
+}
+
+model brokers {
+  id             String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  full_name      String      @db.VarChar(255)
+  phone          String      @db.VarChar(20)
+  email          String?     @db.VarChar(255)
+  avatar_url     String?
+  specialization String?     @db.VarChar(255)
+  bio            String?
+  is_active      Boolean?    @default(true)
+  created_at     DateTime?   @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime?   @default(now()) @db.Timestamptz(6)
+  province       String?     @db.VarChar(100)
+  ward           String?     @db.VarChar(100)
+  referrer_phone String?     @db.VarChar(20)
+  password_hash  String?
+  bookmarks      bookmarks[]
+  listings       listings[]
+}
+
+model project_tags {
+  project_id String   @db.Uuid
+  tag_id     String   @db.Uuid
+  projects   projects @relation(fields: [project_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tags       tags     @relation(fields: [tag_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([project_id, tag_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model projects {
+  id                  String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  project_code        String?            @unique @db.VarChar(50)
+  name                String
+  slug                String             @unique @db.VarChar(255)
+  developer           String?            @db.VarChar(255)
+  content             String?
+  area_min            Int?
+  area_max            Int?
+  created_at          DateTime?          @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?          @default(now()) @db.Timestamptz(6)
+  province            String?            @db.VarChar(100)
+  ward                String?            @db.VarChar(100)
+  price               Decimal            @default(0) @db.Decimal(15, 2)
+  status              String?
+  property_type_id    String?            @db.Uuid
+  transaction_type_id String?            @db.Uuid
+  project_tags        project_tags[]
+  property_types      property_types?    @relation(fields: [property_type_id], references: [id], onUpdate: NoAction, map: "fk_projects_property_type")
+  transaction_types   transaction_types? @relation(fields: [transaction_type_id], references: [id], onUpdate: NoAction, map: "fk_projects_transaction_type")
+}
+
+model tags {
+  id           String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name         String         @unique @db.VarChar(100)
+  slug         String         @unique @db.VarChar(120)
+  created_at   DateTime?      @default(now()) @db.Timestamptz(6)
+  listing_id   String?        @db.Uuid
+  news_tags    news_tags[]
+  project_tags project_tags[]
+  listings     listings?      @relation(fields: [listing_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_tags_listing")
+}
+
+model listings {
+  id                  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  broker_id           String             @db.Uuid
+  title               String
+  description         String
+  province            String             @db.VarChar(100)
+  ward                String             @db.VarChar(100)
+  address             String?
+  area                Decimal?           @db.Decimal(10, 2)
+  width               Decimal?           @db.Decimal(6, 2)
+  length              Decimal?           @db.Decimal(6, 2)
+  price               BigInt?
+  direction           String?            @db.VarChar(20)
+  status              String?
+  property_type_id    String?            @db.Uuid
+  transaction_type_id String?            @db.Uuid
+  slug                String?
+  contact_name        String?            @db.VarChar(255)
+  contact_phone       String?            @db.VarChar(50)
+  listing_code        String?            @unique @db.VarChar(20)
+  floor_count         Int?
+  bedroom_count       Int?
+  bookmarks           bookmarks[]
+  brokers             brokers            @relation(fields: [broker_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_listings_broker")
+  property_types      property_types?    @relation(fields: [property_type_id], references: [id], onUpdate: NoAction, map: "fk_listings_property_type")
+  transaction_types   transaction_types? @relation(fields: [transaction_type_id], references: [id], onUpdate: NoAction, map: "fk_listings_transaction_type")
+  tags                tags[]
+}
+
+model property_types {
+  id         String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name       String     @unique @db.VarChar(255)
+  created_at DateTime?  @default(now()) @db.Timestamptz(6)
+  updated_at DateTime?  @default(now()) @db.Timestamptz(6)
+  hashtag    String     @unique @db.VarChar(255)
+  listings   listings[]
+  projects   projects[]
+}
+
+model transaction_types {
+  id         String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name       String     @unique @db.VarChar(255)
+  hashtag    String     @unique @db.VarChar(255)
+  created_at DateTime?  @default(now()) @db.Timestamptz(6)
+  updated_at DateTime?  @default(now()) @db.Timestamptz(6)
+  listings   listings[]
+  projects   projects[]
+}
+
+model admins {
+  id            String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email         String    @unique
+  name          String
+  password_hash String
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model bookmarks {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  listing_id String    @db.Uuid
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  broker_id  String?   @db.Uuid
+  brokers    brokers?  @relation(fields: [broker_id], references: [id], onUpdate: NoAction, map: "fk_bookmarks_brokers")
+  listings   listings  @relation(fields: [listing_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_listing")
+}
+
+model news {
+  id            String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  title         String      @db.VarChar(255)
+  slug          String      @unique @db.VarChar(255)
+  content       String
+  description   String?
+  thumbnail_url String?
+  created_at    DateTime?   @default(now()) @db.Timestamptz(6)
+  news_tags     news_tags[]
+
+  @@index([slug], map: "idx_news_slug")
+}
+
+model news_tags {
+  news_id String @db.Uuid
+  tag_id  String @db.Uuid
+  news    news   @relation(fields: [news_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_news_tags_news")
+  tags    tags   @relation(fields: [tag_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_news_tags_tags")
+
+  @@id([news_id, tag_id])
+  @@index([tag_id], map: "idx_news_tags_tag_id")
+}
+
+enum post_status {
+  published
+  draft
+}
+
+enum project_status {
+  s_p_m__b_n   @map("sắp mở bán")
+  ang_m__b_n   @map("đang mở bán")
+  h_ng_th__c_p @map("hàng thứ cấp")
+}
