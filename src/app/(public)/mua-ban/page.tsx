@@ -41,8 +41,9 @@ export default function MuaBanPage() {
       const res = await fetch(`/api/attachments/${listingId}?target_type=listing`);
       const data = await res.json();
       if (data.success && data.data && Array.isArray(data.data) && data.data.length > 0) {
-        const firstAttachment = data.data[0];
-        return firstAttachment.secure_url || firstAttachment.url || defaultImage;
+        // Find the primary image (sort_order === 0), otherwise use first one
+        const primaryAttachment = data.data.find((att: Record<string, unknown>) => att.sort_order === 0) || data.data[0];
+        return primaryAttachment.secure_url || primaryAttachment.url || defaultImage;
       }
     } catch (error) {
       console.error(`Error fetching image for listing ${listingId}:`, error);
