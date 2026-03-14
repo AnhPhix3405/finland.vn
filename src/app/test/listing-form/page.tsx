@@ -1,4 +1,4 @@
-import { ListingForm } from "@/components/property/ListingForm";
+import { ListingForm } from "@/src/components/property/ListingForm";
 
 export default function TestListingPage() {
   return (
