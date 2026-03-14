@@ -44,12 +44,18 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.6.1
       jose:
         specifier: ^6.2.1
         version: 6.2.1
       lucide-react:
         specifier: ^0.577.0
         version: 0.577.0(react@19.2.3)
+      markdown-it:
+        specifier: ^14.1.0
+        version: 14.1.1
       next:
         specifier: 16.1.6
         version: 16.1.6(@babel/core@7.29.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -87,6 +93,9 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.2.1
+      '@types/markdown-it':
+        specifier: ^14.1.2
+        version: 14.1.2
       '@types/node':
         specifier: ^20
         version: 20.19.35
