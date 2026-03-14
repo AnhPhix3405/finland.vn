@@ -5,7 +5,6 @@ import { HeartOff, MapPin, Eye, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useAuthStore } from "@/src/store/authStore";
 import { getBookmarkedListings, toggleBookmark } from "@/src/app/modules/bookmarks.service";
-import { transaction_types } from '../../app/generated/prisma/browser';
 
 interface SavedListing {
   id: string;
