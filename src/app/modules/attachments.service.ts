@@ -12,3 +12,15 @@ export const getAttachmentsByTarget = async (targetId: string, targetType: strin
     });
     return response.json();
 };
+
+export const updateAttachmentSortOrder = async (attachmentId: string, sortOrder: number, accessToken: string) => {
+    const response = await fetch(`/api/attachments/${attachmentId}`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ sort_order: sortOrder })
+    });
+    return response.json();
+};

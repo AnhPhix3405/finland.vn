@@ -2,12 +2,13 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Camera, Plus, X } from "lucide-react";
+import { ArrowLeft, Plus, X } from "lucide-react";
 import RichTextEditor from "@/src/components/ui/RichTextEditor";
 import LocationSelector from "@/src/components/feature/LocationSelector";
 import { loadAllFormOptions, SelectOption } from "@/src/app/modules/form-options.service";
 import { uploadListingAttachments, deleteAttachment } from "@/src/app/modules/upload.service";
 import { getAllTagNamesAPI, processTagsForListingClient } from "@/src/app/modules/tags.service.client";
+import { updateAttachmentSortOrder } from "@/src/app/modules/attachments.service";
 import { useAuthStore } from "@/src/store/authStore";
 
 interface Attachment {
@@ -20,6 +21,7 @@ interface Attachment {
   target_id: string;
   target_type: string;
   created_at: string;
+  sort_order?: number;
 }
 
 export default function EditListingPage() {
@@ -43,7 +45,6 @@ export default function EditListingPage() {
   // Options loaded from API
   const [propertyTypes, setPropertyTypes] = useState<SelectOption[]>([]);
   const [transactionTypes, setTransactionTypes] = useState<SelectOption[]>([]);
-  const [optionsLoading, setOptionsLoading] = useState(true);
 
   // Form data states
   const [title, setTitle] = useState("");
@@ -63,13 +64,14 @@ export default function EditListingPage() {
 
   // File states
   const [initialImages, setInitialImages] = useState<Attachment[]>([]);
+  const [originalImages, setOriginalImages] = useState<Attachment[]>([]);
   const [deletedApiImages, setDeletedApiImages] = useState<string[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [draggedItem, setDraggedItem] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Derive property type for conditional rendering
   const selectedPropertyType = propertyTypes.find(pt => pt.id === propertyTypeId);
-  const selectedTransactionType = transactionTypes.find(tt => tt.id === transactionTypeId);
 
   const isApartment = selectedPropertyType?.hashtag === "chung-cu";
   const isHouse = ["nha-pho", "biet-thu", "shophouse", "nha-tro"].includes(selectedPropertyType?.hashtag || "");
@@ -92,8 +94,6 @@ export default function EditListingPage() {
         setTagSuggestions(tags);
       } catch (error) {
         console.error('Error loading options:', error);
-      } finally {
-        setOptionsLoading(false);
       }
 
       if (!slug) return;
@@ -136,17 +136,20 @@ export default function EditListingPage() {
           const imgRes = await fetch(`/api/attachments/${l.id}?target_type=listing`);
           const imgJson = await imgRes.json();
           if (imgJson.success) {
-            setInitialImages(imgJson.data || []);
+            const images = (imgJson.data || []).sort((a: Attachment, b: Attachment) => (a.sort_order || 0) - (b.sort_order || 0));
+            console.log('📸 Initial images sorted:', images);
+            setInitialImages(images);
+            setOriginalImages(JSON.parse(JSON.stringify(images)));
           }
         }
-      } catch (error) {
-        console.error('Lỗi lấy thông tin bài viết:', error);
+      } catch (_error) {
+        console.error('Lỗi lấy thông tin bài viết:', _error);
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, [slug]);
+  }, [slug, router]);
 
   const slugify = (text: string) => {
     return text.toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').replace(/([^0-9a-z-\s])/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
@@ -180,7 +183,6 @@ export default function EditListingPage() {
     
     if (value.trim().length > 0) {
       try {
-        const localFiltered = tagSuggestions.filter(tag => tag.toLowerCase().includes(value.toLowerCase()) && !selectedHashTags.includes(tag));
         if (value.trim().length > 1) {
           const freshSuggestions = await getAllTagNamesAPI(value.trim());
           const filteredFresh = freshSuggestions.filter(tag => !selectedHashTags.includes(tag));
@@ -216,6 +218,35 @@ export default function EditListingPage() {
 
   const removeFile = (index: number) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDragStart = (index: number) => {
+    setDraggedItem(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (dropIndex: number) => {
+    if (draggedItem === null || draggedItem === dropIndex) {
+      setDraggedItem(null);
+      return;
+    }
+
+    const newImages = [...initialImages];
+    const draggedImage = newImages[draggedItem];
+    newImages.splice(draggedItem, 1);
+    newImages.splice(dropIndex, 0, draggedImage);
+    
+    // Update sort_order based on new position
+    const updatedImages = newImages.map((img, idx) => ({
+      ...img,
+      sort_order: idx
+    }));
+    
+    setInitialImages(updatedImages);
+    setDraggedItem(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -268,9 +299,25 @@ export default function EditListingPage() {
         await processTagsForListingClient(selectedHashTags, listingId);
       }
 
+      // 2.5 UPDATE SORT ORDER FOR CHANGED IMAGES ONLY
+      if (initialImages.length > 0) {
+        const changedImages = initialImages.filter(img => {
+          const original = originalImages.find(o => o.id === img.id);
+          return !original || original.sort_order !== img.sort_order;
+        });
+        
+        if (changedImages.length > 0) {
+          await Promise.all(changedImages.map(img => 
+            updateAttachmentSortOrder(img.id, img.sort_order || 0, accessToken)
+          ));
+        }
+      }
+
       // 3. FILE UPLOAD 
       if (selectedFiles.length > 0) {
-         await Promise.all(selectedFiles.map(file => uploadListingAttachments(file, listingId)));
+         await Promise.all(selectedFiles.map((file) => 
+           uploadListingAttachments(file, listingId)
+         ));
          setSelectedFiles([]);
       }
 
@@ -501,27 +548,60 @@ export default function EditListingPage() {
               </h4>
               <div className="space-y-4">
                 <div className="flex justify-between">
-                  <span className="text-sm">Đã chọn: {initialImages.length - deletedApiImages.length + selectedFiles.length}/20</span>
-                  <button type="button" onClick={() => fileInputRef.current?.click()} className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg text-sm font-bold">Thêm File</button>
+                  <span className="text-sm text-slate-600 dark:text-slate-400">Tổng: {(initialImages.length - deletedApiImages.length) + selectedFiles.length}/20 file</span>
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg text-sm font-bold hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors">+ Thêm ảnh/video</button>
                   <input ref={fileInputRef} type="file" multiple accept="image/*,video/*" onChange={handleFileSelect} className="hidden" />
                 </div>
                 
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Cũ (API) */}
-                  {initialImages.filter(img => !deletedApiImages.includes(img.id)).map(img => (
-                    <div key={img.id} className="relative aspect-square rounded-xl overflow-hidden border">
-                      <img src={img.secure_url || img.url} alt="Listing File" className="w-full h-full object-cover" />
-                      <button type="button" onClick={() => handleRemoveApiImage(img.id)} className="absolute top-2 right-2 font-bold w-6 h-6 bg-red-500 text-white rounded-full text-xs">×</button>
+                <div className="space-y-4">
+                  {/* Cũ (API) - Kéo để sắp xếp */}
+                  {initialImages.filter(img => !deletedApiImages.includes(img.id)).length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3">Ảnh hiện tại (kéo để sắp xếp)</p>
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        {initialImages.filter(img => !deletedApiImages.includes(img.id)).map((img, idx) => (
+                          <div 
+                            key={img.id} 
+                            draggable
+                            onDragStart={() => handleDragStart(idx)}
+                            onDragOver={handleDragOver}
+                            onDrop={() => handleDrop(idx)}
+                            className={`relative aspect-square rounded-xl overflow-hidden border-2 cursor-move transition-all ${
+                              draggedItem === idx ? 'opacity-50 border-emerald-500' : 'border-slate-200 dark:border-slate-700'
+                            }`}
+                          >
+                            <img src={img.secure_url || img.url} alt="Listing File" className="w-full h-full object-cover" />
+                            {img.sort_order === 0 && (
+                              <span className="absolute bottom-2 left-2 bg-emerald-500 text-white text-[10px] uppercase font-bold px-2 py-1 rounded">Chính</span>
+                            )}
+                            {img.sort_order !== 0 && (
+                              <span className="absolute bottom-2 left-2 bg-slate-700 text-white text-[10px] uppercase font-bold px-2 py-1 rounded">#{img.sort_order || 0}</span>
+                            )}
+                            <button type="button" onClick={() => handleRemoveApiImage(img.id)} className="absolute top-2 right-2 font-bold w-6 h-6 bg-red-500 text-white rounded-full text-xs hover:bg-red-600">×</button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
+                  )}
+                  
                   {/* Mới (Local File) */}
-                  {selectedFiles.map((file, idx) => (
-                    <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border-2 border-dashed border-emerald-400">
-                       <img src={URL.createObjectURL(file)} className="w-full h-full object-cover" />
-                       <span className="absolute top-2 left-2 bg-emerald-500 text-white text-[10px] uppercase font-bold px-1.5 py-0.5 rounded">Mới</span>
-                       <button type="button" onClick={() => removeFile(idx)} className="absolute font-bold top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs">×</button>
+                  {selectedFiles.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3">Ảnh mới thêm</p>
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        {selectedFiles.map((file, idx) => (
+                          <div 
+                            key={idx} 
+                            className="relative aspect-square rounded-xl overflow-hidden border-2 border-dashed border-emerald-400"
+                          >
+                            <img src={URL.createObjectURL(file)} alt="New file" className="w-full h-full object-cover" />
+                            <span className="absolute top-2 left-2 bg-emerald-500 text-white text-[10px] uppercase font-bold px-1.5 py-0.5 rounded">Mới</span>
+                            <button type="button" onClick={() => removeFile(idx)} className="absolute font-bold top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs hover:bg-red-600">×</button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </section>

@@ -24,6 +24,7 @@ model attachments {
   public_id     String?
   target_type   String?   @db.VarChar(50)
   target_id     String?   @db.Uuid
+  sort_order    Int?      @default(0)
 }
 
 model brokers {

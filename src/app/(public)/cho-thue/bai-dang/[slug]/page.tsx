@@ -6,6 +6,7 @@ import { PropertyFilter, FilterState } from "@/src/components/property/PropertyF
 import { useAuthStore } from "@/src/store/authStore";
 import { useParams, useRouter } from "next/navigation";
 import { getListingsByHashtags } from "@/src/app/modules/listings.service";
+import { getAttachmentsByTarget } from "@/src/app/modules/attachments.service";
 import { Pagination } from "@/src/components/shared/Pagination";
 import { ArrowLeft } from "lucide-react";
 import { PropertyDetail } from "@/src/components/property/PropertyDetail";
@@ -65,6 +66,14 @@ interface Listing {
   } | null;
 }
 
+interface Attachment {
+  id: string;
+  secure_url: string;
+  url?: string;
+  original_name?: string | null;
+  sort_order?: number;
+}
+
 export default function ChoThueDetailOrFilterPage() {
   const router = useRouter();
   const params = useParams();
@@ -81,6 +90,7 @@ export default function ChoThueDetailOrFilterPage() {
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   // For property type filter view
   const [properties, setProperties] = useState<MappedProperty[]>([]);
@@ -190,6 +200,14 @@ export default function ChoThueDetailOrFilterPage() {
 
         if (result.success) {
           setListing(result.data);
+          
+          // Fetch and sort attachments
+          const attachRes = await getAttachmentsByTarget(result.data.id, 'listing');
+          if (attachRes.success) {
+            const sorted = (attachRes.data || []).sort((a: Attachment, b: Attachment) => (a.sort_order || 0) - (b.sort_order || 0));
+            console.log('📸 Attachments sorted:', sorted);
+            setAttachments(sorted);
+          }
         } else {
           setError(result.error || 'Không tìm thấy bài đăng');
         }
@@ -319,6 +337,7 @@ export default function ChoThueDetailOrFilterPage() {
         <PropertyDetail
           type="cho-thue"
           listing={listing}
+          attachments={attachments}
           isDemo={false}
         />
       </div>

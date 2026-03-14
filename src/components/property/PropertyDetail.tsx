@@ -34,8 +34,9 @@ import { useAuthStore } from "@/src/store/authStore";
 interface Attachment {
   id: string;
   secure_url: string;
-  url: string;
+  url?: string;
   original_name?: string | null;
+  sort_order?: number;
 }
 
 interface Listing {
@@ -86,10 +87,11 @@ interface Listing {
 interface PropertyDetailProps {
   type: "mua-ban" | "cho-thue";
   listing?: Listing | null;
+  attachments?: Attachment[];
   isDemo?: boolean;
 }
 
-export function PropertyDetail({ type, listing, isDemo = false }: PropertyDetailProps) {
+export function PropertyDetail({ type, listing, attachments: propsAttachments, isDemo = false }: PropertyDetailProps) {
   const router = useRouter();
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -99,22 +101,28 @@ export function PropertyDetail({ type, listing, isDemo = false }: PropertyDetail
   const addToast = useNotificationStore((state) => state.addToast);
   const accessToken = useAuthStore((state) => state.accessToken);
 
-  // Fetch real attachments for the listing
+  // Use props attachments if provided, otherwise fetch from API
   useEffect(() => {
+    if (propsAttachments && propsAttachments.length > 0) {
+      setAttachments(propsAttachments);
+      return;
+    }
+
     if (!listing?.id) return;
     const fetchAttachments = async () => {
       try {
         const res = await fetch(`/api/attachments?target_id=${listing.id}&target_type=listing&limit=20`);
         const json = await res.json();
         if (json.success && json.data?.length > 0) {
-          setAttachments(json.data);
+          const sorted = (json.data || []).sort((a: Attachment, b: Attachment) => (a.sort_order || 0) - (b.sort_order || 0));
+          setAttachments(sorted);
         }
       } catch (_err) {
         console.error("Error fetching listing attachments:", _err);
       }
     };
     fetchAttachments();
-  }, [listing?.id]);
+  }, [listing?.id, propsAttachments]);
 
   const handleBookmarkClick = async () => {
     if (!accessToken) {

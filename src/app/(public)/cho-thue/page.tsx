@@ -33,6 +33,22 @@ export default function ChoThuePage() {
     return hashtags;
   };
 
+  const defaultImage = "https://lh3.googleusercontent.com/aida-public/AB6AXuAH-qH24_KE8TIFtAOlg2VMxFw51PbmagHsDz-fp6Y_o13wCplh0YpY5tUVGtFy_1YJB66cE-ffhS1bk0Khp5Id5HsZm2Vn7isAq4e3dgAm2smw-oxIc6ZJMRAczbqKi_kj0UIofIfDnHxU34GvPlK-Og0xGinm9wGIfWLsRQ9fqzoYOYfmBA-cQ32_dFeyQ0cYN5hgai2CsH15n0rd3N0dVC5HbLBDzPaUbpyyq_mUnWXQDljSIAPURnziqfdaHPhnGT183UxhHGub";
+
+  const getListingImage = async (listingId: string): Promise<string> => {
+    try {
+      const res = await fetch(`/api/attachments/${listingId}?target_type=listing`);
+      const data = await res.json();
+      if (data.success && data.data && Array.isArray(data.data) && data.data.length > 0) {
+        const firstAttachment = data.data[0];
+        return firstAttachment.secure_url || firstAttachment.url || defaultImage;
+      }
+    } catch (error) {
+      console.error(`Error fetching image for listing ${listingId}:`, error);
+    }
+    return defaultImage;
+  };
+
   const formatPrice = (price: string | number) => {
     if (!price) return "Thỏa thuận";
     const numPrice = Number(price);
@@ -63,10 +79,10 @@ export default function ChoThuePage() {
         sortBy: filters.sortBy
       });
       
-      // Map API data to component expected format
-      const mappedProperties = result.data.map((listing: Record<string, unknown>) => ({
+      // Map API data to component expected format with fetching images
+      const mappedProperties = await Promise.all(result.data.map(async (listing: Record<string, unknown>) => ({
         id: String(listing.id),
-        image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAH-qH24_KE8TIFtAOlg2VMxFw51PbmagHsDz-fp6Y_o13wCplh0YpY5tUVGtFy_1YJB66cE-ffhS1bk0Khp5Id5HsZm2Vn7isAq4e3dgAm2smw-oxIc6ZJMRAczbqKi_kj0UIofIfDnHxU34GvPlK-Og0xGinm9wGIfWLsRQ9fqzoYOYfmBA-cQ32_dFeyQ0cYN5hgai2CsH15n0rd3N0dVC5HbLBDzPaUbpyyq_mUnWXQDljSIAPURnziqfdaHPhnGT183UxhHGub", // Default image for now
+        image: await getListingImage(String(listing.id)),
         price: (listing.price as string | number) ? formatPrice(listing.price as string | number) : "Thỏa thuận",
         area: (listing.area as number | null) ? `${listing.area} m²` : "N/A",
         title: listing.title,
@@ -77,7 +93,7 @@ export default function ChoThuePage() {
         broker: listing.brokers,
         status: listing.status,
         is_bookmarked: listing.is_bookmarked || false
-      }));
+      })));
       
       setProperties(mappedProperties);
       setPagination({

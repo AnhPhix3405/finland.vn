@@ -8,6 +8,7 @@ import { PropertyDetail } from "../../../../../components/property/PropertyDetai
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getListingsByHashtags } from "../../../../modules/listings.service";
+import { getAttachmentsByTarget } from "@/src/app/modules/attachments.service";
 import { useAuthStore } from "@/src/store/authStore";
 
 interface MappedProperty {
@@ -66,6 +67,14 @@ interface Listing {
   listing_code?: string | null;
 }
 
+interface Attachment {
+  id: string;
+  secure_url: string;
+  url?: string;
+  original_name?: string | null;
+  sort_order?: number;
+}
+
 export default function MuaBanDetailOrFilterPage() {
   const router = useRouter();
   const params = useParams();
@@ -82,6 +91,7 @@ export default function MuaBanDetailOrFilterPage() {
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   // For property type filter view
   const [properties, setProperties] = useState<MappedProperty[]>([]);
@@ -194,6 +204,12 @@ export default function MuaBanDetailOrFilterPage() {
 
         if (result.success) {
           setListing(result.data);
+          const attachRes = await getAttachmentsByTarget(result.data.id, 'listing');
+          if (attachRes.success) {
+            const sorted = (attachRes.data || []).sort((a: Attachment, b: Attachment) => (a.sort_order || 0) - (b.sort_order || 0));
+            console.log('📸 Attachments sorted:', sorted);
+            setAttachments(sorted);
+          }
         } else {
           setError(result.error || 'Không tìm thấy bài đăng');
         }
@@ -325,6 +341,7 @@ export default function MuaBanDetailOrFilterPage() {
           <PropertyDetail
             type="mua-ban"
             listing={listing}
+            attachments={attachments}
             isDemo={false}
           />
         </div>

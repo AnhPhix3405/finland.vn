@@ -94,3 +94,55 @@ export async function DELETE(
         );
     }
 }
+
+// PATCH /api/attachments/[id] - Cập nhật attachment (ví dụ: sort_order)
+export async function PATCH(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const { id } = await params;
+        const body = await request.json();
+
+        const { sort_order } = body;
+
+        // Tìm attachment trong DB
+        const attachment = await prisma.attachments.findUnique({
+            where: { id }
+        });
+
+        if (!attachment) {
+            return NextResponse.json(
+                { success: false, error: 'Không tìm thấy attachment' },
+                { status: 404 }
+            );
+        }
+
+        // Cập nhật attachment
+        const updatedAttachment = await prisma.attachments.update({
+            where: { id },
+            data: {
+                ...(sort_order !== undefined && { sort_order })
+            }
+        });
+
+        // Parse BigInt sang string
+        const serializedAttachment = {
+            ...updatedAttachment,
+            size_bytes: updatedAttachment.size_bytes ? updatedAttachment.size_bytes.toString() : null
+        };
+
+        return NextResponse.json({
+            success: true,
+            data: serializedAttachment,
+            message: 'Cập nhật attachment thành công'
+        });
+
+    } catch (error) {
+        console.error('Error updating attachment:', error);
+        return NextResponse.json(
+            { success: false, error: 'Lỗi khi cập nhật attachment' },
+            { status: 500 }
+        );
+    }
+}
