@@ -200,7 +200,7 @@ export default function ProjectDetail() {
           <li>
             <div className="flex items-center">
               <span className="material-symbols-outlined text-gray-400 text-sm mx-1">chevron_right</span>
-              <a className="text-sm text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-white transition-colors" href="/du-an">Danh sách dự án</a>
+              <Link className="text-sm text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-white transition-colors" href="/du-an">Danh sách dự án</Link>
             </div>
           </li>
           <li>

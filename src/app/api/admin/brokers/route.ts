@@ -85,7 +85,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Xử lý hash password nếu client gửi password mới
-    const finalUpdateData: any = { ...updateData };
+    const finalUpdateData: Record<string, unknown> = { ...updateData };
     if (password) {
       finalUpdateData.password_hash = await hashPassword(password);
     }

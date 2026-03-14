@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
         const skip = (page - 1) * limit;
 
         // Tạo điều kiện where
-        const where: any = {};
+        const where: Record<string, unknown> = {};
 
         if (target_id) {
             where.target_id = target_id;

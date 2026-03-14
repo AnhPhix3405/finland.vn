@@ -116,21 +116,26 @@ export default function ChoThuePropertyTypePage() {
           }
         };
 
-        const mappedProperties = result.data.map((item: Listing) => ({
-          id: item.id,
+        const mappedProperties: MappedProperty[] = result.data.map((item: Record<string, unknown>) => ({
+          id: String(item.id),
           image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAH-qH24_KE8TIFtAOlg2VMxFw51PbmagHsDz-fp6Y_o13wCplh0YpY5tUVGtFy_1YJB66cE-ffhS1bk0Khp5Id5HsZm2Vn7isAq4e3dgAm2smw-oxIc6ZJMRAczbqKi_kj0UIofIfDnHxU34GvPlK-Og0xGinm9wGIfWLsRQ9fqzoYOYfmBA-cQ32_dFeyQ0cYN5hgai2CsH15n0rd3N0dVC5HbLBDzPaUbpyyq_mUnWXQDljSIAPURnziqfdaHPhnGT183UxhHGub",
-          price: item.price ? formatPrice(item.price) : "Thỏa thuận",
-          area: item.area ? `${item.area} m²` : "N/A",
-          title: item.title,
+          price: (item.price as string | null) ? formatPrice(item.price as string | number) : "Thỏa thuận",
+          area: (item.area as number | null) ? `${item.area} m²` : "N/A",
+          title: String(item.title),
           location: `${item.ward}, ${item.province}`,
-          tags: item.tags?.map((tag: { slug: string }) => tag.slug) || [],
-          slug: item.slug || "",
-          broker: item.brokers,
-          status: item.status || ""
+          tags: ((item.tags as unknown[]) || [])?.map((tag: unknown) => String((tag as Record<string, unknown>).slug)) || [],
+          slug: item.slug ? String(item.slug) : "",
+          broker: (item.brokers as Record<string, unknown>) || {},
+          status: item.status ? String(item.status) : ""
         }));
 
         setProperties(mappedProperties);
-        setPagination({ ...result.pagination });
+        setPagination({
+          page: (result.pagination as Record<string, unknown>).page as number,
+          limit: (result.pagination as Record<string, unknown>).limit as number,
+          total: (result.pagination as Record<string, unknown>).total as number,
+          totalPages: (result.pagination as Record<string, unknown>).totalPages as number
+        });
         setError(null);
       } catch (err) {
         console.error('Error loading filtered listings:', err);

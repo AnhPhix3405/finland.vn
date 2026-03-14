@@ -330,7 +330,7 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
                           type="text"
                           value={editingItem.name}
                           onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
-                          onKeyPress={(e) => handleKeyPress(e, () => handleUpdate(editingItem.id, editingItem.name, (editingItem as any).hashtag))}
+                          onKeyPress={(e) => handleKeyPress(e, () => handleUpdate(editingItem.id, editingItem.name, editingItem.hashtag || ''))}
                           onBlur={() => setEditingItem(null)}
                           autoFocus
                           className="w-full px-2 py-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:text-white"
@@ -343,15 +343,15 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
                       {editingItem?.id === item.id ? (
                         <input
                           type="text"
-                          value={(editingItem as any).hashtag || ''}
-                          onChange={(e) => setEditingItem({ ...editingItem, hashtag: e.target.value } as any)}
-                          onKeyPress={(e) => handleKeyPress(e, () => handleUpdate(editingItem.id, editingItem.name, (editingItem as any).hashtag))}
+                          value={editingItem.hashtag || ''}
+                          onChange={(e) => setEditingItem({ ...editingItem, hashtag: e.target.value })}
+                          onKeyPress={(e) => handleKeyPress(e, () => handleUpdate(editingItem.id, editingItem.name, editingItem.hashtag || ''))}
                           onBlur={() => setEditingItem(null)}
                           className="w-full px-2 py-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:text-white"
                           placeholder="Hashtag..."
                         />
                       ) : (
-                        <span className="text-slate-600 dark:text-slate-400 font-mono text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">#{(item as any).hashtag || 'N/A'}</span>
+                        <span className="text-slate-600 dark:text-slate-400 font-mono text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">#{item.hashtag || 'N/A'}</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">
@@ -359,7 +359,7 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button 
-                        onClick={() => setEditingItem({ ...item, hashtag: (item as any).hashtag } as any)}
+                        onClick={() => setEditingItem({ ...item, hashtag: item.hashtag || '' })}
                         aria-label={`Sửa ${currentType === 'property' ? 'loại hình BĐS' : 'loại hình giao dịch'}`}
                         title="Sửa"
                         className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 p-1 transition-colors rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"

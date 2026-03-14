@@ -123,9 +123,9 @@ export default function AdminProjectDetail() {
       setLoadingImages(true);
       try {
         const res = await fetch(`/api/attachments/${activeProjectId}?target_type=project`);
-        const json = await res.json();
+        const json = await res.json() as Record<string, unknown>;
         if (json.success) {
-          setImages(json.data);
+          setImages((json.data as Attachment[]) || []);
         }
       } catch (err) {
         console.error('Lỗi khi tải ảnh từ API:', err);
@@ -202,9 +202,10 @@ export default function AdminProjectDetail() {
       }
 
       setToast({ message: 'Lưu dự án thành công!', type: 'success' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Lỗi khi lưu dự án:', error);
-      setToast({ message: error.message || 'Có lỗi xảy ra khi lưu dự án!', type: 'error' });
+      const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi lưu dự án!';
+      setToast({ message: errorMessage, type: 'error' });
     } finally {
       setIsUploading(false);
     }

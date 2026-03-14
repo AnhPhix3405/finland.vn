@@ -101,7 +101,7 @@ export async function getListings(params?: {
   priceMax?: string;
   sortBy?: string;
   token?: string;
-}): Promise<{data: any[], pagination: any}> {
+}): Promise<{data: Record<string, unknown>[], pagination: Record<string, unknown>}> {
   try {
     const { page = 1, limit = 10, hashtags, province, ward, priceMin, priceMax, sortBy, token } = params || {};
     
@@ -175,7 +175,7 @@ export async function getListingsByHashtags(hashtags: string[], params?: {
   priceMin?: string;
   priceMax?: string;
   sortBy?: string;
-}): Promise<{data: any[], pagination: any}> {
+}): Promise<{data: Record<string, unknown>[], pagination: Record<string, unknown>}> {
   return getListings({
     ...params,
     hashtags
@@ -186,7 +186,7 @@ export async function getListingsByHashtags(hashtags: string[], params?: {
 export async function getMyListings(
   token: string, 
   status: string = "all"
-): Promise<{ success: boolean; data: any[]; pagination?: any; error?: string }> {
+): Promise<{ success: boolean; data: Record<string, unknown>[]; pagination?: Record<string, unknown>; error?: string }> {
   try {
     const response = await fetch(`/api/brokers/me/listings?status=${status}&limit=50`, {
       headers: {

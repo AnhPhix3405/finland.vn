@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
     <>
@@ -41,9 +43,9 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-6 border-b border-gray-200 dark:border-slate-700 pb-2">
             <h2 className="text-xl font-bold text-slate-900 dark:text-white uppercase">Dự án nổi bật</h2>
-            <a className="text-sm text-primary hover:text-emerald-600 font-medium flex items-center" href="/du-an">
+            <Link className="text-sm text-primary hover:text-emerald-600 font-medium flex items-center" href="/du-an">
               Xem tất cả <span className="material-symbols-outlined text-sm ml-1">chevron_right</span>
-            </a>
+            </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             
@@ -65,9 +67,9 @@ export default function Home() {
                   <span className="text-sm font-medium text-gray-600 dark:text-slate-300">75 m²</span>
                 </div>
                 <div className="mt-auto border-t border-gray-100 dark:border-slate-700 pt-4">
-                  <a className="block w-full text-center px-4 py-2 border border-emerald-700 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-sm text-sm font-medium transition-colors" href="/du-an/demo">
+                  <Link className="block w-full text-center px-4 py-2 border border-emerald-700 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-sm text-sm font-medium transition-colors" href="/du-an/demo">
                     Xem chi tiết
-                  </a>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -90,9 +92,9 @@ export default function Home() {
                   <span className="text-sm font-medium text-gray-600 dark:text-slate-300">120 m²</span>
                 </div>
                 <div className="mt-auto border-t border-gray-100 dark:border-slate-700 pt-4">
-                  <a className="block w-full text-center px-4 py-2 border border-emerald-700 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-sm text-sm font-medium transition-colors" href="/du-an/demo">
+                  <Link className="block w-full text-center px-4 py-2 border border-emerald-700 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-sm text-sm font-medium transition-colors" href="/du-an/demo">
                     Xem chi tiết
-                  </a>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -115,9 +117,9 @@ export default function Home() {
                   <span className="text-sm font-medium text-gray-600 dark:text-slate-300">50 m²</span>
                 </div>
                 <div className="mt-auto border-t border-gray-100 dark:border-slate-700 pt-4">
-                  <a className="block w-full text-center px-4 py-2 border border-emerald-700 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-sm text-sm font-medium transition-colors" href="/du-an/demo">
+                  <Link className="block w-full text-center px-4 py-2 border border-emerald-700 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-sm text-sm font-medium transition-colors" href="/du-an/demo">
                     Xem chi tiết
-                  </a>
+                  </Link>
                 </div>
               </div>
             </div>

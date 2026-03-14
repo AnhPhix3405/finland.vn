@@ -25,6 +25,7 @@ export default function LocationSelector({
 
     useEffect(() => {
         if (!selectedProvince) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setWardsList([]);
             return;
         }

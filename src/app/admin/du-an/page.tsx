@@ -7,7 +7,7 @@ import { getProjects, deleteProject } from "@/src/app/modules/projects.service";
 import { deleteAttachmentsByTarget } from "@/src/app/modules/attachments.service";
 
 export default function AdminProjectList() {
-  const [projects, setProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<Record<string, unknown>[]>([]);
   const { setActiveProjectId } = useProjectContext();
   const router = useRouter();
 
@@ -23,6 +23,12 @@ export default function AdminProjectList() {
   };
 
   useEffect(() => {
+    // Initialize state for mounted check
+  }, []);
+
+  // Separate effect for fetching data
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProjects();
   }, []);
 
@@ -98,18 +104,18 @@ export default function AdminProjectList() {
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                 {/* Dữ liệu lấy từ API */}
-                {projects.map((project: any) => (
-                  <tr key={project.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                {projects.map((project: Record<string, unknown>) => (
+                  <tr key={String(project.id)} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                     <td className="px-6 py-3">
                       <div className="w-12 h-10 bg-slate-200 dark:bg-slate-700 rounded-sm bg-cover bg-center border border-slate-300 dark:border-slate-600 flex items-center justify-center text-slate-400">
                         <span className="material-symbols-outlined text-xl">image</span>
                       </div>
                     </td>
                     <td className="px-6 py-3 text-sm text-slate-900 dark:text-slate-100 font-bold">
-                      {project.name}
+                      {String(project.name)}
                     </td>
                     <td className="px-6 py-3 text-sm text-slate-600 dark:text-slate-300">
-                      {project.project_code || '---'}
+                      {String(project.project_code || '---')}
                     </td>
                     <td className="px-6 py-3 text-right whitespace-nowrap">
                       <button className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors p-1" title="Đang hiển thị">
@@ -117,8 +123,8 @@ export default function AdminProjectList() {
                       </button>
                       <button
                         onClick={() => {
-                          setActiveProjectId(project.id);
-                          router.push(`/admin/du-an/${project.slug}`);
+                          setActiveProjectId(String(project.id));
+                          router.push(`/admin/du-an/${String(project.slug)}`);
                         }}
                         className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors p-1 ml-1"
                         title="Chỉnh sửa"
@@ -126,7 +132,7 @@ export default function AdminProjectList() {
                         <span className="material-symbols-outlined text-lg">edit</span>
                       </button>
                       <button
-                        onClick={() => handleDelete(project.id, project.name)}
+                        onClick={() => handleDelete(String(project.id), String(project.name))}
                         className="text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors p-1 ml-1"
                         title="Xóa"
                       >

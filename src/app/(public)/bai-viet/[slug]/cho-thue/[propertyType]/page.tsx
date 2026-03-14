@@ -7,12 +7,26 @@ import { Pagination } from "../../../../../../components/shared/Pagination";
 import { getListingsByHashtags } from "../../../../../modules/listings.service";
 import { useParams, useRouter } from "next/navigation";
 
+interface PropertyCardData {
+  id: string;
+  image: string;
+  price: string;
+  area: string;
+  title: string;
+  location: string;
+  tags: string[];
+  isPriority: boolean;
+  slug?: string | null;
+  status?: string | null;
+  broker: unknown;
+}
+
 export default function ChoThuePropertyTypePage() {
   const params = useParams();
   const router = useRouter();
   const propertyType = params.propertyType as string;
 
-  const [properties, setProperties] = useState<any[]>([]);
+  const [properties, setProperties] = useState<PropertyCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentFilters, setCurrentFilters] = useState<FilterState>({
     propertyType: propertyType || ''
@@ -70,22 +84,27 @@ export default function ChoThuePropertyTypePage() {
       });
       
       // Map API data to component expected format
-      const mappedProperties = result.data.map((listing: any) => ({
-        id: listing.id,
+      const mappedProperties: PropertyCardData[] = result.data.map((listing: Record<string, unknown>) => ({
+        id: String(listing.id),
         image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAH-qH24_KE8TIFtAOlg2VMxFw51PbmagHsDz-fp6Y_o13wCplh0YpY5tUVGtFy_1YJB66cE-ffhS1bk0Khp5Id5HsZm2Vn7isAq4e3dgAm2smw-oxIc6ZJMRAczbqKi_kj0UIofIfDnHxU34GvPlK-Og0xGinm9wGIfWLsRQ9fqzoYOYfmBA-cQ32_dFeyQ0cYN5hgai2CsH15n0rd3N0dVC5HbLBDzPaUbpyyq_mUnWXQDljSIAPURnziqfdaHPhnGT183UxhHGub", // Default image for now
-        price: listing.price ? formatPrice(listing.price) : "Thỏa thuận",
+        price: (listing.price as string | number) ? formatPrice(listing.price as string | number) : "Thỏa thuận",
         area: listing.area ? `${listing.area} m²` : "N/A",
-        title: listing.title,
+        title: String(listing.title),
         location: `${listing.ward}, ${listing.province}`,
-        tags: listing.tags?.map((tag: any) => tag.slug) || [],
+        tags: (listing.tags as unknown[])?.map((tag: unknown) => String((tag as Record<string, unknown>).slug)) || [],
         isPriority: false, // Can add logic later
-        slug: listing.slug,
+        slug: listing.slug ? String(listing.slug) : null,
         broker: listing.brokers,
-        status: listing.status
+        status: listing.status ? String(listing.status) : null
       }));
       
       setProperties(mappedProperties);
-      setPagination({...result.pagination});
+      setPagination({
+        page: (result.pagination as Record<string, unknown>).page as number,
+        limit: (result.pagination as Record<string, unknown>).limit as number,
+        total: (result.pagination as Record<string, unknown>).total as number,
+        totalPages: (result.pagination as Record<string, unknown>).totalPages as number
+      });
     } catch (error) {
       console.error('Error loading listings:', error);
       setProperties([]);
@@ -101,6 +120,7 @@ export default function ChoThuePropertyTypePage() {
     };
     setCurrentFilters(initialFilters);
     loadListings(initialFilters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propertyType]);
 
   const handleFilterChange = (filters: FilterState) => {
@@ -145,9 +165,10 @@ export default function ChoThuePropertyTypePage() {
         <>
           {properties.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {properties.map((property) => (
-                <PropertyCard key={property.id} type="cho-thue" {...property} />
-              ))}
+              {properties.map((property) => {
+                const { broker, ...cardProps } = property;
+                return <PropertyCard key={property.id} type="cho-thue" {...cardProps} />;
+              })}
             </div>
           ) : (
             <div className="text-center py-12">

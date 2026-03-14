@@ -5,13 +5,12 @@ import { PropertyCard } from "../../../components/property/PropertyCard";
 import { PropertyFilter, FilterState } from "../../../components/property/PropertyFilter";
 import { Pagination } from "../../../components/shared/Pagination";
 import { getListingsByHashtags } from "../../modules/listings.service";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/src/store/authStore";
 
 export default function MuaBanPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [properties, setProperties] = useState<any[]>([]);
+  const [properties, setProperties] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentFilters, setCurrentFilters] = useState<FilterState>({});
   const [bookmarkedMap, setBookmarkedMap] = useState<Record<string, boolean>>({});
@@ -26,19 +25,19 @@ export default function MuaBanPage() {
 
   const buildHashtags = (filters: FilterState) => {
     const hashtags = ['mua-ban']; // Always include base hashtag
-    
+
     // Add property type hashtag if selected
     if (filters.propertyType && filters.propertyType !== '') {
       hashtags.push(filters.propertyType);
     }
-    
+
     return hashtags;
   };
 
   const formatPrice = (price: string | number) => {
     if (!price) return "Thỏa thuận";
     const numPrice = Number(price);
-    
+
     if (numPrice >= 1000000000) {
       const billions = numPrice / 1000000000;
       return `${billions.toFixed(1)} Tỷ`;
@@ -57,13 +56,13 @@ export default function MuaBanPage() {
     try {
       setLoading(true);
       const hashtags = buildHashtags(filters);
-      
+
       console.log('📤 loadListings - Sending request with:', {
         hashtags,
         accessToken: accessToken ? `${accessToken.substring(0, 20)}...` : 'NO TOKEN',
         filters
       });
-      
+
       const result = await getListingsByHashtags(hashtags, {
         page,
         limit: pagination.limit,
@@ -72,40 +71,45 @@ export default function MuaBanPage() {
         priceMin: filters.priceMin,
         priceMax: filters.priceMax,
         sortBy: filters.sortBy,
-        token: accessToken || undefined
       });
-      
+
       // Map API data to component expected format
-      const mappedProperties = result.data.map((listing: any) => ({
-        id: listing.id,
+      const mappedProperties = result.data.map((listing: Record<string, unknown>) => ({
+        id: String(listing.id),
         image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAH-qH24_KE8TIFtAOlg2VMxFw51PbmagHsDz-fp6Y_o13wCplh0YpY5tUVGtFy_1YJB66cE-ffhS1bk0Khp5Id5HsZm2Vn7isAq4e3dgAm2smw-oxIc6ZJMRAczbqKi_kj0UIofIfDnHxU34GvPlK-Og0xGinm9wGIfWLsRQ9fqzoYOYfmBA-cQ32_dFeyQ0cYN5hgai2CsH15n0rd3N0dVC5HbLBDzPaUbpyyq_mUnWXQDljSIAPURnziqfdaHPhnGT183UxhHGub", // Default image for now
-        price: listing.price ? formatPrice(listing.price) : "Thỏa thuận",
-        area: listing.area ? `${listing.area} m²` : "N/A",
+        price: (listing.price as string | number) ? formatPrice(listing.price as string | number) : "Thỏa thuận",
+        area: (listing.area as number | null) ? `${listing.area} m²` : "N/A",
         title: listing.title,
         location: `${listing.ward}, ${listing.province}`,
-        tags: listing.tags?.map((tag: any) => tag.slug) || [],
+        tags: ((listing.tags as unknown[]) || [])?.map((tag: unknown) => String((tag as Record<string, unknown>).slug)) || [],
         isPriority: false, // Can add logic later
         slug: listing.slug,
         broker: listing.brokers,
         status: listing.status,
         is_bookmarked: listing.is_bookmarked || false
       }));
-      
+
       setProperties(mappedProperties);
-      setPagination({...result.pagination});
-      
+      setPagination({
+        page: (result.pagination as Record<string, unknown>).page as number,
+        limit: (result.pagination as Record<string, unknown>).limit as number,
+        total: (result.pagination as Record<string, unknown>).total as number,
+        totalPages: (result.pagination as Record<string, unknown>).totalPages as number
+      });
+
       // Log response for debugging
       console.log('API Response (mua-ban):', {
         totalListings: result.data.length,
         sample: result.data[0],
-        allIsBookmarked: result.data.map((l: any) => ({ id: l.id, is_bookmarked: l.is_bookmarked }))
+        allIsBookmarked: result.data.map((l: Record<string, unknown>) => ({ id: l.id, is_bookmarked: l.is_bookmarked }))
       });
-      
+
       // Initialize bookmarkedMap from API response
       const initialBookmarkMap: Record<string, boolean> = {};
-      result.data.forEach((listing: any) => {
+      result.data.forEach((listing: Record<string, unknown>) => {
+        const listingId = String(listing.id);
         if (listing.is_bookmarked) {
-          initialBookmarkMap[listing.id] = true;
+          initialBookmarkMap[listingId] = true;
         }
       });
       setBookmarkedMap(initialBookmarkMap);
@@ -123,15 +127,16 @@ export default function MuaBanPage() {
       console.log('⏳ Waiting for authStore hydration... (mua-ban page)');
       return;
     }
-    
+
     const initialFilters = {};
     setCurrentFilters(initialFilters);
     loadListings(initialFilters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHydrated]);
 
   const handleFilterChange = (filters: FilterState) => {
     setCurrentFilters(filters);
-    
+
     // Navigate to property type page if selected
     if (filters.propertyType && filters.propertyType !== '') {
       router.push(`/mua-ban/${filters.propertyType}`);
@@ -171,19 +176,31 @@ export default function MuaBanPage() {
         <>
           {properties.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {properties.map((property) => (
-                <PropertyCard 
-                  key={property.id} 
-                  {...property}
-                  isBookmarked={bookmarkedMap[property.id] || false}
-                  onBookmarkToggle={(isBookmarked) => {
-                    setBookmarkedMap(prev => ({
-                      ...prev,
-                      [property.id]: isBookmarked
-                    }));
-                  }}
-                />
-              ))}
+              {properties.map((property) => {
+                const cardData = property as Record<string, unknown>;
+                return (
+                  <PropertyCard
+                    key={String(property.id)}
+                    id={String(cardData.id)}
+                    image={String(cardData.image)}
+                    price={String(cardData.price)}
+                    area={String(cardData.area)}
+                    title={String(cardData.title)}
+                    location={String(cardData.location)}
+                    tags={Array.isArray(cardData.tags) ? (cardData.tags as string[]) : []}
+                    slug={cardData.slug as string | undefined}
+                    type="mua-ban"
+                    status={cardData.status as string | undefined}
+                    isBookmarked={bookmarkedMap[String(property.id)] || false}
+                    onBookmarkToggle={(isBookmarked) => {
+                      setBookmarkedMap(prev => ({
+                        ...prev,
+                        [String(property.id)]: isBookmarked
+                      }));
+                    }}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-12">
@@ -192,9 +209,9 @@ export default function MuaBanPage() {
               </p>
             </div>
           )}
-          
+
           {properties.length > 0 && (
-            <Pagination 
+            <Pagination
               currentPage={pagination.page}
               totalPages={pagination.totalPages}
               onPageChange={handlePageChange}

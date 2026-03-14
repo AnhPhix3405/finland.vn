@@ -36,7 +36,7 @@ export default function MediaPicker({ isOpen, onClose, onSelect }: MediaPickerPr
             const res = await fetch(`/api/attachments?target_type=${targetType}&limit=50`);
             const json = await res.json();
             if (json.success && json.data) {
-                const fetchedUrls = json.data.map((item: any) => item.secure_url).filter(Boolean);
+                const fetchedUrls = json.data.map((item: Record<string, unknown>) => (item as Record<string, unknown>).secure_url).filter(Boolean);
                 setUploadedImages(prev => {
                     const existingUrls = new Set(prev);
                     const newUrls = fetchedUrls.filter((url: string) => !existingUrls.has(url));

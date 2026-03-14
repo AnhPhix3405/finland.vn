@@ -11,7 +11,7 @@ interface NewsArticle {
   description: string | null;
   thumbnail_url: string | null;
   created_at: Date | string;
-  tags: any[];
+  tags: Record<string, unknown>[];
 }
 
 export default function AdminNewsListPage() {

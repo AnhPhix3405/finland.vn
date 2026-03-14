@@ -21,8 +21,7 @@ import {
   ChevronRight as ChevronRightIcon,
   Home,
   Tag,
-  Hash,
-  Activity
+  Hash
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -110,19 +109,11 @@ export function PropertyDetail({ type, listing, isDemo = false }: PropertyDetail
         if (json.success && json.data?.length > 0) {
           setAttachments(json.data);
         }
-      } catch (err) {
-        console.error("Error fetching listing attachments:", err);
+      } catch (_err) {
+        console.error("Error fetching listing attachments:", _err);
       }
     };
     fetchAttachments();
-
-    // Check if listing has is_bookmarked field from API
-    if (listing.is_bookmarked) {
-      setIsBookmarked(true);
-      console.log('PropertyDetail - listing has is_bookmarked:', listing.is_bookmarked);
-    } else {
-      console.log('PropertyDetail - listing is_bookmarked:', listing.is_bookmarked);
-    }
   }, [listing?.id]);
 
   const handleBookmarkClick = async () => {
@@ -143,7 +134,7 @@ export function PropertyDetail({ type, listing, isDemo = false }: PropertyDetail
       } else {
         addToast(result.error, 'error');
       }
-    } catch (error) {
+    } catch (_error) {
       addToast('Lỗi khi thao tác bookmark', 'error');
     } finally {
       setIsLoadingBookmark(false);
@@ -285,7 +276,7 @@ export function PropertyDetail({ type, listing, isDemo = false }: PropertyDetail
           {attachments.length > 0 ? (
             <div className="space-y-2">
               {/* Main image */}
-              <div className="relative w-full h-[380px] rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <div className="relative w-full h-95 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                 <Image
                   src={attachments[selectedImageIndex]?.secure_url || attachments[0]?.secure_url}
                   alt={property.title}
@@ -309,7 +300,7 @@ export function PropertyDetail({ type, listing, isDemo = false }: PropertyDetail
                 {startIndex > 0 && (
                   <button
                     onClick={() => scrollImages("left")}
-                    className="absolute left-[-36px] top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-1.5 shadow hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors rounded-full"
+                    className="absolute -left-9 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-1.5 shadow hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors rounded-full"
                   >
                     <ChevronLeft className="size-4 text-slate-600 dark:text-slate-400" />
                   </button>
@@ -317,7 +308,7 @@ export function PropertyDetail({ type, listing, isDemo = false }: PropertyDetail
                 {startIndex + 4 < attachments.length && (
                   <button
                     onClick={() => scrollImages("right")}
-                    className="absolute right-[-36px] top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-1.5 shadow hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors rounded-full"
+                    className="absolute -right-9 top-1/2 -translate-y-1/2 z-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-1.5 shadow hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors rounded-full"
                   >
                     <ChevronRightIcon className="size-4 text-slate-600 dark:text-slate-400" />
                   </button>
@@ -470,14 +461,18 @@ export function PropertyDetail({ type, listing, isDemo = false }: PropertyDetail
           {/* Tags */}
           {property.tags && property.tags.length > 0 && (
             <div className="flex flex-wrap gap-2 pt-2">
-              {(property.tags as any[]).map((tag) => (
-                <span
-                  key={tag.id || tag}
-                  className="px-3 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium cursor-default hover:text-emerald-600 transition-colors"
-                >
-                  #{tag.name || tag}
-                </span>
-              ))}
+              {property.tags.map((tag) => {
+                const tagId = typeof tag === 'string' ? tag : tag.id;
+                const tagName = typeof tag === 'string' ? tag : tag.name;
+                return (
+                  <span
+                    key={tagId}
+                    className="px-3 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-medium cursor-default hover:text-emerald-600 transition-colors"
+                  >
+                    #{tagName}
+                  </span>
+                );
+              })}
             </div>
           )}
         </div>

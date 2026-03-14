@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/lib/prisma';
 
 // Helper function to handle BigInt serialization
-function serializeData(data: any) {
+function serializeData(data: Record<string, unknown> | unknown[]) {
   return JSON.parse(
     JSON.stringify(data, (key, value) =>
       typeof value === 'bigint' ? value.toString() : value

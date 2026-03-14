@@ -61,11 +61,11 @@ export async function POST(request: NextRequest) {
             message: 'Tạo admin đầu tiên thành công'
         }, { status: 201 });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error creating first admin:', error);
         
         // Handle unique constraint violation (duplicate email)
-        if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
+        if (error instanceof Object && 'code' in error && 'meta' in error && error.code === 'P2002' && (error.meta as Record<string, unknown>)?.target && Array.isArray((error.meta as Record<string, unknown>).target) && ((error.meta as Record<string, unknown>).target as string[]).includes('email')) {
             return NextResponse.json(
                 { success: false, error: 'Email đã được sử dụng' },
                 { status: 400 }

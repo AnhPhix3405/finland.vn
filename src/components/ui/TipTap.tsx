@@ -41,6 +41,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
     const [linkText, setLinkText] = useState('');
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setMounted(true);
     }, []);
 

@@ -10,9 +10,10 @@ export default function DebugBrokerPage() {
   const { isAuthenticated } = useAuthStore();
   const { user } = useUserStore();
   const [mounted, setMounted] = useState(false);
-  const [testResult, setTestResult] = useState<any>(null);
+  const [testResult, setTestResult] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -79,8 +80,8 @@ export default function DebugBrokerPage() {
         <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6">
           <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2">Test Instructions:</h3>
           <ol className="list-decimal list-inside space-y-1 text-sm text-yellow-700 dark:text-yellow-300">
-            <li>Make sure you're logged in</li>
-            <li>Click "Test Update Broker"</li>
+            <li>Make sure you&apos;re logged in</li>
+            <li>Click &quot;Test Update Broker&quot;</li>
             <li>Check if broker data gets updated in the user store</li>
             <li>Go to <a href="/tai-khoan" className="underline">account page</a> to test full form</li>
             <li>Try uploading an avatar</li>

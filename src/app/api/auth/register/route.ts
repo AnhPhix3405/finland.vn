@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
 
         return response;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Registration error:', error);
         return NextResponse.json(
             { success: false, error: 'Lỗi trong quá trình đăng ký' },

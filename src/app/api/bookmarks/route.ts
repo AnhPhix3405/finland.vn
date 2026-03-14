@@ -3,7 +3,7 @@ import { prisma } from '@/src/lib/prisma';
 import { verifyToken } from '@/src/app/modules/auth/jwt';
 
 // Helper function to handle BigInt serialization
-function serializeData(data: any) {
+function serializeData(data: Record<string, unknown> | unknown[]) {
   return JSON.parse(
     JSON.stringify(data, (key, value) =>
       typeof value === 'bigint' ? value.toString() : value
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('POST /api/bookmarks - Request:', {
-      brokerId: (payload as any).id,
+      brokerId: (payload as Record<string, unknown>).id,
       listingId: listing_id
     });
 
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     const existingBookmark = await prisma.bookmarks.findFirst({
       where: {
         listing_id,
-        broker_id: (payload as any).id as string
+        broker_id: (payload as Record<string, unknown>).id as string
       }
     });
 
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
 
       console.log('POST /api/bookmarks - Deleted bookmark:', {
         bookmarkId: existingBookmark.id,
-        brokerId: (payload as any).id,
+        brokerId: (payload as Record<string, unknown>).id,
         listingId: listing_id
       });
 
@@ -95,13 +95,13 @@ export async function POST(request: NextRequest) {
     const bookmark = await prisma.bookmarks.create({
       data: {
         listing_id,
-        broker_id: (payload as any).id as string
+        broker_id: (payload as Record<string, unknown>).id as string
       }
     });
 
     console.log('POST /api/bookmarks - Created bookmark:', {
       bookmarkId: bookmark.id,
-      brokerId: (payload as any).id,
+      brokerId: (payload as Record<string, unknown>).id,
       listingId: listing_id
     });
 
@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
 
-    const brokerId = (payload as any).id as string;
+    const brokerId = (payload as Record<string, unknown>).id as string;
 
     // If listing_ids provided, check which are bookmarked
     if (listing_ids.length > 0) {

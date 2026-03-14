@@ -3,7 +3,7 @@ import { SignJWT, jwtVerify } from "jose";
 const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
 const secret = new TextEncoder().encode(JWT_SECRET);
 
-export async function signAccessToken(payload: any) {
+export async function signAccessToken(payload: Record<string, unknown>) {
     return await new SignJWT(payload)
         .setProtectedHeader({ alg: "HS256" })
         .setIssuedAt()
@@ -11,7 +11,7 @@ export async function signAccessToken(payload: any) {
         .sign(secret);
 }
 
-export async function signRefreshToken(payload: any) {
+export async function signRefreshToken(payload: Record<string, unknown>) {
     return await new SignJWT(payload)
         .setProtectedHeader({ alg: "HS256" })
         .setIssuedAt()
@@ -29,7 +29,7 @@ export async function verifyToken(token: string) {
 }
 
 // Admin-specific JWT functions with shorter expiration times
-export async function signAdminAccessToken(payload: any) {
+export async function signAdminAccessToken(payload: Record<string, unknown>) {
     return await new SignJWT({ ...payload, role: 'admin' })
         .setProtectedHeader({ alg: "HS256" })
         .setIssuedAt()
@@ -37,7 +37,7 @@ export async function signAdminAccessToken(payload: any) {
         .sign(secret);
 }
 
-export async function signAdminRefreshToken(payload: any) {
+export async function signAdminRefreshToken(payload: Record<string, unknown>) {
     return await new SignJWT({ ...payload, role: 'admin' })
         .setProtectedHeader({ alg: "HS256" })
         .setIssuedAt()

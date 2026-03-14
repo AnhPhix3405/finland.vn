@@ -72,10 +72,10 @@ export default function MuaBanDetailOrFilterPage() {
   const slug = params.slug as string;
   const accessToken = useAuthStore((state) => state.accessToken);
   const isHydrated = useAuthStore((state) => state.isHydrated);
-  
+
   // State for property types from API
   const [propertyTypes, setPropertyTypes] = useState<Array<{ id: string; name: string; hashtag: string }>>([]);
-  
+
   // Determine if this is a property type filter or a listing detail
   const isPropertyType = propertyTypes.some(pt => pt.hashtag === slug.toLowerCase());
 
@@ -127,13 +127,12 @@ export default function MuaBanDetailOrFilterPage() {
           priceMin: filters.priceMin,
           priceMax: filters.priceMax,
           sortBy: filters.sortBy,
-          token: accessToken || undefined
         });
 
         const formatPrice = (price: string | number) => {
           if (!price) return "Thỏa thuận";
           const numPrice = Number(price);
-          
+
           if (numPrice >= 1000000000) {
             const billions = numPrice / 1000000000;
             return `${billions.toFixed(1)} Tỷ`;
@@ -148,21 +147,26 @@ export default function MuaBanDetailOrFilterPage() {
           }
         };
 
-        const mappedProperties = result.data.map((item: Listing) => ({
-          id: item.id,
+        const mappedProperties = result.data.map((item: Record<string, unknown>) => ({
+          id: String(item.id),
           image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAH-qH24_KE8TIFtAOlg2VMxFw51PbmagHsDz-fp6Y_o13wCplh0YpY5tUVGtFy_1YJB66cE-ffhS1bk0Khp5Id5HsZm2Vn7isAq4e3dgAm2smw-oxIc6ZJMRAczbqKi_kj0UIofIfDnHxU34GvPlK-Og0xGinm9wGIfWLsRQ9fqzoYOYfmBA-cQ32_dFeyQ0cYN5hgai2CsH15n0rd3N0dVC5HbLBDzPaUbpyyq_mUnWXQDljSIAPURnziqfdaHPhnGT183UxhHGub",
-          price: item.price ? formatPrice(item.price) : "Thỏa thuận",
-          area: item.area ? `${item.area} m²` : "N/A",
-          title: item.title,
+          price: (item.price as string | number) ? formatPrice(item.price as string | number) : "Thỏa thuận",
+          area: (item.area as number | null) ? `${item.area} m²` : "N/A",
+          title: String(item.title),
           location: `${item.ward}, ${item.province}`,
-          tags: item.tags?.map((tag: { slug: string }) => tag.slug) || [],
-          slug: item.slug || "",
-          broker: item.brokers,
-          status: item.status || ""
+          tags: ((item.tags as unknown[]) || [])?.map((tag: unknown) => String((tag as Record<string, unknown>).slug)) || [],
+          slug: item.slug ? String(item.slug) : "",
+          broker: (item.brokers as Record<string, unknown>) || {},
+          status: item.status ? String(item.status) : ""
         }));
 
         setProperties(mappedProperties);
-        setPagination({ ...result.pagination });
+        setPagination({
+          page: (result.pagination as Record<string, unknown>).page as number,
+          limit: (result.pagination as Record<string, unknown>).limit as number,
+          total: (result.pagination as Record<string, unknown>).total as number,
+          totalPages: (result.pagination as Record<string, unknown>).totalPages as number
+        });
       } catch (error) {
         console.error('Error loading filtered listings:', error);
         setError('Có lỗi xảy ra khi tải dữ liệu');
@@ -187,7 +191,7 @@ export default function MuaBanDetailOrFilterPage() {
         }
         const response = await fetch(`/api/listings/${slug}`, { headers });
         const result = await response.json();
-        
+
         if (result.success) {
           setListing(result.data);
         } else {
@@ -253,9 +257,9 @@ export default function MuaBanDetailOrFilterPage() {
                 </p>
               </div>
             )}
-            
+
             {properties.length > 0 && (
-              <Pagination 
+              <Pagination
                 currentPage={pagination.page}
                 totalPages={pagination.totalPages}
                 onPageChange={handlePageChange}
@@ -289,7 +293,7 @@ export default function MuaBanDetailOrFilterPage() {
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
               {error || 'Không tìm thấy bài đăng'}
             </h1>
-            <button 
+            <button
               onClick={() => router.push('/mua-ban')}
               className="text-emerald-600 hover:text-emerald-700 font-medium"
             >
@@ -307,7 +311,7 @@ export default function MuaBanDetailOrFilterPage() {
       <div className="min-h-screen bg-white dark:bg-slate-950 py-10 md:py-16">
         <div className="max-w-7xl mx-auto px-6 sm:px-10">
           <div className="mb-12">
-            <button 
+            <button
               onClick={() => router.back()}
               className="group inline-flex items-center gap-3 text-slate-400 hover:text-emerald-600 transition-all text-[10px] font-black uppercase tracking-[0.3em] w-fit"
             >
@@ -318,10 +322,10 @@ export default function MuaBanDetailOrFilterPage() {
             </button>
           </div>
 
-          <PropertyDetail 
-            type="mua-ban" 
+          <PropertyDetail
+            type="mua-ban"
             listing={listing}
-            isDemo={false} 
+            isDemo={false}
           />
         </div>
       </div>

@@ -135,9 +135,10 @@ export default function AdminCreateProject() {
                 router.push('/admin/du-an');
             }, 1500);
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Lỗi khi tạo dự án:', error);
-            setToast({ message: error.message || 'Có lỗi xảy ra khi tạo dự án!', type: 'error' });
+            const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi tạo dự án!';
+            setToast({ message: errorMessage, type: 'error' });
         } finally {
             setIsUploading(false);
         }

@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
         // Generate new access token
         // Remove exp and iat from payload to sign a fresh one
-        const { exp, iat, ...userData } = payload as any;
+        const { exp, iat, ...userData } = payload as Record<string, unknown>;
         const accessToken = await signAccessToken(userData);
 
         return NextResponse.json({

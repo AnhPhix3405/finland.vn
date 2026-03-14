@@ -65,7 +65,7 @@ export default function ProfileSection() {
     setMessage({ type: '', text: '' });
 
     try {
-      let updateData = { ...formData };
+      const updateData = { ...formData };
       
       if (selectedFile) {
         const uploadResult = await uploadBrokerAvatar(selectedFile, user.phone);

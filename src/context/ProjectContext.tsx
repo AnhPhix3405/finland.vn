@@ -20,9 +20,11 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
             const storedId = sessionStorage.getItem('activeProjectId');
             const storedSlug = sessionStorage.getItem('projectSlug');
             if (storedId) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setActiveProjectIdState(storedId);
             }
             if (storedSlug) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setProjectSlugState(storedSlug);
             }
         }

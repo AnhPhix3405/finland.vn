@@ -3,7 +3,7 @@ import { prisma } from '@/src/lib/prisma';
 import { verifyToken } from '@/src/app/modules/auth/jwt';
 
 // Helper function to handle BigInt serialization
-function serializeData(data: any) {
+function serializeData(data: Record<string, unknown> | unknown[]) {
   return JSON.parse(
     JSON.stringify(data, (key, value) =>
       typeof value === 'bigint' ? value.toString() : value
@@ -34,8 +34,8 @@ export async function GET(
     if (token) {
       try {
         const payload = await verifyToken(token);
-        if (payload && (payload as any).id) {
-          currentBrokerId = (payload as any).id as string;
+        if (payload && (payload as Record<string, unknown>).id) {
+          currentBrokerId = (payload as Record<string, unknown>).id as string;
         }
       } catch (err) {
         // Token invalid or expired, continue without broker context
@@ -305,7 +305,7 @@ export async function PATCH(
     }
 
     // Prepare update data
-    const updateData: any = { ...otherData };
+    const updateData: Record<string, unknown> = { ...otherData };
     if (price !== undefined) {
       if (price === null || price === "") {
         updateData.price = null;

@@ -4,7 +4,7 @@ import { processTagsForListing } from '@/src/app/modules/tags.service.server';
 import { verifyToken } from '@/src/app/modules/auth/jwt';
 
 // Helper function to handle BigInt serialization
-function serializeData(data: any) {
+function serializeData(data: Record<string, unknown> | unknown[]) {
   return JSON.parse(
     JSON.stringify(data, (key, value) =>
       typeof value === 'bigint' ? value.toString() : value
@@ -49,7 +49,7 @@ function createSlug(text: string): string {
 
 // Helper function to ensure unique slug
 async function generateUniqueSlug(title: string): Promise<string> {
-  let baseSlug = createSlug(title);
+  const baseSlug = createSlug(title);
   let slug = baseSlug;
   let counter = 1;
 
@@ -101,8 +101,8 @@ export async function GET(request: NextRequest) {
           payload: payload
         });
         
-        if (payload && (payload as any).id) {
-          currentBrokerId = (payload as any).id as string;
+        if (payload && (payload as Record<string, unknown>).id) {
+          currentBrokerId = (payload as Record<string, unknown>).id as string;
           console.log('✓ currentBrokerId extracted:', currentBrokerId);
         } else {
           console.log('✗ No id in payload');
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build where clause based on filters
-    const andConditions: any[] = [
+    const andConditions: Record<string, unknown>[] = [
       {
         status: {
           notIn: ['Đang chờ duyệt', 'Đã ẩn', 'Bị từ chối']
@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
 
     // Add price filters
     if (priceMin || priceMax) {
-      const priceFilter: any = {};
+      const priceFilter: Record<string, unknown> = {};
       if (priceMin) {
         try {
           priceFilter.gte = BigInt(priceMin);
@@ -229,7 +229,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build final whereClause from andConditions
-    let whereClause: any;
+    let whereClause: Record<string, unknown>;
     if (andConditions.length === 1) {
       whereClause = andConditions[0];
     } else {
@@ -239,7 +239,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Determine sort order
-    let orderBy: any = { id: 'desc' };
+    let orderBy: Record<string, unknown> = { id: 'desc' };
     
     if (sortBy === 'price_asc') {
       orderBy = { price: 'asc' };

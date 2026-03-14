@@ -68,23 +68,23 @@ export default function MyListingsSection() {
         const res = await getMyListings(accessToken, "all");
         
         if (res.success && res.data) {
-          const mapped = res.data.map((l: any) => ({
-             id: l.id,
-             listing_code: l.listing_code || l.id.slice(0, 8),
-             title: l.title,
-             price: formatPrice(l.price),
+          const mapped = res.data.map((l: Record<string, unknown>) => ({
+             id: String(l.id),
+             listing_code: l.listing_code ? String(l.listing_code) : String(l.id).slice(0, 8),
+             title: String(l.title),
+             price: formatPrice(l.price as string | number),
              address: l.address ? `${l.address}, ${l.ward}` : `${l.ward}, ${l.province}`,
              image: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=400", // Placeholder if no cover
-             status: l.status || "Đang chờ duyệt",
+             status: (l.status as ListingStatus) || "Đang chờ duyệt",
              date: "?",
              views: 0,
-             slug: l.slug,
-             transaction_type: l.transaction_types?.hashtag
+             slug: l.slug ? String(l.slug) : undefined,
+             transaction_type: (l.transaction_types as Record<string, unknown>)?.hashtag ? String((l.transaction_types as Record<string, unknown>).hashtag) : undefined
           }));
           setListings(mapped);
         }
-      } catch (err) {
-        console.error(err);
+      } catch (_err) {
+        console.error(_err);
       } finally {
         setLoading(false);
       }

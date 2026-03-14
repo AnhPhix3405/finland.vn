@@ -1,3 +1,5 @@
+"use client";
+
 import { ListingForm } from "@/src/components/property/ListingForm";
 
 export default function TestListingPage() {

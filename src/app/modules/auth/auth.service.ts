@@ -5,7 +5,7 @@
 import { useAuthStore } from "@/src/store/authStore";
 import { useUserStore } from "@/src/store/userStore";
 
-export const registerBroker = async (data: any) => {
+export const registerBroker = async (data: Record<string, unknown>) => {
     try {
         const response = await fetch('/api/auth/register', {
             method: 'POST',
