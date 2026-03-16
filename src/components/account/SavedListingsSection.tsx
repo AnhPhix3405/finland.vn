@@ -24,6 +24,7 @@ interface SavedListing {
     name?: string;
     hashtag?: string;
   } | null;
+  imageUrl?: string | null;
 }
 
 export default function SavedListingsSection() {
@@ -172,7 +173,7 @@ export default function SavedListingsSection() {
                 >
                   <div className="relative h-48 overflow-hidden bg-slate-100 dark:bg-slate-800">
                     <img
-                      src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=400&q=80"
+                      src={item.imageUrl || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=400&q=80"}
                       alt={item.title}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                       title={item.title}
@@ -206,7 +207,7 @@ export default function SavedListingsSection() {
                         href={`/${item.transaction_types?.hashtag || 'mua-ban'}/bai-dang/${item.slug}`}
                         className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-emerald-600 transition-colors"
                       >
-                        Chi tiết <Eye className="size-3.5" />
+                        Xem chi tiết <Eye className="size-3.5" />
                       </Link>
                     </div>
                   </div>

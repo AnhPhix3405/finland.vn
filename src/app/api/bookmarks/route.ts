@@ -240,6 +240,26 @@ export async function GET(request: NextRequest) {
       skip: skip
     });
 
+    // Fetch attachments for all listings in one query
+    const listingIds = bookmarks.map(b => b.listing_id);
+    const attachments = await prisma.attachments.findMany({
+      where: {
+        target_id: { in: listingIds },
+        target_type: 'listing'
+      },
+      orderBy: {
+        sort_order: 'asc'
+      }
+    });
+    
+    // Group by listing_id and take first image
+    const attachmentMap = new Map<string, string>();
+    attachments.forEach(att => {
+      if (!attachmentMap.has(att.target_id!)) {
+        attachmentMap.set(att.target_id!, att.secure_url || att.url);
+      }
+    });
+
     console.log('GET /api/bookmarks - Raw bookmarks from DB:', {
       count: bookmarks.length,
       firstItem: bookmarks[0] ? {
@@ -254,6 +274,7 @@ export async function GET(request: NextRequest) {
     const data = bookmarks.map(bookmark => ({
       bookmarkId: bookmark.id,
       ...bookmark.listings,
+      imageUrl: attachmentMap.get(bookmark.listing_id) || bookmark.listings.thumbnail_url || null,
       createdAt: bookmark.created_at
     }));
 

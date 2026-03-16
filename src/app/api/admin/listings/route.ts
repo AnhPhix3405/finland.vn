@@ -14,11 +14,27 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '50'); // Higher default limit for admin
+    const limit = parseInt(searchParams.get('limit') || '50');
     const skip = (page - 1) * limit;
 
-    // Admin gets ALL listings regardless of status
+    // Filter by transaction type (hashtag like 'mua-ban', 'cho-thue')
+    const transactionType = searchParams.get('transaction_type');
+    // Filter by status
+    const status = searchParams.get('status');
+
     const whereClause: Record<string, unknown> = {};
+
+    // Add transaction type filter
+    if (transactionType) {
+      whereClause.transaction_types = {
+        hashtag: transactionType
+      };
+    }
+
+    // Add status filter
+    if (status) {
+      whereClause.status = status;
+    }
 
     const listings = await prisma.listings.findMany({
       where: whereClause,
@@ -56,19 +72,14 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      orderBy: [
-        {
-          status: 'asc' // Show pending listings first
-        },
-        {
-          id: 'desc' // Then by creation date
-        }
-      ]
+orderBy: {
+        id: 'desc'
+      }
     });
 
     const total = await prisma.listings.count({ where: whereClause });
     
-    console.log(`Admin found ${listings.length} total listings`);
+    console.log(`Admin found ${listings.length} total listings with filters:`, { transactionType, status });
 
     return NextResponse.json(serializeData({
       success: true,

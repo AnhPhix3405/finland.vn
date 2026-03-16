@@ -7,6 +7,7 @@ import { createListing } from "@/src/app/modules/listings.service";
 import { uploadListingAttachments } from "@/src/app/modules/upload.service";
 import { getAllTagNamesAPI } from "@/src/app/modules/tags.service.client";
 import { useUserStore } from "@/src/store/userStore";
+import { useNotificationStore } from "@/src/store/notificationStore";
 import LocationSelector from "../feature/LocationSelector";
 import { loadAllFormOptions, SelectOption } from "@/src/app/modules/form-options.service";
 
@@ -16,6 +17,7 @@ interface ListingFormProps {
 
 export function ListingForm({ onSuccess }: ListingFormProps) {
   const { user } = useUserStore();
+  const addToast = useNotificationStore((state) => state.addToast);
   const [transactionTypeId, setTransactionTypeId] = useState("");
   const [propertyTypeId, setPropertyTypeId] = useState("");
   const [selectedHashTags, setSelectedHashTags] = useState<string[]>([]);
@@ -29,16 +31,16 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
   const [transactionTypes, setTransactionTypes] = useState<SelectOption[]>([]);
   const [optionsLoading, setOptionsLoading] = useState(true);
   
-  // Load options on component mount
+  // Load options on component mount - Optimized with parallel calls
   useEffect(() => {
     const loadOptions = async () => {
       try {
-        const options = await loadAllFormOptions();
+        const [options, allTagNames] = await Promise.all([
+          loadAllFormOptions(),
+          getAllTagNamesAPI()
+        ]);
         setPropertyTypes(options.propertyTypes);
         setTransactionTypes(options.transactionTypes);
-        
-        // Load tag suggestions
-        const allTagNames = await getAllTagNamesAPI();
         setTagSuggestions(allTagNames);
       } catch (error) {
         console.error('Error loading form options:', error);
@@ -156,7 +158,7 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
     const invalidFiles = files.filter(file => !file.type.startsWith('image/'));
 
     if (invalidFiles.length > 0) {
-      alert(`${invalidFiles.length} file(s) bị loại bỏ vì không phải là ảnh`);
+      addToast(`${invalidFiles.length} file(s) bị loại bỏ vì không phải là ảnh`, "error");
     }
 
     // Check total file limit
@@ -164,7 +166,7 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
     if (newTotalFiles > 20) {
       const allowedCount = 20 - selectedFiles.length;
       const trimmedFiles = validFiles.slice(0, allowedCount);
-      alert(`Chỉ có thể tải lên tối đa 20 ảnh. Đã thêm ${trimmedFiles.length} ảnh.`);
+      addToast(`Chỉ có thể tải lên tối đa 20 ảnh. Đã thêm ${trimmedFiles.length} ảnh.`, "info");
       setSelectedFiles(prev => [...prev, ...trimmedFiles]);
     } else {
       setSelectedFiles(prev => [...prev, ...validFiles]);
@@ -184,7 +186,7 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
     e.preventDefault();
 
     if (!user) {
-      alert("Vui lòng đăng nhập để đăng bài");
+      addToast("Vui lòng đăng nhập để đăng bài", "error");
       return;
     }
 
@@ -214,7 +216,35 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
       });
 
       if (!listingResult.success) {
-        alert(listingResult.error);
+        const errorMsg = listingResult.error || "Có lỗi xảy ra";
+        
+        // Check if it's a validation error (missing required fields)
+        if (errorMsg.toLowerCase().includes("thiếu") || errorMsg.toLowerCase().includes("bắt buộc") || errorMsg.toLowerCase().includes("required") || errorMsg.toLowerCase().includes("missing")) {
+          // Try to find and scroll to the first missing field
+          const fieldIds = ['transactionType', 'propertyType', 'title', 'area', 'price', 'projectCity'];
+          const scrollAndFocus = () => {
+            for (const fieldId of fieldIds) {
+              const element = document.getElementById(fieldId);
+              if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setTimeout(() => {
+                  (element as HTMLInputElement).focus();
+                  element.classList.add('ring-2', 'ring-red-500');
+                  setTimeout(() => element.classList.remove('ring-2', 'ring-red-500'), 2000);
+                }, 100);
+                return true;
+              }
+            }
+            return false;
+          };
+          
+          // Try immediately, if not found wait for DOM
+          if (!scrollAndFocus()) {
+            setTimeout(scrollAndFocus, 100);
+          }
+        }
+        
+        addToast(errorMsg, "error");
         return;
       }
 
@@ -237,12 +267,12 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
         ? `Đăng bài thành công! Đã tạo/gắn ${listingResult.tags.length} hashtags.`
         : "Đăng bài thành công!";
       
-      alert(successMessage);
+      addToast(successMessage, "success");
       onSuccess?.();
 
     } catch (error) {
       console.error("Error submitting form:", error);
-      alert("Có lỗi xảy ra khi đăng bài");
+      addToast("Có lỗi xảy ra khi đăng bài", "error");
     } finally {
       setIsUploading(false);
     }
@@ -259,7 +289,7 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+            <label htmlFor="transactionType" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
               Loại giao dịch <span className="text-red-500">*</span>
             </label>
             {optionsLoading ? (
@@ -268,6 +298,7 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
               </div>
             ) : (
               <select
+                id="transactionType"
                 value={transactionTypeId}
                 onChange={(e) => setTransactionTypeId(e.target.value)}
                 required
@@ -340,8 +371,9 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
           Chi tiết bài đăng
         </h4>
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tiêu đề <span className="text-red-500">*</span></label>
+          <label htmlFor="title" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tiêu đề <span className="text-red-500">*</span></label>
           <input
+            id="title"
             type="text"
             required
             value={title}
@@ -353,8 +385,9 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
         
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Diện tích (m²) <span className="text-red-500">*</span></label>
+            <label htmlFor="area" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Diện tích (m²) <span className="text-red-500">*</span></label>
             <input
+              id="area"
               type="number"
               required
               value={area}
@@ -363,11 +396,12 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+            <label htmlFor="price" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
               {selectedTransactionType?.hashtag === "cho-thue" ? "Giá thuê/tháng" : "Tổng giá"} <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <input
+                id="price"
                 type="text"
                 required
                 value={price}

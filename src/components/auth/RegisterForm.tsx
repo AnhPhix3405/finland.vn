@@ -6,9 +6,11 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { registerBroker } from "@/src/app/modules/auth/auth.service";
 import { uploadBrokerAvatar } from "@/src/app/modules/upload.service";
+import { useNotificationStore } from "@/src/store/notificationStore";
 
 export function RegisterForm() {
   const router = useRouter();
+  const addToast = useNotificationStore((state) => state.addToast);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -97,6 +99,7 @@ export function RegisterForm() {
         }
         
         // Auth service already updated stores with token from register API
+        addToast("Đăng ký thành công!", "success");
         router.push("/");
         router.refresh();
       } else {

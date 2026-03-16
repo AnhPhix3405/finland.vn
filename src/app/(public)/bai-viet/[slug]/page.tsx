@@ -10,6 +10,7 @@ import { uploadListingAttachments, deleteAttachment } from "@/src/app/modules/up
 import { getAllTagNamesAPI, processTagsForListingClient } from "@/src/app/modules/tags.service.client";
 import { updateAttachmentSortOrder } from "@/src/app/modules/attachments.service";
 import { useAuthStore } from "@/src/store/authStore";
+import { useNotificationStore } from "@/src/store/notificationStore";
 
 interface Attachment {
   id: string;
@@ -29,6 +30,7 @@ export default function EditListingPage() {
   const params = useParams();
   const slug = params?.slug as string;
   const { accessToken } = useAuthStore();
+  const addToast = useNotificationStore((state) => state.addToast);
 
   const [loading, setLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
@@ -81,32 +83,31 @@ export default function EditListingPage() {
   const showFloors = isHouse || isOffice;
   const showDimensions = !isApartment;
 
-  // INITIAL LOAD
+// INITIAL LOAD - Optimized with parallel calls
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [options, tags] = await Promise.all([
+        // Parallel fetch: options, tags, and listing
+        const [options, tags, listingRes] = await Promise.all([
           loadAllFormOptions(),
-          getAllTagNamesAPI()
+          getAllTagNamesAPI(),
+          slug ? fetch(`/api/listings/${slug}`) : Promise.resolve(null)
         ]);
+        
         setPropertyTypes(options.propertyTypes);
         setTransactionTypes(options.transactionTypes);
         setTagSuggestions(tags);
-      } catch (error) {
-        console.error('Error loading options:', error);
-      }
 
-      if (!slug) return;
-      try {
-        const response = await fetch(`/api/listings/${slug}`);
-        const result = await response.json();
+        if (!slug || !listingRes) return;
+        
+        const result = await listingRes.json();
         
         if (result.success && result.data) {
           const l = result.data;
           
           // Restriction: No editing for pending or hidden listings
-          if (l.status === 'Đang chờ duyệt' || l.status === 'Đã ẩn') {
-            alert(`Tin đăng đang ở trạng thái "${l.status}", không thể chỉnh sửa.`);
+          if (l.status === 'Đang chờ duyệt' || l.status === 'Đã Ẩn') {
+            addToast(`Tin đăng đang ở trạng thái "${l.status}", không thể chỉnh sửa.`, "error");
             router.push("/tai-khoan");
             return;
           }
@@ -132,24 +133,25 @@ export default function EditListingPage() {
           if (l.tags) {
             setSelectedHashTags(l.tags.map((t: { slug?: string; name: string }) => t.slug || t.name));
           }
-          // Fetch images
+          
+          // Fetch images in parallel with listing data
           const imgRes = await fetch(`/api/attachments/${l.id}?target_type=listing`);
           const imgJson = await imgRes.json();
           if (imgJson.success) {
             const images = (imgJson.data || []).sort((a: Attachment, b: Attachment) => (a.sort_order || 0) - (b.sort_order || 0));
-            console.log('📸 Initial images sorted:', images);
             setInitialImages(images);
             setOriginalImages(JSON.parse(JSON.stringify(images)));
           }
         }
       } catch (_error) {
         console.error('Lỗi lấy thông tin bài viết:', _error);
+        addToast("Không thể tải thông tin bài viết", "error");
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, [slug, router]);
+  }, [slug, router, addToast]);
 
   const slugify = (text: string) => {
     return text.toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').replace(/([^0-9a-z-\s])/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
@@ -209,7 +211,7 @@ export default function EditListingPage() {
     const newTotal = totalRemainingAPI + selectedFiles.length + validFiles.length;
     
     if (newTotal > 20) {
-      alert(`Bạn chỉ được giữ tối đa 20 file. Vui lòng xóa bớt.`);
+      addToast(`Bạn chỉ được giữ tối đa 20 file. Vui lòng xóa bớt.`, "error");
     } else {
       setSelectedFiles(prev => [...prev, ...validFiles]);
     }
@@ -252,7 +254,7 @@ export default function EditListingPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!accessToken) {
-      alert("Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn.");
+      addToast("Bạn chưa đăng nhập hoặc phiên làm việc đã hết hạn.", "error");
       return;
     }
     if (!listingId) return;
@@ -329,13 +331,13 @@ export default function EditListingPage() {
          setDeletedApiImages([]);
       }
 
-      alert("Cập nhật bài đăng thành công!");
+      addToast("Cập nhật bài đăng thành công!", "success");
       router.push("/tai-khoan"); // Come back to accout profile
 
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Có lỗi xảy ra khi cập nhật";
       console.error(error);
-      alert(message);
+      addToast(message, "error");
     } finally {
       setIsUploading(false);
     }

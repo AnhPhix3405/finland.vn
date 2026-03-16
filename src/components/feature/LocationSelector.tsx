@@ -60,6 +60,7 @@ export default function LocationSelector({
                     }}
                     className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 transition-all text-slate-900 dark:text-white"
                     id="projectCity"
+                    name="province"
                 >
                     <option value="">Chọn Tỉnh / Thành phố</option>
                     {provinces.map((prov) => (

@@ -5,9 +5,11 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { loginBroker } from "@/src/app/modules/auth/auth.service";
+import { useNotificationStore } from "@/src/store/notificationStore";
 
 export function LoginForm() {
   const router = useRouter();
+  const addToast = useNotificationStore((state) => state.addToast);
 
   const [showPassword, setShowPassword] = useState(false);
   const [phone, setPhone] = useState("");
@@ -25,6 +27,7 @@ export function LoginForm() {
 
       if (result.success) {
         // Auth service already updated stores
+        addToast("Đăng nhập thành công!", "success");
         router.push("/");
         router.refresh();
       } else {
