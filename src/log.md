@@ -1,7 +1,20 @@
 # App Logs
 
-## Instructions
-This file is auto-overwritten with application logs when the app runs.
+## Performance Logging (mua-ban page)
+
+### Logs format:
+```
+🔹 [PERF] Component mount started
+🔹 [PERF] API /api/listings latency: X.XXXs
+🔹 [PERF] Data mapping & setState: X.XXXs
+🔹 [PERF] Total page load time: X.XXXs
+🔹 [PERF] Component unmount - Total time: X.XXXs
+```
+
+### How to view:
+1. Open browser DevTools (F12)
+2. Go to Console tab
+3. Look for logs starting with 🔹 [PERF]
 
 ---
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { PropertyCard } from "../../../components/property/PropertyCard";
 import { PropertyFilter, FilterState } from "../../../components/property/PropertyFilter";
 import { Pagination } from "../../../components/shared/Pagination";
@@ -22,6 +22,20 @@ export default function MuaBanPage() {
   });
   const accessToken = useAuthStore((state) => state.accessToken);
   const isHydrated = useAuthStore((state) => state.isHydrated);
+  
+  const componentStartTime = useRef<number>(0);
+  const apiStartTime = useRef<number>(0);
+  const renderStartTime = useRef<number>(0);
+
+  // Track component mount time
+  useEffect(() => {
+    componentStartTime.current = performance.now();
+    console.log('🔹 [PERF] Component mount started');
+    return () => {
+      const mountTime = (performance.now() - componentStartTime.current) / 1000;
+      console.log(`🔹 [PERF] Component unmount - Total time: ${mountTime.toFixed(3)}s`);
+    };
+  }, []);
 
   const buildHashtags = (filters: FilterState) => {
     const hashtags = ['mua-ban']; // Always include base hashtag
@@ -59,6 +73,7 @@ export default function MuaBanPage() {
   };
 
   const loadListings = async (filters: FilterState, page: number = 1) => {
+    apiStartTime.current = performance.now();
     try {
       setLoading(true);
       const hashtags = buildHashtags(filters);
@@ -79,6 +94,10 @@ export default function MuaBanPage() {
         sortBy: filters.sortBy,
       });
 
+      // Track API latency
+      const apiLatency = (performance.now() - apiStartTime.current) / 1000;
+      console.log(`🔹 [PERF] API /api/listings latency: ${apiLatency.toFixed(3)}s`);
+
       // Map API data to component expected format with fetching images
       const mappedProperties = result.data.map((listing: Record<string, unknown>) => ({
         id: String(listing.id),
@@ -96,6 +115,10 @@ export default function MuaBanPage() {
       }));
 
       setProperties(mappedProperties);
+      
+      // Track render time
+      renderStartTime.current = performance.now();
+      
       setPagination({
         page: (result.pagination as Record<string, unknown>).page as number,
         limit: (result.pagination as Record<string, unknown>).limit as number,
@@ -119,6 +142,12 @@ export default function MuaBanPage() {
         }
       });
       setBookmarkedMap(initialBookmarkMap);
+      
+      // Track total render time (from API response to DOM update)
+      const renderTime = (performance.now() - renderStartTime.current) / 1000;
+      const totalTime = (performance.now() - componentStartTime.current) / 1000;
+      console.log(`🔹 [PERF] Data mapping & setState: ${renderTime.toFixed(3)}s`);
+      console.log(`🔹 [PERF] Total page load time: ${totalTime.toFixed(3)}s`);
     } catch (error) {
       console.error('Error loading listings:', error);
       setProperties([]);
