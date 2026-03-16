@@ -15,36 +15,6 @@ interface Broker {
   is_active: boolean;
 }
 
-const MOCK_BROKERS = [
-  {
-    id: 'mock_1',
-    full_name: 'Nguyễn Văn Nam',
-    phone: '0901 234 567',
-    working_area: 'Quận 2, TP.HCM',
-    avatar_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC9Zy9T23JlMs6clxA8w3_e9InmK4IoD_B1ccL9qigX9BdlKu1MEJhVY9y1W92_DIFZOz8EThzgcltxG8GHT-kRy6n9VE0eel7fivwcJiihAlcT3RTBtVBUQ5HjVIqOEyXpSuYyDRfGEEYRkmc8dWuYf-0yyZVZQEVKDaKe0F0YVL62xslVUaQPIwi6wlCrd7KT4HQOid7McvEcgYkDx94BVAAlIAvTTKifktrK7OGhX8t_KodLEtyYBeYhhos9DPwTRfP0aXy9e8pg',
-    slug: 'demo',
-    is_active: true
-  },
-  {
-    id: 'mock_2',
-    full_name: 'Trần Thị Minh',
-    phone: '0912 345 678',
-    working_area: 'Thanh Xuân, Hà Nội',
-    avatar_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDjN8HsIdKsWlAC3e5UUEnQD2WwioKW11PCwPmSYJT-g9P19TjDZihMTA6ZpvrLuEdsv2baeNt_WUcfGWg8TVETZLR2kVyolnu44DYAxJ2b0jR6ONxGO9BtjG0fTzCffoNX9jv0sKjsdfWH9TySDCGUUNssHAp790t7Fvrxt6ITCO1Zo93ZPexfyFF_9QlWqIZI5bbu_8JzRHlIUkXi0FT9_80yWpFSovPVPeQdGKEDRHX_1J3_BKJ8O983CYn0ejvHFnJ3gGOBnkyo',
-    slug: 'demo',
-    is_active: false // Blocked mock
-  },
-  {
-    id: 'mock_3',
-    full_name: 'Lê Hoàng Long',
-    phone: '0988 777 999',
-    working_area: 'Sơn Trà, Đà Nẵng',
-    avatar_url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCF7_a9QO3ZTe9AiE0RaqZHk4WWVdF8JV_exc_ZElD2Fa5J2xHahPnCEuHsk91hG_7UTXvzhgjeVzkw696xse4o5FTbNDEDYlyxRAX5diyLuzRi47pYS4sfljywyqy7iuHKx2DTu0wj0-flpf2Ty4FTv5cwMaXclLpXUR0ix-DICxoMjwNBPBFerF2eXQXOljYKsWq4-ZC6VnWib1MRPnTERY-0rWX5tKD3yNdpfJft8EbbihGoZSdPaYO0_oRIjKYeaoibejKbesXn',
-    slug: 'demo',
-    is_active: true
-  }
-];
-
 export default function AdminBrokerList() {
   const adminToken = useAuthStore((state) => state.accessToken);
   const [brokers, setBrokers] = useState<Broker[]>([]);
@@ -251,12 +221,6 @@ export default function AdminBrokerList() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                {/* Mock rows */}
-                {MOCK_BROKERS.map((b) =>
-                  renderRow(b as Broker)
-                )}
-
-                {/* API rows */}
                 {loadingBrokers ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-6 text-center text-sm text-slate-400 dark:text-slate-500">

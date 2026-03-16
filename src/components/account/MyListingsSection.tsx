@@ -250,22 +250,35 @@ export default function MyListingsSection() {
                     </div>
 
                     <div className="flex items-center gap-1">
-                      {property.status === "Đang chờ duyệt" || property.status === "Đã ẩn" ? (
+                      {property.status === "Đang chờ duyệt" ? (
                         <>
-                          <div className="flex items-center gap-1 opacity-20 cursor-not-allowed">
-                            <div className="p-1.5 text-slate-400"><Edit2 className="size-3.5" /></div>
-                            <div className="p-1.5 text-slate-400"><EyeOff className="size-3.5" /></div>
-                            <div className="p-1.5 text-slate-400"><CheckCircle2 className="size-3.5" /></div>
-                          </div>
+                          {/* Chờ duyệt - chỉ có thể xóa */}
                           <button 
-                             onClick={() => handleDelete(property.id)}
-                             className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all" 
-                             title="Xóa">
+                            onClick={() => handleDelete(property.id)}
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all" 
+                            title="Xóa">
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </>
+                      ) : property.status === "Đã ẩn" ? (
+                        <>
+                          {/* Đã ẩn - có thể hiển thị lại hoặc xóa */}
+                          <button 
+                            onClick={() => handleUpdateStatus(property.id, "Đang hiển thị")}
+                            className="p-1.5 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-md transition-all" 
+                            title="Hiển thị">
+                            <EyeOff className="size-3.5" />
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(property.id)}
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all" 
+                            title="Xóa">
                             <Trash2 className="size-3.5" />
                           </button>
                         </>
                       ) : (
                         <>
+                          {/* Đang hiển thị hoặc Đã bán - đầy đủ chức năng */}
                           <Link 
                             href={`/bai-viet/${property.slug}`}
                             className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-md transition-all" 
@@ -274,21 +287,21 @@ export default function MyListingsSection() {
                             <Edit2 className="size-3.5" />
                           </Link>
                           <button 
-                             onClick={() => handleUpdateStatus(property.id, "Đã ẩn")}
-                             className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-md transition-all" 
-                             title="Ẩn tin">
+                            onClick={() => handleUpdateStatus(property.id, "Đã ẩn")}
+                            className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-md transition-all" 
+                            title="Ẩn tin">
                             <EyeOff className="size-3.5" />
                           </button>
                           <button 
-                             onClick={() => handleUpdateStatus(property.id, "Đã bán")}
-                             className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-all" 
-                             title="Đã bán">
+                            onClick={() => handleUpdateStatus(property.id, "Đã bán")}
+                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-all" 
+                            title="Đã bán">
                             <CheckCircle2 className="size-3.5" />
                           </button>
                           <button 
-                             onClick={() => handleDelete(property.id)}
-                             className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all" 
-                             title="Xóa">
+                            onClick={() => handleDelete(property.id)}
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all" 
+                            title="Xóa">
                             <Trash2 className="size-3.5" />
                           </button>
                         </>

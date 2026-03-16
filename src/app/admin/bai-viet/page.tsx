@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import HashtagManagerModal from "@/src/components/admin/HashtagManagerModal.tsx";
 import { 
-  getListings, 
   updateListingStatus, 
   deleteListing, 
   type Listing
@@ -92,6 +91,17 @@ export default function AdminArticleList() {
       addToast('Đã xóa bài viết thành công!', 'success');
     } else {
       addToast('Lỗi: ' + (result.error || 'Không thể xóa bài viết'), 'error');
+    }
+  };
+
+  const handleToggleVisibility = async (listingId: string, currentStatus: string | null | undefined) => {
+    const newStatus = currentStatus === 'Đã ẩn' ? 'Đang hiển thị' : 'Đã ẩn';
+    const result = await updateListingStatus(listingId, newStatus);
+    if (result.success) {
+      setListings(prev => prev.map(l => l.id === listingId ? { ...l, status: newStatus } : l));
+      addToast(newStatus === 'Đã ẩn' ? 'Đã ẩn bài viết!' : 'Đã hiển thị bài viết!', 'success');
+    } else {
+      addToast('Lỗi: ' + (result.error || 'Không thể thay đổi trạng thái'), 'error');
     }
   };
 
@@ -187,12 +197,27 @@ export default function AdminArticleList() {
                       <td className="px-6 py-4 text-sm">{(listing.views_count || 0).toLocaleString('vi-VN')}</td>
                       <td className="px-6 py-4">{getStatusBadge(listing.status)}</td>
                       <td className="px-6 py-4 text-right whitespace-nowrap">
-                        <button onClick={() => handleApprove(listing.id)} className="text-emerald-500 hover:text-emerald-700 p-1" title="Duyệt bài">
-                          <span className="material-symbols-outlined text-lg">check_circle</span>
+                        {/* Toggle Show/Hide */}
+                        <button 
+                          onClick={() => handleToggleVisibility(listing.id, listing.status)} 
+                          className={`p-1 ${listing.status === 'Đã ẩn' ? 'text-emerald-500 hover:text-emerald-700' : 'text-slate-400 hover:text-slate-600'} ${listing.status !== 'Đã ẩn' ? 'ml-1' : ''}`}
+                          title={listing.status === 'Đã ẩn' ? 'Hiển thị' : 'Ẩn'}
+                        >
+                          <span className="material-symbols-outlined text-lg">{listing.status === 'Đã ẩn' ? 'visibility' : 'visibility_off'}</span>
                         </button>
-                        <button onClick={() => handleReject(listing.id)} className="text-orange-400 hover:text-orange-600 p-1 ml-1" title="Từ chối">
-                          <span className="material-symbols-outlined text-lg">cancel</span>
-                        </button>
+                        {/* Approve - chỉ hiện khi đang chờ duyệt */}
+                        {listing.status === 'Đang chờ duyệt' && (
+                          <button onClick={() => handleApprove(listing.id)} className="text-emerald-500 hover:text-emerald-700 p-1 ml-1" title="Duyệt bài">
+                            <span className="material-symbols-outlined text-lg">check_circle</span>
+                          </button>
+                        )}
+                        {/* Reject - hiện khi đang hiển thị hoặc đang chờ duyệt */}
+                        {(listing.status === 'Đang hiển thị' || listing.status === 'Đang chờ duyệt') && (
+                          <button onClick={() => handleReject(listing.id)} className="text-orange-400 hover:text-orange-600 p-1 ml-1" title="Từ chối">
+                            <span className="material-symbols-outlined text-lg">cancel</span>
+                          </button>
+                        )}
+                        {/* Delete */}
                         <button onClick={() => handleDelete(listing.id)} className="text-slate-400 hover:text-red-600 p-1 ml-1" title="Xóa vĩnh viễn">
                           <span className="material-symbols-outlined text-lg">delete</span>
                         </button>

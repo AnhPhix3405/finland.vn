@@ -68,14 +68,6 @@ export default function AdminProjectDetail() {
 
 
 
-
-  // Mock initial images
-  const [initialImages] = useState([
-    { public_id: 'mock_1', url: 'https://placehold.co/400x300/1e293b/ffffff?text=Image+1' },
-    { public_id: 'mock_2', url: 'https://placehold.co/400x300/334155/ffffff?text=Image+2' },
-    { public_id: 'mock_3', url: 'https://placehold.co/400x300/475569/ffffff?text=Image+3' }
-  ]);
-
   // Images fetched from API
   const [images, setImages] = useState<Attachment[]>([]);
   const [loadingImages, setLoadingImages] = useState(false);
@@ -140,10 +132,6 @@ export default function AdminProjectDetail() {
     setDeletedApiImages(prev => [...prev, id]);
   };
 
-  const handleRemoveMockImage = (public_id: string) => {
-    setDeletedImages(prev => [...prev, public_id]);
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
@@ -154,8 +142,6 @@ export default function AdminProjectDetail() {
   const handleRemoveNewFile = (index: number) => {
     setNewFiles(prev => prev.filter((_, i) => i !== index));
   };
-
-  const currentMockImages = initialImages.filter(img => !deletedImages.includes(img.public_id));
 
   const handleSave = async () => {
     if (!projectId) {
@@ -296,31 +282,6 @@ export default function AdminProjectDetail() {
                           </button>
                         </div>
                       ))}
-                  </div>
-                )}
-
-                {/* Danh sách ảnh cũ (Mock) */}
-                {currentMockImages.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                    {currentMockImages.map((img) => (
-                      <div key={img.public_id} className="relative group rounded-sm overflow-hidden border border-slate-200 dark:border-slate-700">
-                        <img src={img.url} alt="Project Image" className="w-full h-32 object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveMockImage(img.public_id)}
-                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center w-6 h-6"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">close</span>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* State list showing deleted images (for testing/debugging visually) */}
-                {deletedImages.length > 0 && (
-                  <div className="mb-4 p-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs rounded-sm border border-red-100 dark:border-red-800/30">
-                    <strong>Đã xóa (public_ids):</strong> {deletedImages.join(', ')}
                   </div>
                 )}
 

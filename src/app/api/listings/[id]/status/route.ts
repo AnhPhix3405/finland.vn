@@ -68,8 +68,8 @@ export async function PATCH(
       );
     }
 
-    // New restriction: if status is pending or hidden, no actions allowed
-    if (existingListing.status === 'Đang chờ duyệt' || existingListing.status === 'Đã ẩn') {
+    // Allow users to change from hidden to visible, but restrict from pending
+    if (existingListing.status === 'Đang chờ duyệt') {
       return NextResponse.json(
         { 
           success: false, 
@@ -78,6 +78,19 @@ export async function PATCH(
         { status: 400 }
       );
     }
+
+    // If trying to hide a listing that's already hidden, allow it
+    if (existingListing.status === 'Đã ẩn' && status === 'Đã ẩn') {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: `Tin đăng đang ở trạng thái "${existingListing.status}".` 
+        },
+        { status: 400 }
+      );
+    }
+
+    // Allow change from Đã ẩn to Đang hiển thị
 
     // Update the listing status
     const updatedListing = await prisma.listings.update({
