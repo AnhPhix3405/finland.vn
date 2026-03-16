@@ -5,11 +5,11 @@ import MarkdownIt from 'markdown-it';
 import MdEditor from 'react-markdown-editor-lite';
 import 'react-markdown-editor-lite/lib/index.css';
 import { Image as ImageIcon } from 'lucide-react';
-import { AdminMediaPicker } from '../feature/AdminMediaPicker';
+import { UserMediaPicker } from '../feature/UserMediaPicker';
 
 const mdParser = new MarkdownIt();
 
-export default function RichTextEditor({ value, onChange, placeholder }: { value?: string, onChange?: (val: string) => void, placeholder?: string }) {
+export default function UserRichTextEditor({ value, onChange, placeholder }: { value?: string, onChange?: (val: string) => void, placeholder?: string }) {
     const mdEditorRef = useRef<MdEditor>(null);
     const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
 
@@ -46,7 +46,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: { value
             </button>
 
             {/* Popup Media Picker */}
-            <AdminMediaPicker
+            <UserMediaPicker
                 isOpen={isMediaPickerOpen}
                 onClose={() => setIsMediaPickerOpen(false)}
                 onSelect={handleMediaSelect}

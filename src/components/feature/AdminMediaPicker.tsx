@@ -1,55 +1,44 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { X, UploadCloud, HelpCircle } from "lucide-react";
+import { X, UploadCloud } from "lucide-react";
 import { uploadAttachments } from "@/src/app/modules/upload.service";
-import { useUserStore } from "@/src/store/userStore";
 
-interface MediaPickerProps {
+interface AdminMediaPickerProps {
     isOpen: boolean;
     onClose: () => void;
     onSelect: (images: string[]) => void;
 }
 
-const MOCK_IMAGES = [
-    "https://placehold.co/150x150/1e293b/ffffff?text=Img+1",
-    "https://placehold.co/150x150/334155/ffffff?text=Img+2",
-    "https://placehold.co/150x150/475569/ffffff?text=Img+3",
-    "https://placehold.co/150x150/64748b/ffffff?text=Img+4",
-    "https://placehold.co/150x150/94a3b8/ffffff?text=Img+5",
-    "https://placehold.co/150x150/cbd5e1/1e293b?text=Img+6",
-];
-
-export default function MediaPicker({ isOpen, onClose, onSelect }: MediaPickerProps) {
+export function AdminMediaPicker({ isOpen, onClose, onSelect }: AdminMediaPickerProps) {
     const [selectedImages, setSelectedImages] = useState<string[]>([]);
-    const [uploadedImages, setUploadedImages] = useState<string[]>(MOCK_IMAGES);
+    const [uploadedImages, setUploadedImages] = useState<string[]>([]);
     const [fileMap, setFileMap] = useState<Record<string, File>>({});
     const [isDragging, setIsDragging] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const { user } = useUserStore();
 
     const fetchAdminImages = React.useCallback(async () => {
         try {
-            const targetType = user?.role === 'broker' ? 'broker' : 'admin';
-            const res = await fetch(`/api/attachments?target_type=${targetType}&limit=50`);
+            const res = await fetch(`/api/attachments?target_type=admin&limit=100`);
             const json = await res.json();
             if (json.success && json.data) {
-                const fetchedUrls = json.data.map((item: Record<string, unknown>) => (item as Record<string, unknown>).secure_url).filter(Boolean);
-                setUploadedImages(prev => {
-                    const existingUrls = new Set(prev);
-                    const newUrls = fetchedUrls.filter((url: string) => !existingUrls.has(url));
-                    return [...newUrls, ...prev];
-                });
+                const fetchedUrls = json.data
+                    .map((item: Record<string, unknown>) => (item as Record<string, unknown>).secure_url)
+                    .filter(Boolean) as string[];
+                setUploadedImages(fetchedUrls);
             }
         } catch (err) {
-            console.error("Error fetching images:", err);
+            console.error("Error fetching admin images:", err);
         }
-    }, [user?.role]);
+    }, []);
 
     useEffect(() => {
         if (!isOpen) return;
+        setSelectedImages([]);
+        setFileMap({});
+        setError(null);
         fetchAdminImages();
     }, [isOpen, fetchAdminImages]);
 
@@ -108,7 +97,6 @@ export default function MediaPicker({ isOpen, onClose, onSelect }: MediaPickerPr
             const finalUrls: string[] = [];
 
             for (const imageUrl of selectedImages) {
-                // Nếu ảnh có trong fileMap (ảnh mới chọn từ máy)
                 if (fileMap[imageUrl]) {
                     const file = fileMap[imageUrl];
                     const uploadData = await uploadAttachments(file);
@@ -119,23 +107,19 @@ export default function MediaPicker({ isOpen, onClose, onSelect }: MediaPickerPr
                         throw new Error("Lỗi tải ảnh lên");
                     }
                 } else {
-                    // Ảnh có sẵn (mock hoặc đã tải lên)
                     finalUrls.push(imageUrl);
                 }
             }
 
             onSelect(finalUrls);
 
-            // Xóa object URL ra khỏi DOM để tránh lỗi memory leak
             Object.keys(fileMap).forEach((url) => {
-                setUploadedImages((prev) => prev.filter((img) => img !== url));
                 URL.revokeObjectURL(url);
             });
 
             setSelectedImages([]);
             setFileMap({});
 
-            // Refresh lại danh sách ảnh từ server
             await fetchAdminImages();
 
             onClose();
@@ -151,9 +135,8 @@ export default function MediaPicker({ isOpen, onClose, onSelect }: MediaPickerPr
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 overflow-y-auto">
             <div className="bg-white rounded shadow-xl w-full max-w-3xl mx-4 relative flex flex-col max-h-[90vh]">
-                {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-slate-100">
-                    <h2 className="text-[22px] text-slate-700">Thêm hình ảnh thu nhỏ</h2>
+                    <h2 className="text-[22px] text-slate-700">Thư viện ảnh (Admin)</h2>
                     <button
                         onClick={onClose}
                         className="text-slate-400 hover:text-slate-600 transition-colors"
@@ -162,9 +145,7 @@ export default function MediaPicker({ isOpen, onClose, onSelect }: MediaPickerPr
                     </button>
                 </div>
 
-                {/* Body */}
                 <div className="p-6 overflow-y-auto flex-1">
-                    {/* Upload Zone */}
                     <div
                         className={`border-2 border-dashed rounded bg-slate-50/50 p-12 flex flex-col items-center justify-center cursor-pointer transition-colors ${isDragging
                             ? "border-blue-500 bg-blue-50"
@@ -191,52 +172,54 @@ export default function MediaPicker({ isOpen, onClose, onSelect }: MediaPickerPr
                         </p>
                     </div>
 
-                    {/* Image Gallery */}
                     <div>
-                        <h3 className="mt-2 text-xl text-slate-400 mb-4">Ảnh của bạn</h3>
-                        <div className="grid grid-cols-4 md:grid-cols-6 gap-4">
-                            {uploadedImages.map((img, index) => {
-                                const isSelected = selectedImages.includes(img);
-                                return (
-                                    <div
-                                        key={index}
-                                        className={`relative aspect-square cursor-pointer rounded-sm overflow-hidden box-border border-2 transition-all ${isSelected ? "border-blue-500" : "border-transparent"
-                                            }`}
-                                        onClick={() => toggleImageSelection(img)}
-                                    >
-                                        <img
-                                            src={img}
-                                            alt={`Img ${index}`}
-                                            className="w-full h-full object-cover"
-                                        />
-                                        {isSelected && (
-                                            <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
-                                                <div className="bg-blue-500 text-white rounded-full p-1 border-2 border-white shadow-sm">
-                                                    <svg
-                                                        xmlns="http://www.w3.org/2000/svg"
-                                                        className="h-3 w-3"
-                                                        fill="none"
-                                                        viewBox="0 0 24 24"
-                                                        stroke="currentColor"
-                                                        strokeWidth={3}
-                                                    >
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            d="M5 13l4 4L19 7"
-                                                        />
-                                                    </svg>
+                        <h3 className="mt-6 text-xl text-slate-400 mb-4">Ảnh đã tải lên</h3>
+                        {uploadedImages.length === 0 ? (
+                            <p className="text-slate-400 text-sm">Chưa có ảnh nào. Hãy tải lên!</p>
+                        ) : (
+                            <div className="grid grid-cols-4 md:grid-cols-6 gap-4">
+                                {uploadedImages.map((img, index) => {
+                                    const isSelected = selectedImages.includes(img);
+                                    return (
+                                        <div
+                                            key={index}
+                                            className={`relative aspect-square cursor-pointer rounded-sm overflow-hidden box-border border-2 transition-all ${isSelected ? "border-blue-500" : "border-transparent"
+                                                }`}
+                                            onClick={() => toggleImageSelection(img)}
+                                        >
+                                            <img
+                                                src={img}
+                                                alt={`Img ${index}`}
+                                                className="w-full h-full object-cover"
+                                            />
+                                            {isSelected && (
+                                                <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
+                                                    <div className="bg-blue-500 text-white rounded-full p-1 border-2 border-white shadow-sm">
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            className="h-3 w-3"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            stroke="currentColor"
+                                                            strokeWidth={3}
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                d="M5 13l4 4L19 7"
+                                                            />
+                                                        </svg>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Footer */}
                 <div className="p-4 flex items-center justify-end gap-3 bg-white">
                     <button
                         onClick={onClose}
@@ -264,7 +247,6 @@ export default function MediaPicker({ isOpen, onClose, onSelect }: MediaPickerPr
                 </div>
             </div>
 
-            {/* Error Toast */}
             {error && (
                 <div className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-3 rounded shadow-lg z-[110] transition-opacity duration-300 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

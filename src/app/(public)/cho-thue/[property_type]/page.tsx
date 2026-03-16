@@ -83,6 +83,12 @@ export default function ChoThuePropertyTypePage() {
     totalPages: 0
   });
 
+  const defaultImage = "https://lh3.googleusercontent.com/aida-public/AB6AXuAH-qH24_KE8TIFtAOlg2VMxFw51PbmagHsDz-fp6Y_o13wCplh0YpY5tUVGtFy_1YJB66cE-ffhS1bk0Khp5Id5HsZm2Vn7isAq4e3dgAm2smw-oxIc6ZJMRAczbqKi_kj0UIofIfDnHxU34GvPlK-Og0xGinm9wGIfWLsRQ9fqzoYOYfmBA-cQ32_dFeyQ0cYN5hgai2CsH15n0rd3N0dVC5HbLBDzPaUbpyyq_mUnWXQDljSIAPURnziqfdaHPhnGT183UxhHGub";
+
+  const getListingImage = (thumbnailUrl?: string): string => {
+    return thumbnailUrl || defaultImage;
+  };
+
   // Load filtered listings by property type
   useEffect(() => {
     if (!isHydrated) return;
@@ -118,7 +124,7 @@ export default function ChoThuePropertyTypePage() {
 
         const mappedProperties: MappedProperty[] = result.data.map((item: Record<string, unknown>) => ({
           id: String(item.id),
-          image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAH-qH24_KE8TIFtAOlg2VMxFw51PbmagHsDz-fp6Y_o13wCplh0YpY5tUVGtFy_1YJB66cE-ffhS1bk0Khp5Id5HsZm2Vn7isAq4e3dgAm2smw-oxIc6ZJMRAczbqKi_kj0UIofIfDnHxU34GvPlK-Og0xGinm9wGIfWLsRQ9fqzoYOYfmBA-cQ32_dFeyQ0cYN5hgai2CsH15n0rd3N0dVC5HbLBDzPaUbpyyq_mUnWXQDljSIAPURnziqfdaHPhnGT183UxhHGub",
+          image: getListingImage(item.thumbnail_url as string | undefined),
           price: (item.price as string | null) ? formatPrice(item.price as string | number) : "Thỏa thuận",
           area: (item.area as number | null) ? `${item.area} m²` : "N/A",
           title: String(item.title),

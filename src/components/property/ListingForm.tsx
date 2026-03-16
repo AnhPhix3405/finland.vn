@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import RichTextEditor from "../ui/RichTextEditor";
+import UserRichTextEditor from "../ui/UserRichTextEditor";
 import { Camera, Plus, X, Check, Video } from "lucide-react";
 import { createListing } from "@/src/app/modules/listings.service";
 import { uploadListingAttachments } from "@/src/app/modules/upload.service";
@@ -51,7 +51,6 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
 
   // Form data states
   const [title, setTitle] = useState("");
-  const [slug, setSlug] = useState("");
   const [province, setProvince] = useState("");
   const [ward, setWard] = useState("");
   const [address, setAddress] = useState("");
@@ -82,27 +81,6 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
   const showBedrooms = isHouse || isApartment;
   const showFloors = isHouse || isOffice;
   const showDimensions = !isApartment;
-
-  // Slugify function (same as project)
-  const slugify = (text: string) => {
-    return text
-      .toString()
-      .toLowerCase()
-      .normalize('NFD') // Tách dấu
-      .replace(/[\u0300-\u036f]/g, '') // Xóa dấu
-      .replace(/[đĐ]/g, 'd')
-      .replace(/([^0-9a-z-\s])/g, '') // Xóa ký tự đặc biệt
-      .replace(/\s+/g, '-') // Thay khoảng trắng bằng -
-      .replace(/-+/g, '-') // Xóa - liên tiếp
-      .replace(/^-+|-+$/g, ''); // Xóa - ở đầu/cuối
-  };
-
-  // Auto-generate slug from title
-  useEffect(() => {
-    if (title) {
-      setSlug(slugify(title));
-    }
-  }, [title]);
 
   const addTag = (tagToAdd?: string) => {
     const tag = (tagToAdd || tagInput).trim().replace(/^#/, "");
@@ -213,10 +191,9 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
     setIsUploading(true);
 
     try {
-      // Create listing
+      // Create listing (slug is generated on server)
       const listingResult = await createListing({
         title,
-        slug,
         description,
         transaction_type_id: transactionTypeId,
         property_type_id: propertyTypeId,
@@ -374,18 +351,6 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
           />
         </div>
         
-        <div className="space-y-2">
-          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Slug (đường dẫn) <span className="text-red-500">*</span></label>
-          <input
-            type="text"
-            required
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            placeholder="ban-nha-pho-mat-tien-kinh-doanh-quan-1"
-            className="w-full bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
-          />
-          <p className="text-[10px] text-slate-500 italic leading-tight">Tự động sinh từ tiêu đề, bạn có thể sửa lại nếu muốn.</p>
-        </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="space-y-2">
             <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Diện tích (m²) <span className="text-red-500">*</span></label>
@@ -543,7 +508,7 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
         <div className="space-y-2">
           <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Mô tả chi tiết <span className="text-red-500">*</span></label>
           <div className="bg-slate-50 dark:bg-slate-800 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-            <RichTextEditor
+            <UserRichTextEditor
               value={description}
               onChange={setDescription}
             />

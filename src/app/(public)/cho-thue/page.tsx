@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { PropertyCard } from "../../../components/property/PropertyCard";
 import { PropertyFilter, FilterState } from "../../../components/property/PropertyFilter";
@@ -21,6 +21,8 @@ export default function ChoThuePage() {
     totalPages: 0
   });
   const isHydrated = useAuthStore((state) => state.isHydrated);
+  const requestIdRef = useRef<number>(0);
+  const [error, setError] = useState<string | null>(null);
 
   const buildHashtags = (filters: FilterState) => {
     const hashtags = ['cho-thue']; // Always include base hashtag
@@ -35,19 +37,8 @@ export default function ChoThuePage() {
 
   const defaultImage = "https://lh3.googleusercontent.com/aida-public/AB6AXuAH-qH24_KE8TIFtAOlg2VMxFw51PbmagHsDz-fp6Y_o13wCplh0YpY5tUVGtFy_1YJB66cE-ffhS1bk0Khp5Id5HsZm2Vn7isAq4e3dgAm2smw-oxIc6ZJMRAczbqKi_kj0UIofIfDnHxU34GvPlK-Og0xGinm9wGIfWLsRQ9fqzoYOYfmBA-cQ32_dFeyQ0cYN5hgai2CsH15n0rd3N0dVC5HbLBDzPaUbpyyq_mUnWXQDljSIAPURnziqfdaHPhnGT183UxhHGub";
 
-  const getListingImage = async (listingId: string): Promise<string> => {
-    try {
-      const res = await fetch(`/api/attachments/${listingId}?target_type=listing`);
-      const data = await res.json();
-      if (data.success && data.data && Array.isArray(data.data) && data.data.length > 0) {
-        // Find the primary image (sort_order === 0), otherwise use first one
-        const primaryAttachment = data.data.find((att: Record<string, unknown>) => att.sort_order === 0) || data.data[0];
-        return primaryAttachment.secure_url || primaryAttachment.url || defaultImage;
-      }
-    } catch (error) {
-      console.error(`Error fetching image for listing ${listingId}:`, error);
-    }
-    return defaultImage;
+  const getListingImage = (thumbnailUrl?: string): string => {
+    return thumbnailUrl || defaultImage;
   };
 
   const formatPrice = (price: string | number) => {
@@ -67,6 +58,9 @@ export default function ChoThuePage() {
   };
 
   const loadListings = async (filters: FilterState, page: number = 1) => {
+    // Track request to prevent duplicate/race condition requests
+    const currentRequestId = ++requestIdRef.current;
+    
     try {
       setLoading(true);
       const hashtags = buildHashtags(filters);
@@ -80,10 +74,30 @@ export default function ChoThuePage() {
         sortBy: filters.sortBy
       });
       
+      // Check if this request is still valid (not superseded by another request)
+      if (currentRequestId !== requestIdRef.current) {
+        return;
+      }
+      
+      // Handle empty or invalid response data
+      if (!result || !result.data) {
+        console.error('Invalid API response:', result);
+        setProperties([]);
+        setPagination({ page: 1, limit: 12, total: 0, totalPages: 0 });
+        return;
+      }
+      
+      console.log('📥 Frontend received API response (cho-thue):', {
+        resultKeys: Object.keys(result),
+        dataLength: result.data?.length,
+        pagination: result.pagination,
+        firstItem: result.data?.[0]
+      });
+      
       // Map API data to component expected format with fetching images
-      const mappedProperties = await Promise.all(result.data.map(async (listing: Record<string, unknown>) => ({
+      const mappedProperties = result.data.map((listing: Record<string, unknown>) => ({
         id: String(listing.id),
-        image: await getListingImage(String(listing.id)),
+        image: getListingImage(listing.thumbnail_url as string | undefined),
         price: (listing.price as string | number) ? formatPrice(listing.price as string | number) : "Thỏa thuận",
         area: (listing.area as number | null) ? `${listing.area} m²` : "N/A",
         title: listing.title,
@@ -94,9 +108,7 @@ export default function ChoThuePage() {
         broker: listing.brokers,
         status: listing.status,
         is_bookmarked: listing.is_bookmarked || false
-      })));
-      
-      setProperties(mappedProperties);
+      }));
       setPagination({
         page: (result.pagination as Record<string, unknown>).page as number,
         limit: (result.pagination as Record<string, unknown>).limit as number,
@@ -120,13 +132,22 @@ export default function ChoThuePage() {
         }
       });
       setBookmarkedMap(initialBookmarkMap);
+      
+      // Update properties state
+      setProperties(mappedProperties);
     } catch (error) {
       console.error('Error loading listings:', error);
       setProperties([]);
+      setError('Không thể tải dữ liệu. Vui lòng thử lại sau.');
     } finally {
       setLoading(false);
     }
   };
+
+  // Clear error when filters change
+  useEffect(() => {
+    setError(null);
+  }, [currentFilters]);
 
   // Load initial listings with "chothue" hashtag
   useEffect(() => {
@@ -169,6 +190,19 @@ export default function ChoThuePage() {
       </div>
 
       <PropertyFilter onFilterChange={handleFilterChange} />
+
+      {/* Error State */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <p className="text-red-600 dark:text-red-400 text-center">{error}</p>
+          <button 
+            onClick={() => loadListings(currentFilters, pagination.page)}
+            className="mt-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors mx-auto block"
+          >
+            Thử lại
+          </button>
+        </div>
+      )}
 
       {/* Loading State */}
       {loading && (

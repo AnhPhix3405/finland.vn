@@ -286,6 +286,27 @@ export async function GET(request: NextRequest) {
       orderBy: orderBy
     });
 
+    // Get attachments for all listings (to use as fallback for thumbnail_url)
+    const listingIds = listings.map(l => l.id);
+    const attachments = await prisma.attachments.findMany({
+      where: {
+        target_id: { in: listingIds },
+        target_type: 'listing'
+      },
+      orderBy: { sort_order: 'asc' }
+    });
+
+    // Group attachments by listing ID
+    const attachmentsByListingId: Record<string, typeof attachments[0][]> = {};
+    attachments.forEach(att => {
+      if (att.target_id) {
+        if (!attachmentsByListingId[att.target_id]) {
+          attachmentsByListingId[att.target_id] = [];
+        }
+        attachmentsByListingId[att.target_id].push(att);
+      }
+    });
+
     const total = await prisma.listings.count({ where: whereClause });
     
     // Log without BigInt values to avoid serialization error
@@ -300,8 +321,24 @@ export async function GET(request: NextRequest) {
       priceMin,
       priceMax,
       hashtags,
-      sortBy
+      sortBy,
+      whereClause: logWhereClause,
+      totalInDb: total
     });
+    
+    // Log first listing details for debugging
+    if (listings.length > 0) {
+      const firstListing = listings[0];
+      console.log('First listing sample:', {
+        id: firstListing.id,
+        title: firstListing.title,
+        transaction_type_id: firstListing.transaction_type_id,
+        property_type_id: firstListing.property_type_id,
+        status: firstListing.status,
+        brokers: firstListing.brokers,
+        tags: firstListing.tags
+      });
+    }
 
     // Fetch bookmarks for current broker if logged in
     let bookmarkMap: Record<string, boolean> = {};
@@ -343,11 +380,39 @@ export async function GET(request: NextRequest) {
       console.log('GET /api/listings - No broker logged in (currentBrokerId is null)');
     }
 
-    // Add is_bookmarked to each listing
-    const listingsWithBookmarks = listings.map(listing => ({
-      ...listing,
-      is_bookmarked: bookmarkMap[listing.id] || false
-    }));
+    // Add is_bookmarked and image to each listing
+    // Use thumbnail_url if available, otherwise use first attachment's secure_url
+    const listingsWithBookmarks = listings.map(listing => {
+      const listingAttachments = attachmentsByListingId[listing.id] || [];
+      const firstAttachment = listingAttachments[0];
+      
+      // Use thumbnail_url if available, otherwise use first attachment's secure_url or url
+      const imageUrl = listing.thumbnail_url || firstAttachment?.secure_url || firstAttachment?.url || null;
+      
+      return {
+        ...listing,
+        is_bookmarked: bookmarkMap[listing.id] || false,
+        thumbnail_url: imageUrl
+      };
+    });
+    
+    // Debug: Log what we're about to return
+    console.log('API Response Debug:', {
+      success: true,
+      dataCount: listingsWithBookmarks.length,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      },
+      firstItem: listingsWithBookmarks[0] ? {
+        id: listingsWithBookmarks[0].id,
+        title: listingsWithBookmarks[0].title,
+        thumbnail_url: listingsWithBookmarks[0].thumbnail_url,
+        price: listingsWithBookmarks[0].price?.toString()
+      } : null
+    });
 
     return NextResponse.json(serializeData({
       success: true,
@@ -389,7 +454,7 @@ export async function POST(request: NextRequest) {
 
     // Extract valid fields
     const {
-      broker_id, title, description, slug: clientSlug, transaction_type_id,
+      broker_id, title, description, transaction_type_id,
       property_type_id, province, ward, address,
       area, width, length, price, direction, tags,
       contact_name: rawContactName, contact_phone: rawContactPhone,
@@ -439,30 +504,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Use provided slug or generate from title
-    let finalSlug: string;
-    if (clientSlug && clientSlug.trim()) {
-      // Validate and sanitize the provided slug
-      finalSlug = createSlug(clientSlug.trim());
-      
-      // Ensure uniqueness
-      let counter = 1;
-      let uniqueSlug = finalSlug;
-      while (true) {
-        const existingListing = await prisma.listings.findFirst({
-          where: { slug: uniqueSlug }
-        });
-        if (!existingListing) {
-          finalSlug = uniqueSlug;
-          break;
-        }
-        uniqueSlug = `${finalSlug}-${counter}`;
-        counter++;
+    // Generate slug from title + listing_code (without FIN prefix)
+    // Example: "anh la phi" + "260001" -> "anh-la-phi-260001"
+    const titleSlug = createSlug(title);
+    const listingCodeNumber = finalListingCode.replace('FIN', ''); // e.g., "260001"
+    let finalSlug = `${titleSlug}-${listingCodeNumber}`;
+
+    // Ensure uniqueness
+    let counter = 1;
+    let uniqueSlug = finalSlug;
+    while (true) {
+      const existingListing = await prisma.listings.findFirst({
+        where: { slug: uniqueSlug }
+      });
+      if (!existingListing) {
+        finalSlug = uniqueSlug;
+        break;
       }
-    } else {
-      // Generate unique slug from title
-      finalSlug = await generateUniqueSlug(title);
+      uniqueSlug = `${titleSlug}-${listingCodeNumber}-${counter}`;
+      counter++;
     }
+
+    console.log('Generated slug:', finalSlug);
 
     // Resolve contact info: use provided value or fall back to broker data
     let finalContactName: string | null = null;

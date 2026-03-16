@@ -4,7 +4,7 @@ import { Tag } from './tags.service.client';
 export interface CreateListingData {
   broker_id: string;
   title: string;
-  slug?: string; // Add slug field
+  // slug is now generated on server side
   description: string;
   transaction_type_id?: string; // Changed from transaction_type to transaction_type_id  
   property_type_id?: string; // Changed from property_type to property_type_id

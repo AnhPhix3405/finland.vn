@@ -36,19 +36,8 @@ export default function MuaBanPage() {
 
   const defaultImage = "https://lh3.googleusercontent.com/aida-public/AB6AXuAH-qH24_KE8TIFtAOlg2VMxFw51PbmagHsDz-fp6Y_o13wCplh0YpY5tUVGtFy_1YJB66cE-ffhS1bk0Khp5Id5HsZm2Vn7isAq4e3dgAm2smw-oxIc6ZJMRAczbqKi_kj0UIofIfDnHxU34GvPlK-Og0xGinm9wGIfWLsRQ9fqzoYOYfmBA-cQ32_dFeyQ0cYN5hgai2CsH15n0rd3N0dVC5HbLBDzPaUbpyyq_mUnWXQDljSIAPURnziqfdaHPhnGT183UxhHGub";
 
-  const getListingImage = async (listingId: string): Promise<string> => {
-    try {
-      const res = await fetch(`/api/attachments/${listingId}?target_type=listing`);
-      const data = await res.json();
-      if (data.success && data.data && Array.isArray(data.data) && data.data.length > 0) {
-        // Find the primary image (sort_order === 0), otherwise use first one
-        const primaryAttachment = data.data.find((att: Record<string, unknown>) => att.sort_order === 0) || data.data[0];
-        return primaryAttachment.secure_url || primaryAttachment.url || defaultImage;
-      }
-    } catch (error) {
-      console.error(`Error fetching image for listing ${listingId}:`, error);
-    }
-    return defaultImage;
+  const getListingImage = (thumbnailUrl?: string): string => {
+    return thumbnailUrl || defaultImage;
   };
 
   const formatPrice = (price: string | number) => {
@@ -91,9 +80,9 @@ export default function MuaBanPage() {
       });
 
       // Map API data to component expected format with fetching images
-      const mappedProperties = await Promise.all(result.data.map(async (listing: Record<string, unknown>) => ({
+      const mappedProperties = result.data.map((listing: Record<string, unknown>) => ({
         id: String(listing.id),
-        image: await getListingImage(String(listing.id)),
+        image: getListingImage(listing.thumbnail_url as string | undefined),
         price: (listing.price as string | number) ? formatPrice(listing.price as string | number) : "Thỏa thuận",
         area: (listing.area as number | null) ? `${listing.area} m²` : "N/A",
         title: listing.title,
@@ -104,7 +93,7 @@ export default function MuaBanPage() {
         broker: listing.brokers,
         status: listing.status,
         is_bookmarked: listing.is_bookmarked || false
-      })));
+      }));
 
       setProperties(mappedProperties);
       setPagination({

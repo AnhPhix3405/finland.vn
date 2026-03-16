@@ -41,12 +41,7 @@ export async function GET(request: NextRequest) {
       skip,
       take: limit,
       include: {
-        property_types: true,
-        project_tags: {
-          include: {
-            tags: true
-          }
-        }
+        property_types: true
       },
       orderBy: [
         { created_at: 'desc' },
