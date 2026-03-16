@@ -16,6 +16,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const startTime = Date.now();
   try {
     const { id } = await params;
 
@@ -49,6 +50,7 @@ export async function GET(
     // Check if it's a UUID (ID) or slug
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
     
+    const dbStartTime = Date.now();
     if (isUUID) {
       // Find by ID
       listing = await prisma.listings.findUnique({
@@ -147,6 +149,7 @@ export async function GET(
 
     // Check if current broker has bookmarked this listing
     let isBookmarked = false;
+    const bookmarkStartTime = Date.now();
     if (currentBrokerId) {
       const bookmark = await prisma.bookmarks.findFirst({
         where: {
@@ -159,11 +162,15 @@ export async function GET(
       console.log('GET /api/listings/[id] - Checking bookmark:', {
         brokerId: currentBrokerId,
         listingId: listing.id,
-        isBookmarked: isBookmarked
+        isBookmarked: isBookmarked,
+        bookmarkQueryTime: Date.now() - bookmarkStartTime
       });
     } else {
       console.log('GET /api/listings/[id] - No broker logged in, isBookmarked:', false);
     }
+
+    const totalTime = Date.now() - startTime;
+    console.log(`GET /api/listings/[id] - Total time: ${totalTime}ms (DB: ${Date.now() - dbStartTime}ms)`);
 
     return NextResponse.json(serializeData({
       success: true,

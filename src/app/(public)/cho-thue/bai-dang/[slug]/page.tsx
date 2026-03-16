@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { PropertyCard } from "@/src/components/property/PropertyCard";
 import { PropertyFilter, FilterState } from "@/src/components/property/PropertyFilter";
 import { useAuthStore } from "@/src/store/authStore";
@@ -81,6 +81,20 @@ export default function ChoThueDetailOrFilterPage() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const isHydrated = useAuthStore((state) => state.isHydrated);
 
+  // Performance tracking
+  const componentStartTime = useRef<number>(0);
+  const apiStartTime = useRef<number>(0);
+  const renderStartTime = useRef<number>(0);
+
+  useEffect(() => {
+    componentStartTime.current = performance.now();
+    console.log('🔹 [PERF] Detail page mount started, slug:', slug);
+    return () => {
+      const mountTime = (performance.now() - componentStartTime.current) / 1000;
+      console.log(`🔹 [PERF] Detail page unmount - Total time: ${mountTime.toFixed(3)}s`);
+    };
+  }, [slug]);
+
   // State for property types from API
   const [propertyTypes, setPropertyTypes] = useState<Array<{ id: string; name: string; hashtag: string }>>([]);
 
@@ -104,14 +118,26 @@ export default function ChoThueDetailOrFilterPage() {
     totalPages: 0
   });
 
-  // Fetch property types from API
+  // Fetch property types from API (with caching to avoid duplicate calls)
   useEffect(() => {
+    // Check if already cached in sessionStorage
+    const cached = sessionStorage.getItem('property_types_cache');
+    if (cached) {
+      try {
+        setPropertyTypes(JSON.parse(cached));
+      } catch (e) {
+        console.error('Error parsing cached property types');
+      }
+    }
+
     const fetchPropertyTypes = async () => {
       try {
         const response = await fetch('/api/property_types?limit=100');
         const data = await response.json();
         if (data.success) {
           setPropertyTypes(data.data);
+          // Cache for future use
+          sessionStorage.setItem('property_types_cache', JSON.stringify(data.data));
         }
       } catch (error) {
         console.error('Error fetching property types:', error);
@@ -191,23 +217,39 @@ export default function ChoThueDetailOrFilterPage() {
     const fetchListingDetail = async () => {
       try {
         setLoading(true);
+        apiStartTime.current = performance.now();
+        
         const headers: HeadersInit = {};
         if (accessToken) {
           headers['Authorization'] = `Bearer ${accessToken}`;
         }
+        console.log('🔹 [PERF] Fetching listing detail:', `/api/listings/${slug}`);
         const response = await fetch(`/api/listings/${slug}`, { headers });
         const result = await response.json();
 
+        const listingApiTime = (performance.now() - apiStartTime.current) / 1000;
+        console.log(`🔹 [PERF] API /api/listings/${slug} latency: ${listingApiTime.toFixed(3)}s`);
+
         if (result.success) {
+          renderStartTime.current = performance.now();
           setListing(result.data);
           
-          // Fetch and sort attachments
+          // Fetch attachments
+          const attachStartTime = performance.now();
           const attachRes = await getAttachmentsByTarget(result.data.id, 'listing');
+          const attachApiTime = (performance.now() - attachStartTime) / 1000;
+          console.log(`🔹 [PERF] API attachments latency: ${attachApiTime.toFixed(3)}s`);
+          
           if (attachRes.success) {
             const sorted = (attachRes.data || []).sort((a: Attachment, b: Attachment) => (a.sort_order || 0) - (b.sort_order || 0));
             console.log('📸 Attachments sorted:', sorted);
             setAttachments(sorted);
           }
+          
+          const renderTime = (performance.now() - renderStartTime.current) / 1000;
+          const totalTime = (performance.now() - componentStartTime.current) / 1000;
+          console.log(`🔹 [PERF] Data processing & setState: ${renderTime.toFixed(3)}s`);
+          console.log(`🔹 [PERF] Total detail page load: ${totalTime.toFixed(3)}s`);
         } else {
           setError(result.error || 'Không tìm thấy bài đăng');
         }
