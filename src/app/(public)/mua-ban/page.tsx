@@ -7,6 +7,7 @@ import { Pagination } from "../../../components/shared/Pagination";
 import { getListingsByHashtags } from "../../modules/listings.service";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/src/store/authStore";
+import Link from "next/link";
 
 export default function MuaBanPage() {
   const router = useRouter();
@@ -187,13 +188,21 @@ export default function MuaBanPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Page Title */}
-      <div className="mb-6">
-        <h2 className="text-3xl font-black text-slate-900 dark:text-white leading-tight">
-          Bất động sản Mua Bán toàn quốc
-        </h2>
-        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-          Tìm kiếm ngôi nhà mơ ước của bạn tại Finland.vn
-        </p>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-black text-slate-900 dark:text-white leading-tight">
+            Bất động sản Mua Bán toàn quốc
+          </h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+            Tìm kiếm ngôi nhà mơ ước của bạn tại Finland.vn
+          </p>
+        </div>
+        <Link
+          href="/tao-bai-dang"
+          className="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-md transition-colors whitespace-nowrap"
+        >
+          + Tạo bài đăng
+        </Link>
       </div>
 
       <PropertyFilter onFilterChange={handleFilterChange} />

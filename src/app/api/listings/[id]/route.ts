@@ -138,6 +138,16 @@ export async function GET(
       );
     }
 
+    // Increment views_count
+    try {
+      await prisma.listings.update({
+        where: { id: listing.id },
+        data: { views_count: { increment: 1 } }
+      });
+    } catch (err) {
+      console.error('Error incrementing views_count:', err);
+    }
+
     // Only show approved listings for public access
     const publicStatuses = ['Đang hiển thị', 'Đã bán', 'Đã xong'];
     if (!publicStatuses.includes(listing.status || '')) {

@@ -50,6 +50,7 @@ export interface Listing {
   property_type_id?: string | null;
   transaction_type_id?: string | null;
   created_at?: Date | string;
+  updated_at?: Date | string;
   views_count?: number;
   
   // Relations

@@ -71,6 +71,9 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Validation state
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   // Derive property type for conditional rendering
   const selectedPropertyType = propertyTypes.find(pt => pt.id === propertyTypeId);
   const selectedTransactionType = transactionTypes.find(tt => tt.id === transactionTypeId);
@@ -182,6 +185,130 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  const validateForm = (): string | null => {
+    const newErrors: Record<string, string> = {};
+    const priceValue = price.replace(/\D/g, '');
+
+    if (!transactionTypeId) {
+      newErrors.transactionType = "Vui lòng chọn loại giao dịch";
+    }
+
+    if (!propertyTypeId) {
+      newErrors.propertyType = "Vui lòng chọn loại bất động sản";
+    }
+
+    if (!province) {
+      newErrors.province = "Vui lòng chọn Tỉnh/Thành phố";
+    }
+
+    if (!ward) {
+      newErrors.ward = "Vui lòng chọn Phường/Xã";
+    }
+
+    if (!title.trim()) {
+      newErrors.title = "Tiêu đề là bắt buộc";
+    } else if (title.trim().length < 10) {
+      newErrors.title = "Tiêu đề phải có ít nhất 10 ký tự";
+    } else if (title.trim().length > 200) {
+      newErrors.title = "Tiêu đề không được quá 200 ký tự";
+    }
+
+    if (!description.trim()) {
+      newErrors.description = "Mô tả là bắt buộc";
+    } else if (description.trim().length < 50) {
+      newErrors.description = "Mô tả phải có ít nhất 50 ký tự";
+    } else if (description.trim().length > 10000) {
+      newErrors.description = "Mô tả không được quá 10000 ký tự";
+    }
+
+    if (!area) {
+      newErrors.area = "Diện tích là bắt buộc";
+    } else {
+      const areaNum = parseFloat(area);
+      if (isNaN(areaNum) || areaNum <= 0) {
+        newErrors.area = "Diện tích phải là số dương";
+      } else if (areaNum > 1000000) {
+        newErrors.area = "Diện tích không hợp lệ";
+      }
+    }
+
+    if (!priceValue || parseInt(priceValue) === 0) {
+      newErrors.price = "Giá là bắt buộc";
+    } else {
+      const priceNum = parseInt(priceValue);
+      if (priceNum < 100000) {
+        newErrors.price = "Giá phải lớn hơn 100,000 VNĐ";
+      } else if (priceNum > 100000000000) {
+        newErrors.price = "Giá không hợp lệ";
+      }
+    }
+
+    if (width) {
+      const widthNum = parseFloat(width);
+      if (isNaN(widthNum) || widthNum <= 0 || widthNum > 10000) {
+        newErrors.width = "Chiều ngang không hợp lệ";
+      }
+    }
+
+    if (length) {
+      const lengthNum = parseFloat(length);
+      if (isNaN(lengthNum) || lengthNum <= 0 || lengthNum > 10000) {
+        newErrors.length = "Chiều dài không hợp lệ";
+      }
+    }
+
+    if (floorCount) {
+      const floorNum = parseInt(floorCount);
+      if (isNaN(floorNum) || floorNum < 1 || floorNum > 100) {
+        newErrors.floorCount = "Số tầng không hợp lệ";
+      }
+    }
+
+    if (bedroomCount) {
+      const bedroomNum = parseInt(bedroomCount);
+      if (isNaN(bedroomNum) || bedroomNum < 0 || bedroomNum > 100) {
+        newErrors.bedroomCount = "Số phòng ngủ không hợp lệ";
+      }
+    }
+
+    if (contactPhone.trim()) {
+      const phoneRegex = /^0[0-9]{9}$/;
+      if (!phoneRegex.test(contactPhone.trim())) {
+        newErrors.contactPhone = "Số điện thoại không hợp lệ";
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length > 0 ? Object.keys(newErrors)[0] : null;
+  };
+
+  const scrollToError = (firstErrorKey: string | null) => {
+    if (!firstErrorKey) return;
+    
+    const idMap: Record<string, string> = {
+      transactionType: 'transactionType',
+      propertyType: 'propertyType',
+      province: 'projectCity',
+      ward: 'projectDistrict',
+      title: 'title',
+      description: 'description',
+      area: 'area',
+      price: 'price',
+      width: 'width',
+      length: 'length',
+      floorCount: 'floorCount',
+      bedroomCount: 'bedroomCount',
+      contactPhone: 'contactPhone',
+    };
+
+    const elementId = idMap[firstErrorKey];
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      element.focus();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -190,6 +317,13 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
       return;
     }
 
+    const firstErrorKey = validateForm();
+    if (firstErrorKey) {
+      scrollToError(firstErrorKey);
+      return;
+    }
+
+    setErrors({});
     setIsUploading(true);
 
     try {
@@ -263,9 +397,7 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
         console.log("Upload results:", uploadResults);
       }
 
-      const successMessage = listingResult.tags && listingResult.tags.length > 0 
-        ? `Đăng bài thành công! Đã tạo/gắn ${listingResult.tags.length} hashtags.`
-        : "Đăng bài thành công!";
+      const successMessage = "Đăng bài thành công!";
       
       addToast(successMessage, "success");
       onSuccess?.();
@@ -300,9 +432,12 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
               <select
                 id="transactionType"
                 value={transactionTypeId}
-                onChange={(e) => setTransactionTypeId(e.target.value)}
+                onChange={(e) => {
+                  setTransactionTypeId(e.target.value);
+                  setErrors(prev => ({ ...prev, transactionType: '' }));
+                }}
                 required
-                className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-slate-900 dark:text-white"
+                className={`w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-slate-900 dark:text-white ${errors.transactionType ? 'border-red-500 ring-2 ring-red-500' : ''}`}
               >
                 <option value="">Chọn loại giao dịch</option>
                 {transactionTypes.map(type => (
@@ -310,6 +445,7 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
                 ))}
               </select>
             )}
+            {errors.transactionType && <p className="text-red-500 text-xs mt-1">{errors.transactionType}</p>}
           </div>
 
           <div>
@@ -324,9 +460,12 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
               <select
                 id="propertyType"
                 value={propertyTypeId}
-                onChange={(e) => setPropertyTypeId(e.target.value)}
+                onChange={(e) => {
+                  setPropertyTypeId(e.target.value);
+                  setErrors(prev => ({ ...prev, propertyType: '' }));
+                }}
                 required
-                className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-slate-900 dark:text-white"
+                className={`w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-slate-900 dark:text-white ${errors.propertyType ? 'border-red-500 ring-2 ring-red-500' : ''}`}
               >
                 <option value="">Chọn loại hình</option>
                 {propertyTypes.map(type => (
@@ -334,6 +473,7 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
                 ))}
               </select>
             )}
+            {errors.propertyType && <p className="text-red-500 text-xs mt-1">{errors.propertyType}</p>}
           </div>
         </div>
       </section>
@@ -347,10 +487,15 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <LocationSelector
             selectedProvince={province}
-            onProvinceChange={setProvince}
+            onProvinceChange={(val) => { setProvince(val); setErrors(prev => ({ ...prev, province: '' })); }}
             selectedWard={ward}
-            onWardChange={setWard}
+            onWardChange={(val) => { setWard(val); setErrors(prev => ({ ...prev, ward: '' })); }}
           />
+          {(errors.province || errors.ward) && (
+            <div className="md:col-span-2">
+              <p className="text-red-500 text-xs">{errors.province || errors.ward}</p>
+            </div>
+          )}
           <div className="md:col-span-2 space-y-2">
             <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Địa chỉ cụ thể</label>
             <input
@@ -377,10 +522,11 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
             type="text"
             required
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => { setTitle(e.target.value); setErrors(prev => ({ ...prev, title: '' })); }}
             placeholder="Ví dụ: Bán nhà phố mặt tiền kinh doanh Quận 1, sổ hồng riêng"
-            className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
+            className={`w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white ${errors.title ? 'border-red-500 ring-2 ring-red-500' : ''}`}
           />
+          {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
         </div>
         
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -391,9 +537,10 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
               type="number"
               required
               value={area}
-              onChange={(e) => setArea(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
+              onChange={(e) => { setArea(e.target.value); setErrors(prev => ({ ...prev, area: '' })); }}
+              className={`w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white ${errors.area ? 'border-red-500 ring-2 ring-red-500' : ''}`}
             />
+            {errors.area && <p className="text-red-500 text-xs mt-1">{errors.area}</p>}
           </div>
           <div className="space-y-2">
             <label htmlFor="price" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
@@ -405,49 +552,68 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
                 type="text"
                 required
                 value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white pr-16"
+                onChange={(e) => { setPrice(e.target.value); setErrors(prev => ({ ...prev, price: '' })); }}
+                className={`w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white pr-16 ${errors.price ? 'border-red-500 ring-2 ring-red-500' : ''}`}
               />
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">VNĐ</span>
             </div>
+            {errors.price && <p className="text-red-500 text-xs mt-1">{errors.price}</p>}
           </div>
 
           {showDimensions && (
             <>
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Chiều ngang (m)</label>
+                <label htmlFor="width" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Chiều ngang (m)</label>
                 <input
+                  id="width"
                   type="number"
                   step="0.1"
                   value={width}
-                  onChange={(e) => setWidth(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
+                  onChange={(e) => { setWidth(e.target.value); setErrors(prev => ({ ...prev, width: '' })); }}
+                  className={`w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white ${errors.width ? 'border-red-500 ring-2 ring-red-500' : ''}`}
                 />
+                {errors.width && <p className="text-red-500 text-xs mt-1">{errors.width}</p>}
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Chiều dài (m)</label>
+                <label htmlFor="length" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Chiều dài (m)</label>
                 <input
+                  id="length"
                   type="number"
                   step="0.1"
                   value={length}
-                  onChange={(e) => setLength(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
+                  onChange={(e) => { setLength(e.target.value); setErrors(prev => ({ ...prev, length: '' })); }}
+                  className={`w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white ${errors.length ? 'border-red-500 ring-2 ring-red-500' : ''}`}
                 />
+                {errors.length && <p className="text-red-500 text-xs mt-1">{errors.length}</p>}
               </div>
             </>
           )}
 
           {showFloors && (
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Số tầng</label>
-              <input type="number" value={floorCount} onChange={(e) => setFloorCount(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white" />
+              <label htmlFor="floorCount" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Số tầng</label>
+              <input 
+                id="floorCount"
+                type="number" 
+                value={floorCount} 
+                onChange={(e) => { setFloorCount(e.target.value); setErrors(prev => ({ ...prev, floorCount: '' })); }} 
+                className={`w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white ${errors.floorCount ? 'border-red-500 ring-2 ring-red-500' : ''}`}
+              />
+              {errors.floorCount && <p className="text-red-500 text-xs mt-1">{errors.floorCount}</p>}
             </div>
           )}
 
           {showBedrooms && (
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Số phòng ngủ</label>
-              <input type="number" value={bedroomCount} onChange={(e) => setBedroomCount(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white" />
+              <label htmlFor="bedroomCount" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Số phòng ngủ</label>
+              <input 
+                id="bedroomCount"
+                type="number" 
+                value={bedroomCount} 
+                onChange={(e) => { setBedroomCount(e.target.value); setErrors(prev => ({ ...prev, bedroomCount: '' })); }} 
+                className={`w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white ${errors.bedroomCount ? 'border-red-500 ring-2 ring-red-500' : ''}`}
+              />
+              {errors.bedroomCount && <p className="text-red-500 text-xs mt-1">{errors.bedroomCount}</p>}
             </div>
           )}
 
@@ -541,12 +707,13 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
 
         <div className="space-y-2">
           <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Mô tả chi tiết <span className="text-red-500">*</span></label>
-          <div className="bg-slate-50 dark:bg-slate-800 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+          <div className={`bg-slate-50 dark:bg-slate-800 rounded-lg overflow-hidden border ${errors.description ? 'border-red-500 ring-2 ring-red-500' : 'border-slate-200 dark:border-slate-700'}`}>
             <UserRichTextEditor
               value={description}
-              onChange={setDescription}
+              onChange={(val) => { setDescription(val); setErrors(prev => ({ ...prev, description: '' })); }}
             />
           </div>
+          {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
         </div>
       </section>
 
@@ -572,14 +739,16 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Số điện thoại liên hệ</label>
+            <label htmlFor="contactPhone" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Số điện thoại liên hệ</label>
             <input
+              id="contactPhone"
               type="tel"
               value={contactPhone}
-              onChange={(e) => setContactPhone(e.target.value)}
+              onChange={(e) => { setContactPhone(e.target.value); setErrors(prev => ({ ...prev, contactPhone: '' })); }}
               placeholder={user?.phone || "Để trống để dùng SĐT tài khoản"}
-              className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
+              className={`w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white ${errors.contactPhone ? 'border-red-500 ring-2 ring-red-500' : ''}`}
             />
+            {errors.contactPhone && <p className="text-red-500 text-xs mt-1">{errors.contactPhone}</p>}
           </div>
         </div>
       </section>

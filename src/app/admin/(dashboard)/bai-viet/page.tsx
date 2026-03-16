@@ -36,6 +36,14 @@ export default function AdminArticleList() {
   const [statusFilter, setStatusFilter] = useState("");
   const [transactionFilter, setTransactionFilter] = useState("");
 
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
+
   useEffect(() => {
     loadListings();
   }, [statusFilter, transactionFilter]);
@@ -63,35 +71,55 @@ export default function AdminArticleList() {
     }
   };
 
-  const handleApprove = async (listingId: string) => {
-    const result = await updateListingStatus(listingId, 'Đang hiển thị');
-    if (result.success) {
-      setListings(prev => prev.map(l => l.id === listingId ? { ...l, status: 'Đang hiển thị' } : l));
-      addToast('Đã duyệt bài viết thành công!', 'success');
-    } else {
-      addToast('Lỗi: ' + (result.error || 'Không thể duyệt bài viết'), 'error');
-    }
+  const handleApprove = (listingId: string) => {
+    setConfirmModal({
+      open: true,
+      title: 'Duyệt bài viết',
+      message: 'Bạn có chắc chắn muốn duyệt bài viết này?',
+      onConfirm: async () => {
+        const result = await updateListingStatus(listingId, 'Đang hiển thị');
+        if (result.success) {
+          setListings(prev => prev.map(l => l.id === listingId ? { ...l, status: 'Đang hiển thị' } : l));
+          addToast('Đã duyệt bài viết thành công!', 'success');
+        } else {
+          addToast('Lỗi: ' + (result.error || 'Không thể duyệt bài viết'), 'error');
+        }
+      }
+    });
   };
 
-  const handleReject = async (listingId: string) => {
-    const result = await updateListingStatus(listingId, 'Bị từ chối');
-    if (result.success) {
-      setListings(prev => prev.map(l => l.id === listingId ? { ...l, status: 'Bị từ chối' } : l));
-      addToast('Đã từ chối bài viết!', 'success');
-    } else {
-      addToast('Lỗi: ' + (result.error || 'Không thể từ chối bài viết'), 'error');
-    }
+  const handleReject = (listingId: string) => {
+    setConfirmModal({
+      open: true,
+      title: 'Từ chối bài viết',
+      message: 'Bạn có chắc chắn muốn từ chối bài viết này?',
+      onConfirm: async () => {
+        const result = await updateListingStatus(listingId, 'Bị từ chối');
+        if (result.success) {
+          setListings(prev => prev.map(l => l.id === listingId ? { ...l, status: 'Bị từ chối' } : l));
+          addToast('Đã từ chối bài viết!', 'success');
+        } else {
+          addToast('Lỗi: ' + (result.error || 'Không thể từ chối bài viết'), 'error');
+        }
+      }
+    });
   };
 
-  const handleDelete = async (listingId: string) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa vĩnh viễn bài viết này?')) return;
-    const result = await deleteListing(listingId);
-    if (result.success) {
-      setListings(prev => prev.filter(l => l.id !== listingId));
-      addToast('Đã xóa bài viết thành công!', 'success');
-    } else {
-      addToast('Lỗi: ' + (result.error || 'Không thể xóa bài viết'), 'error');
-    }
+  const handleDelete = (listingId: string) => {
+    setConfirmModal({
+      open: true,
+      title: 'Xóa bài viết',
+      message: 'Bạn có chắc chắn muốn xóa vĩnh viễn bài viết này?',
+      onConfirm: async () => {
+        const result = await deleteListing(listingId);
+        if (result.success) {
+          setListings(prev => prev.filter(l => l.id !== listingId));
+          addToast('Đã xóa bài viết thành công!', 'success');
+        } else {
+          addToast('Lỗi: ' + (result.error || 'Không thể xóa bài viết'), 'error');
+        }
+      }
+    });
   };
 
   const handleToggleVisibility = async (listingId: string, currentStatus: string | null | undefined) => {
@@ -197,17 +225,9 @@ export default function AdminArticleList() {
                       <td className="px-6 py-4 text-sm">{(listing.views_count || 0).toLocaleString('vi-VN')}</td>
                       <td className="px-6 py-4">{getStatusBadge(listing.status)}</td>
                       <td className="px-6 py-4 text-right whitespace-nowrap">
-                        {/* Toggle Show/Hide */}
-                        <button 
-                          onClick={() => handleToggleVisibility(listing.id, listing.status)} 
-                          className={`p-1 ${listing.status === 'Đã ẩn' ? 'text-emerald-500 hover:text-emerald-700' : 'text-slate-400 hover:text-slate-600'} ${listing.status !== 'Đã ẩn' ? 'ml-1' : ''}`}
-                          title={listing.status === 'Đã ẩn' ? 'Hiển thị' : 'Ẩn'}
-                        >
-                          <span className="material-symbols-outlined text-lg">{listing.status === 'Đã ẩn' ? 'visibility' : 'visibility_off'}</span>
-                        </button>
                         {/* Approve - chỉ hiện khi đang chờ duyệt */}
                         {listing.status === 'Đang chờ duyệt' && (
-                          <button onClick={() => handleApprove(listing.id)} className="text-emerald-500 hover:text-emerald-700 p-1 ml-1" title="Duyệt bài">
+                          <button onClick={() => handleApprove(listing.id)} className="text-emerald-500 hover:text-emerald-700 p-1" title="Duyệt bài">
                             <span className="material-symbols-outlined text-lg">check_circle</span>
                           </button>
                         )}
@@ -231,6 +251,37 @@ export default function AdminArticleList() {
         </div>
 
         <HashtagManagerModal isOpen={isHashtagModalOpen} onClose={() => setIsHashtagModalOpen(false)} />
+
+        {/* Confirmation Modal */}
+        {confirmModal?.open && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
+            <div className="fixed inset-0 bg-black/50" onClick={() => setConfirmModal(null)}></div>
+            <div className="relative bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6 border border-red-500">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="material-symbols-outlined text-red-500 text-2xl">warning</span>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{confirmModal.title}</h3>
+              </div>
+              <p className="text-slate-600 dark:text-slate-300 mb-6">{confirmModal.message}</p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setConfirmModal(null)}
+                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md font-medium transition-colors"
+                >
+                  Thoát
+                </button>
+                <button
+                  onClick={() => {
+                    confirmModal.onConfirm();
+                    setConfirmModal(null);
+                  }}
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-md font-medium transition-colors"
+                >
+                  Xác nhận
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

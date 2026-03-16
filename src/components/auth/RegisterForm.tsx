@@ -7,6 +7,18 @@ import { useRouter } from "next/navigation";
 import { registerBroker } from "@/src/app/modules/auth/auth.service";
 import { uploadBrokerAvatar } from "@/src/app/modules/upload.service";
 import { useNotificationStore } from "@/src/store/notificationStore";
+import LocationSelector from "../feature/LocationSelector";
+
+interface FormErrors {
+  phone?: string;
+  full_name?: string;
+  province?: string;
+  ward?: string;
+  referrer_phone?: string;
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+}
 
 export function RegisterForm() {
   const router = useRouter();
@@ -16,6 +28,7 @@ export function RegisterForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState<FormErrors>({});
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -50,16 +63,144 @@ export function RegisterForm() {
     setAvatarPreview(url);
   };
 
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+    const phoneRegex = /^0[0-9]{9}$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!formData.phone.trim()) {
+      newErrors.phone = "Số điện thoại là bắt buộc";
+    } else if (!phoneRegex.test(formData.phone)) {
+      newErrors.phone = "Số điện thoại phải có 10 chữ số và bắt đầu bằng số 0";
+    }
+
+    if (!formData.full_name.trim()) {
+      newErrors.full_name = "Họ tên là bắt buộc";
+    } else if (formData.full_name.trim().length < 2) {
+      newErrors.full_name = "Họ tên phải có ít nhất 2 ký tự";
+    } else if (formData.full_name.trim().length > 100) {
+      newErrors.full_name = "Họ tên không được quá 100 ký tự";
+    }
+
+    if (!formData.province) {
+      newErrors.province = "Vui lòng chọn Tỉnh/Thành phố";
+    }
+
+    if (!formData.ward) {
+      newErrors.ward = "Vui lòng chọn Phường/Xã";
+    }
+
+    if (formData.referrer_phone.trim()) {
+      if (!phoneRegex.test(formData.referrer_phone)) {
+        newErrors.referrer_phone = "Số điện thoại người giới thiệu không hợp lệ";
+      }
+    }
+
+    if (formData.email.trim()) {
+      if (!emailRegex.test(formData.email)) {
+        newErrors.email = "Email không hợp lệ";
+      }
+    }
+
+    if (!formData.password) {
+      newErrors.password = "Mật khẩu là bắt buộc";
+    } else if (formData.password.length < 6) {
+      newErrors.password = "Mật khẩu phải có ít nhất 6 ký tự";
+    } else if (formData.password.length > 50) {
+      newErrors.password = "Mật khẩu không được quá 50 ký tự";
+    }
+
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = "Vui lòng xác nhận mật khẩu";
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Mật khẩu xác nhận không khớp";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
-    if (formData.password !== formData.confirmPassword) {
-      setError("Mật khẩu xác nhận không khớp");
+    const newErrors: FormErrors = {};
+    const phoneRegex = /^0[0-9]{9}$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!formData.phone.trim()) {
+      newErrors.phone = "Số điện thoại là bắt buộc";
+    } else if (!phoneRegex.test(formData.phone)) {
+      newErrors.phone = "Số điện thoại phải có 10 chữ số và bắt đầu bằng số 0";
+    }
+
+    if (!formData.full_name.trim()) {
+      newErrors.full_name = "Họ tên là bắt buộc";
+    } else if (formData.full_name.trim().length < 2) {
+      newErrors.full_name = "Họ tên phải có ít nhất 2 ký tự";
+    } else if (formData.full_name.trim().length > 100) {
+      newErrors.full_name = "Họ tên không được quá 100 ký tự";
+    }
+
+    if (!formData.province) {
+      newErrors.province = "Vui lòng chọn Tỉnh/Thành phố";
+    }
+
+    if (!formData.ward) {
+      newErrors.ward = "Vui lòng chọn Phường/Xã";
+    }
+
+    if (formData.referrer_phone.trim()) {
+      if (!phoneRegex.test(formData.referrer_phone)) {
+        newErrors.referrer_phone = "Số điện thoại người giới thiệu không hợp lệ";
+      }
+    }
+
+    if (formData.email.trim()) {
+      if (!emailRegex.test(formData.email)) {
+        newErrors.email = "Email không hợp lệ";
+      }
+    }
+
+    if (!formData.password) {
+      newErrors.password = "Mật khẩu là bắt buộc";
+    } else if (formData.password.length < 6) {
+      newErrors.password = "Mật khẩu phải có ít nhất 6 ký tự";
+    } else if (formData.password.length > 50) {
+      newErrors.password = "Mật khẩu không được quá 50 ký tự";
+    }
+
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = "Vui lòng xác nhận mật khẩu";
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Mật khẩu xác nhận không khớp";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       setIsLoading(false);
+      const idMap: Record<string, string> = {
+        phone: 'phone',
+        full_name: 'full_name',
+        province: 'projectCity',
+        ward: 'projectDistrict',
+        referrer_phone: 'referrer_phone',
+        email: 'email',
+        password: 'password',
+        confirmPassword: 'confirmPassword'
+      };
+      const firstErrorKey = Object.keys(newErrors).find(key => newErrors[key as keyof FormErrors]);
+      if (firstErrorKey && idMap[firstErrorKey]) {
+        const element = document.getElementById(idMap[firstErrorKey]);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
       return;
     }
+
+    setErrors({});
 
     try {
       const { confirmPassword, ...registerData } = formData;
@@ -71,36 +212,18 @@ export function RegisterForm() {
       if (result.success) {
         console.log('🔹 [REGISTER] Registration successful, user data:', result.data);
         
-        // Upload avatar if selected
+        // Upload avatar if selected after registration (needs separate login to associate with user)
         if (selectedAvatar && result.data?.id) {
-          console.log('🔹 [REGISTER] Uploading avatar for broker id:', result.data.id);
+          console.log('🔹 [REGISTER] Upload avatar after registration for broker id:', result.data.id);
           try {
-            const uploadResult = await uploadBrokerAvatar(selectedAvatar, result.data.id);
-            console.log('🔹 [REGISTER] Avatar upload result:', uploadResult);
-            
-            // Update user store with new avatar_url
-            if (uploadResult?.secure_url) {
-              const { useUserStore } = await import('@/src/store/userStore');
-              const currentUser = useUserStore.getState().user;
-              if (currentUser) {
-                useUserStore.getState().setUser({
-                  ...currentUser,
-                  avatar_url: uploadResult.secure_url
-                });
-                console.log('🔹 [REGISTER] Updated user store with avatar_url');
-              }
-            }
+            await uploadBrokerAvatar(selectedAvatar, result.data.id);
           } catch (avatarError) {
             console.error('🔹 [REGISTER] Avatar upload error:', avatarError);
-            // Continue even if avatar upload fails
           }
-        } else {
-          console.log('🔹 [REGISTER] No avatar selected or no user id');
         }
         
-        // Auth service already updated stores with token from register API
-        addToast("Đăng ký thành công!", "success");
-        router.push("/");
+        addToast("Đăng ký thành công! Vui lòng đăng nhập.", "success");
+        router.push("/dang-nhap");
         router.refresh();
       } else {
         setError(result.error || "Đăng ký không thành công. Vui lòng kiểm tra lại thông tin.");
@@ -179,8 +302,9 @@ export function RegisterForm() {
             placeholder="Nhập số điện thoại (tài khoản đăng nhập)"
             required
             disabled={isLoading}
-            className="block w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm disabled:opacity-50"
+            className={`block w-full px-3 py-2 border rounded-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-sm disabled:opacity-50 ${errors.phone ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-slate-300 dark:border-slate-700'}`}
           />
+          {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
         </div>
 
         {/* Full Name */}
@@ -200,56 +324,22 @@ export function RegisterForm() {
             placeholder="Nhập họ và tên"
             required
             disabled={isLoading}
-            className="block w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm disabled:opacity-50"
+            className={`block w-full px-3 py-2 border rounded-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-sm disabled:opacity-50 ${errors.full_name ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-slate-300 dark:border-slate-700'}`}
           />
+          {errors.full_name && <p className="text-red-500 text-xs mt-1">{errors.full_name}</p>}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          {/* Province/City */}
-          <div>
-            <label
-              htmlFor="province"
-              className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
-            >
-              Tỉnh/Thành <span className="text-red-500 font-bold">*</span>
-            </label>
-            <select
-              id="province"
-              name="province"
-              value={formData.province}
-              onChange={handleChange}
-              required
-              disabled={isLoading}
-              className="block w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm disabled:opacity-50"
-            >
-              <option value="">Chọn Tỉnh/Thành</option>
-              <option value="Hà Nội">Hà Nội</option>
-              <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
-            </select>
+        <LocationSelector
+          selectedProvince={formData.province}
+          onProvinceChange={(value) => setFormData(prev => ({ ...prev, province: value, ward: '' }))}
+          selectedWard={formData.ward}
+          onWardChange={(value) => setFormData(prev => ({ ...prev, ward: value }))}
+        />
+        {(errors.province || errors.ward) && (
+          <div className="text-red-500 text-xs mt-1">
+            {errors.province || errors.ward}
           </div>
-          {/* District -> Ward in DB */}
-          <div>
-            <label
-              htmlFor="ward"
-              className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
-            >
-              Quận/Huyện <span className="text-red-500 font-bold">*</span>
-            </label>
-            <select
-              id="ward"
-              name="ward"
-              value={formData.ward}
-              onChange={handleChange}
-              required
-              disabled={isLoading}
-              className="block w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm disabled:opacity-50"
-            >
-              <option value="">Chọn Quận/Huyện</option>
-              <option value="Quận 1">Quận 1</option>
-              <option value="Ba Đình">Ba Đình</option>
-            </select>
-          </div>
-        </div>
+        )}
 
         {/* Referral Phone Number */}
         <div>
@@ -267,8 +357,9 @@ export function RegisterForm() {
             onChange={handleChange}
             placeholder="Nhập số điện thoại người giới thiệu"
             disabled={isLoading}
-            className="block w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm disabled:opacity-50"
+            className={`block w-full px-3 py-2 border rounded-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-sm disabled:opacity-50 ${errors.referrer_phone ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-slate-300 dark:border-slate-700'}`}
           />
+          {errors.referrer_phone && <p className="text-red-500 text-xs mt-1">{errors.referrer_phone}</p>}
         </div>
 
         {/* Email */}
@@ -287,8 +378,9 @@ export function RegisterForm() {
             onChange={handleChange}
             placeholder="example@gmail.com"
             disabled={isLoading}
-            className="block w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm disabled:opacity-50"
+            className={`block w-full px-3 py-2 border rounded-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-sm disabled:opacity-50 ${errors.email ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-slate-300 dark:border-slate-700'}`}
           />
+          {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
         </div>
 
         {/* Mật khẩu */}
@@ -309,7 +401,7 @@ export function RegisterForm() {
               placeholder="••••••••"
               required
               disabled={isLoading}
-              className="block w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm disabled:opacity-50"
+              className={`block w-full px-3 py-2 border rounded-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-sm disabled:opacity-50 ${errors.password ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-slate-300 dark:border-slate-700'}`}
             />
             <button
               type="button"
@@ -324,6 +416,7 @@ export function RegisterForm() {
               )}
             </button>
           </div>
+          {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
         </div>
 
         {/* Xác nhận mật khẩu */}
@@ -344,7 +437,7 @@ export function RegisterForm() {
               placeholder="••••••••"
               required
               disabled={isLoading}
-              className="block w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 text-sm disabled:opacity-50"
+              className={`block w-full px-3 py-2 border rounded-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-sm disabled:opacity-50 ${errors.confirmPassword ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-slate-300 dark:border-slate-700'}`}
             />
             <button
               type="button"
@@ -359,6 +452,7 @@ export function RegisterForm() {
               )}
             </button>
           </div>
+          {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>}
         </div>
 
         {/* Điều khoản */}

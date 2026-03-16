@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { PropertyCard } from "../../../components/property/PropertyCard";
 import { PropertyFilter, FilterState } from "../../../components/property/PropertyFilter";
 import { Pagination } from "../../../components/shared/Pagination";
 import { getListingsByHashtags } from "../../modules/listings.service";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/src/store/authStore";
+import Link from "next/link";
 
 export default function ChoThuePage() {
   const router = useRouter();
@@ -180,13 +181,21 @@ export default function ChoThuePage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
       {/* Page Title */}
-      <div className="mb-6">
-        <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-slate-100">
-          Bất động sản Cho Thuê toàn quốc
-        </h1>
-        <p className="text-slate-500 mt-2">
-          Tìm kiếm hàng ngàn tin đăng cho thuê bất động sản chính chủ, uy tín.
-        </p>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-slate-100">
+            Bất động sản Cho Thuê toàn quốc
+          </h1>
+          <p className="text-slate-500 mt-2">
+            Tìm kiếm hàng ngàn tin đăng cho thuê bất động sản chính chủ, uy tín.
+          </p>
+        </div>
+        <Link
+          href="/tao-bai-dang"
+          className="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-md transition-colors whitespace-nowrap"
+        >
+          + Tạo bài đăng
+        </Link>
       </div>
 
       <PropertyFilter onFilterChange={handleFilterChange} />

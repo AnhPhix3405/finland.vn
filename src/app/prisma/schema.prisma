@@ -121,6 +121,8 @@ model listings {
   bedroom_count       Int?
   thumbnail_url       String?
   views_count         Int                @default(0)
+  created_at          DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime           @default(now()) @db.Timestamptz(6)
   bookmarks           bookmarks[]
   brokers             brokers            @relation(fields: [broker_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_listings_broker")
   property_types      property_types?    @relation(fields: [property_type_id], references: [id], onUpdate: NoAction, map: "fk_listings_property_type")
