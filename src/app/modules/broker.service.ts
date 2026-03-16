@@ -14,7 +14,7 @@ export interface UpdateBrokerData {
   avatar_url?: string;
 }
 
-export const updateBroker = async (phone: string, data: UpdateBrokerData) => {
+export const updateBroker = async (phone: string, data: UpdateBrokerData, brokerId?: string) => {
   try {
     const response = await fetch('/api/brokers', {
       method: 'PATCH',
@@ -22,6 +22,7 @@ export const updateBroker = async (phone: string, data: UpdateBrokerData) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        id: brokerId,
         phone,
         ...data,
       }),

@@ -17,19 +17,22 @@ export async function POST() {
         // Generate timestamp
         const timestamp = Math.round(new Date().getTime() / 1000);
 
-        // Create signature for Cloudinary upload
-        const paramsToSign = `folder=finland/listings&timestamp=${timestamp}${apiSecret}`;
+        // Create signature for Cloudinary upload (must match folder in frontend)
+        const folder = 'finland/brokers';
+        const paramsToSign = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
         const signature = crypto
             .createHash('sha256')
             .update(paramsToSign)
             .digest('hex');
+
+        console.log('🔹 [UPLOAD SIGN] Generated signature for folder:', folder, 'timestamp:', timestamp);
 
         return NextResponse.json({
             timestamp,
             signature,
             cloudName,
             apiKey,
-            folder: 'finland/brokers'
+            folder
         });
 
     } catch (error) {

@@ -64,13 +64,23 @@ export default function ProfileSection() {
     setIsSubmitting(true);
     setMessage({ type: '', text: '' });
 
+    console.log('🔹 [PROFILE] Starting profile update for user:', user);
+    console.log('🔹 [PROFILE] user.id:', user?.id);
+    console.log('🔹 [PROFILE] user.phone:', user?.phone);
+
     try {
       const updateData = { ...formData };
+      console.log('🔹 [PROFILE] updateData:', updateData);
+      console.log('🔹 [PROFILE] selectedFile:', selectedFile);
       
       if (selectedFile) {
-        const uploadResult = await uploadBrokerAvatar(selectedFile, user.phone);
+        console.log('🔹 [PROFILE] Uploading avatar for brokerId:', user.id);
+        const uploadResult = await uploadBrokerAvatar(selectedFile, user.id);
+        console.log('🔹 [PROFILE] Upload result:', uploadResult);
+        
         if (uploadResult && uploadResult.brokerUpdate?.success) {
           updateData.avatar_url = uploadResult.secure_url;
+          console.log('🔹 [PROFILE] Avatar URL set:', updateData.avatar_url);
         } else {
           throw new Error('Failed to upload avatar');
         }
@@ -81,9 +91,12 @@ export default function ProfileSection() {
         formData.email !== (user.email || '') ||
         formData.province !== (user.province || '')
       );
+      console.log('🔹 [PROFILE] hasFormChanges:', hasFormChanges);
       
       if (hasFormChanges || selectedFile) {
-        const result = await updateBroker(user.phone, updateData);
+        console.log('🔹 [PROFILE] Calling updateBroker with phone:', user.phone, 'id:', user.id);
+        const result = await updateBroker(user.phone, updateData, user.id);
+        console.log('🔹 [PROFILE] updateBroker result:', result);
         
         if (result.success) {
           setSelectedFile(null);
@@ -97,7 +110,7 @@ export default function ProfileSection() {
         setMessage({ type: 'info', text: 'Không có thay đổi nào để lưu' });
       }
     } catch (error) {
-      console.error('Update profile error:', error);
+      console.error('🔹 [PROFILE] Update profile error:', error);
       setMessage({ type: 'error', text: 'Lỗi kết nối. Vui lòng thử lại.' });
     } finally {
       setIsSubmitting(false);

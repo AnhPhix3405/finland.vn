@@ -58,17 +58,21 @@ export async function POST(request: NextRequest) {
         });
 
         const { password_hash: _, ...safeBroker } = newBroker;
+        console.log('🔹 [API REGISTER] Created broker:', safeBroker);
 
         // Auto-login after successful registration
         const accessToken = await signAccessToken({ ...safeBroker, role: 'broker' });
         const refreshToken = await signRefreshToken({ ...safeBroker, role: 'broker' });
 
+        const responseData = {
+            ...safeBroker,
+            access_token: accessToken
+        };
+        console.log('🔹 [API REGISTER] Response data:', responseData);
+
         const response = NextResponse.json({
             success: true,
-            data: {
-                ...safeBroker,
-                access_token: accessToken
-            },
+            data: responseData,
             message: 'Đăng ký tài khoản môi giới thành công'
         }, { status: 201 });
 

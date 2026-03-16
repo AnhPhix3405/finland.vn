@@ -2,9 +2,10 @@
 
 import { Camera, Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { registerBroker } from "@/src/app/modules/auth/auth.service";
+import { uploadBrokerAvatar } from "@/src/app/modules/upload.service";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -13,6 +14,9 @@ export function RegisterForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     phone: "",
@@ -30,6 +34,20 @@ export function RegisterForm() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError("Chỉ chấp nhận file ảnh (JPG, PNG, GIF)");
+      return;
+    }
+
+    setSelectedAvatar(file);
+    const url = URL.createObjectURL(file);
+    setAvatarPreview(url);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -43,9 +61,41 @@ export function RegisterForm() {
 
     try {
       const { confirmPassword, ...registerData } = formData;
+      console.log('🔹 [REGISTER] Starting registration with data:', { ...registerData, password: '[REDACTED]' });
+      
       const result = await registerBroker(registerData);
+      console.log('🔹 [REGISTER] Registration result:', result);
 
       if (result.success) {
+        console.log('🔹 [REGISTER] Registration successful, user data:', result.data);
+        
+        // Upload avatar if selected
+        if (selectedAvatar && result.data?.id) {
+          console.log('🔹 [REGISTER] Uploading avatar for broker id:', result.data.id);
+          try {
+            const uploadResult = await uploadBrokerAvatar(selectedAvatar, result.data.id);
+            console.log('🔹 [REGISTER] Avatar upload result:', uploadResult);
+            
+            // Update user store with new avatar_url
+            if (uploadResult?.secure_url) {
+              const { useUserStore } = await import('@/src/store/userStore');
+              const currentUser = useUserStore.getState().user;
+              if (currentUser) {
+                useUserStore.getState().setUser({
+                  ...currentUser,
+                  avatar_url: uploadResult.secure_url
+                });
+                console.log('🔹 [REGISTER] Updated user store with avatar_url');
+              }
+            }
+          } catch (avatarError) {
+            console.error('🔹 [REGISTER] Avatar upload error:', avatarError);
+            // Continue even if avatar upload fails
+          }
+        } else {
+          console.log('🔹 [REGISTER] No avatar selected or no user id');
+        }
+        
         // Auth service already updated stores with token from register API
         router.push("/");
         router.refresh();
@@ -54,7 +104,7 @@ export function RegisterForm() {
       }
     } catch (err) {
       setError("Đã xảy ra lỗi khi đăng ký. Vui lòng thử lại.");
-      console.error('Registration form error:', err);
+      console.error('🔹 [REGISTER] Registration form error:', err);
     } finally {
       setIsLoading(false);
     }
@@ -87,12 +137,22 @@ export function RegisterForm() {
             Ảnh đại diện <span className="text-slate-400 font-normal">(không bắt buộc)</span>
           </label>
           <div className="mt-1 flex items-center gap-4">
-            <div className="size-12 rounded-none bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-dashed border-slate-300 dark:border-slate-700">
-              <Camera className="text-slate-400 h-6 w-6" />
+            <div 
+              className="size-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-dashed border-slate-300 dark:border-slate-700 overflow-hidden cursor-pointer"
+              onClick={() => avatarInputRef.current?.click()}
+            >
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="Preview" className="size-full object-cover" />
+              ) : (
+                <Camera className="text-slate-400 h-6 w-6" />
+              )}
             </div>
             <input
               type="file"
               id="profile-pic"
+              ref={avatarInputRef}
+              accept="image/*"
+              onChange={handleAvatarChange}
               disabled={isLoading}
               className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-none file:border-0 file:text-xs file:font-semibold file:bg-emerald-600 file:text-white hover:file:opacity-90 cursor-pointer disabled:opacity-50"
             />

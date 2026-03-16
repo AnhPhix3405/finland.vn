@@ -64,14 +64,18 @@ export async function deleteAttachment(id: string) {
 }
 
 
-export async function uploadBrokerAvatar(file: File, brokerPhone: string) {
+export async function uploadBrokerAvatar(file: File, brokerId: string) {
+  console.log('🔹 [UPLOAD AVATAR] Starting upload for brokerId:', brokerId);
+  
   // lấy chữ ký
   const signRes = await fetch("/api/upload/brokers/sign", {
     method: "POST"
   })
+  
+  const signData = await signRes.json();
+  console.log('🔹 [UPLOAD AVATAR] Sign response:', signData);
 
-  const { timestamp, signature, cloudName, apiKey } =
-    await signRes.json()
+  const { timestamp, signature, cloudName, apiKey } = signData;
 
   const formData = new FormData()
 
@@ -90,19 +94,26 @@ export async function uploadBrokerAvatar(file: File, brokerPhone: string) {
       }
     )
     const uploadData = await uploadRes.json()
-    console.log("uploadData", uploadData)
+    console.log('🔹 [UPLOAD AVATAR] Cloudinary upload result:', uploadData);
 
-    // Update broker avatar_url in database
+    if (!uploadData.secure_url) {
+      throw new Error('No secure_url in upload response');
+    }
+
+    // Update broker avatar_url in database using id
+    console.log('🔹 [UPLOAD AVATAR] Updating broker with id:', brokerId, 'avatar_url:', uploadData.secure_url);
+    
     const updateRes = await fetch("/api/brokers", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        phone: brokerPhone,
+        id: brokerId,
         avatar_url: uploadData.secure_url
       })
     })
 
     const updateResult = await updateRes.json()
+    console.log('🔹 [UPLOAD AVATAR] Broker update result:', updateResult);
 
     if (!updateResult.success) {
       throw new Error(updateResult.error || 'Failed to update broker avatar')
@@ -114,7 +125,8 @@ export async function uploadBrokerAvatar(file: File, brokerPhone: string) {
     };
   }
   catch (err) {
-    console.log(err)
+    console.error('🔹 [UPLOAD AVATAR] Error:', err);
+    throw err;
   }
 }
 

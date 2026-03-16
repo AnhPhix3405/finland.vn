@@ -15,10 +15,12 @@ export const registerBroker = async (data: Record<string, unknown>) => {
             body: JSON.stringify(data),
         });
         const result = await response.json();
+        console.log('🔹 [AUTH] Register API result:', result);
 
         // If registration returns tokens (auto-login), update stores
         if (result.success && result.data?.access_token) {
             const { access_token, ...userData } = result.data;
+            console.log('🔹 [AUTH] Setting user with data:', userData);
             useAuthStore.getState().setAuth(access_token);
             useUserStore.getState().setUser(userData);
         }
