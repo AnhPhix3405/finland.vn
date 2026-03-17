@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useProjectContext } from "@/src/context/ProjectContext";
-import { getProject } from "@/src/app/modules/projects.service";
+import { getProject, incrementProjectViews } from "@/src/app/modules/projects.service";
 import { getAttachmentsByTarget } from "@/src/app/modules/attachments.service";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
@@ -107,6 +107,13 @@ export default function ProjectDetail() {
         if (result.success) {
           setProject(result.data);
           setActiveProjectId(result.data.id);
+          
+          // Increment view count
+          if (result.data.id) {
+            incrementProjectViews(result.data.id).catch(err => {
+              console.error('Failed to increment views:', err);
+            });
+          }
           
           // Fetch project attachments
           setLoadingAttachments(true);

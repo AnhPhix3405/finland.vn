@@ -79,3 +79,18 @@ export const getProject = async (slug: string) => {
         return { success: false, error: 'Không thể kết nối đến máy chủ' };
     }
 };
+
+export const incrementProjectViews = async (projectId: string) => {
+    try {
+        const response = await fetch(`/api/projects/${projectId}/views`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+        return response.json();
+    } catch (error) {
+        console.error('Error incrementing project views:', error);
+        return { success: false, error: 'Không thể cập nhật lượt xem' };
+    }
+};
