@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Tag } from './tags.service.client';
+import { fetchWithRetry } from '@/src/lib/api/fetch-with-retry';
 
 export interface CreateListingData {
   broker_id: string;
@@ -188,16 +189,18 @@ export async function getMyListings(
   token: string, 
   status: string = "all",
   page: number = 1
-): Promise<{ success: boolean; data: Record<string, unknown>[]; pagination?: Record<string, unknown>; error?: string }> {
+): Promise<{ success: boolean; data: Record<string, unknown>[]; pagination?: Record<string, unknown>; error?: string; statusCode?: number }> {
   try {
-    const response = await fetch(`/api/brokers/me/listings?status=${status}&page=${page}&limit=10`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+    const response = await fetchWithRetry(`/api/brokers/me/listings?status=${status}&page=${page}&limit=10`, {
+      token
     });
 
+    // Return status code so component can handle 401 differently
     const result = await response.json();
-    return result;
+    return {
+      ...result,
+      statusCode: response.status
+    };
   } catch (error) {
     console.error('Error fetching my listings:', error);
     return {
@@ -213,32 +216,38 @@ export async function updateListingStatus(
   id: string,
   status: string,
   token: string
-): Promise<{ success: boolean; message?: string; error?: string }> {
+): Promise<{ success: boolean; message?: string; error?: string; statusCode?: number }> {
   try {
-    const response = await fetch(`/api/listings/${id}/status`, {
+    const response = await fetchWithRetry(`/api/listings/${id}/status`, {
       method: 'PATCH',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ status })
+      body: JSON.stringify({ status }),
+      token
     });
-    return await response.json();
+    const result = await response.json();
+    return {
+      ...result,
+      statusCode: response.status
+    };
   } catch (error) {
     return { success: false, error: 'Failed to update status' };
   }
 }
 
 // Function xóa tin đăng
-export async function deleteListingLocal(id: string, token: string): Promise<{ success: boolean; message?: string; error?: string }> {
+export async function deleteListingLocal(id: string, token: string): Promise<{ success: boolean; message?: string; error?: string; statusCode?: number }> {
   try {
-    const response = await fetch(`/api/listings/${id}`, {
+    const response = await fetchWithRetry(`/api/listings/${id}`, {
       method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      token
     });
-    return await response.json();
+    const result = await response.json();
+    return {
+      ...result,
+      statusCode: response.status
+    };
   } catch (error) {
     return { success: false, error: 'Failed to delete listing' };
   }

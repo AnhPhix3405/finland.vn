@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Edit2, EyeOff, CheckCircle2, Trash2, Filter, ChevronDown, List as ListIcon, X } from "lucide-react";
+import { Edit2, EyeOff, CheckCircle2, Trash2, Filter, ChevronDown, List as ListIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/src/store/authStore";
+import { useNotificationStore } from "@/src/store/notificationStore";
 import { getMyListings, updateListingStatus, deleteListingLocal } from "@/src/app/modules/listings.service";
 import { useEffect } from "react";
 import Link from "next/link";
@@ -58,12 +60,13 @@ const formatPrice = (price: string | number) => {
 };
 
 export default function MyListingsSection() {
-  const { accessToken } = useAuthStore();
+  const router = useRouter();
+  const { accessToken, clearAuth } = useAuthStore();
+  const addToast = useNotificationStore((state) => state.addToast);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [listings, setListings] = useState<PropertyListing[]>([]);
-  const [message, setMessage] = useState({ type: '', text: '' });
   const [pagination, setPagination] = useState<PaginationState>({ page: 1, limit: 10, total: 0, totalPages: 0 });
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -75,46 +78,58 @@ export default function MyListingsSection() {
     onConfirm: () => void;
   } | null>(null);
 
-  const fetchListings = async (page: number = 1) => {
-    if (!accessToken) return;
-    try {
-      setLoading(true);
-      const res = await getMyListings(accessToken, filter === "all" ? "all" : filter, page);
-      
-      if (res.success && res.data) {
-        const mapped = res.data.map((l: Record<string, unknown>) => ({
-           id: String(l.id),
-           listing_code: l.listing_code ? String(l.listing_code) : String(l.id).slice(0, 8),
-           title: String(l.title),
-           price: formatPrice(l.price as string | number),
-           address: l.address ? `${l.address}, ${l.ward}` : `${l.ward}, ${l.province}`,
-           image: (l.thumbnail_url as string) || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=400",
-           status: (l.status as ListingStatus) || "Đang chờ duyệt",
-           date: l.created_at ? new Date(l.created_at as string).toLocaleDateString('vi-VN') : "?",
-           views: typeof l.views_count === 'number' ? l.views_count : 0,
-           slug: l.slug ? String(l.slug) : undefined,
-           transaction_type: (l.transaction_types as Record<string, unknown>)?.hashtag ? String((l.transaction_types as Record<string, unknown>).hashtag) : undefined
-        }));
-        setListings(mapped);
-        if (res.pagination) {
-          setPagination({
-            page: res.pagination.page as number,
-            limit: res.pagination.limit as number,
-            total: res.pagination.total as number,
-            totalPages: res.pagination.totalPages as number
-          });
-        }
-      }
-    } catch (_err) {
-      console.error(_err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchListings(currentPage);
-  }, [accessToken, filter, currentPage]);
+    const loadListings = async () => {
+      if (!accessToken) return;
+      try {
+        setLoading(true);
+        const res = await getMyListings(accessToken, filter === "all" ? "all" : filter, currentPage);
+        
+        // Check for 401 status code (token expired even after refresh)
+        if (res.statusCode === 401) {
+          console.log('❌ Token invalid, redirecting to login');
+          clearAuth();
+          addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+          router.push('/dang-nhap');
+          return;
+        }
+        
+        if (res.success && res.data) {
+          const mapped = res.data.map((l: Record<string, unknown>) => ({
+             id: String(l.id),
+             listing_code: l.listing_code ? String(l.listing_code) : String(l.id).slice(0, 8),
+             title: String(l.title),
+             price: formatPrice(l.price as string | number),
+             address: l.address ? `${l.address}, ${l.ward}` : `${l.ward}, ${l.province}`,
+             image: (l.thumbnail_url as string) || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=400",
+             status: (l.status as ListingStatus) || "Đang chờ duyệt",
+             date: l.created_at ? new Date(l.created_at as string).toLocaleDateString('vi-VN') : "?",
+             views: typeof l.views_count === 'number' ? l.views_count : 0,
+             slug: l.slug ? String(l.slug) : undefined,
+             transaction_type: (l.transaction_types as Record<string, unknown>)?.hashtag ? String((l.transaction_types as Record<string, unknown>).hashtag) : undefined
+          }));
+          setListings(mapped);
+          if (res.pagination) {
+            setPagination({
+              page: res.pagination.page as number,
+              limit: res.pagination.limit as number,
+              total: res.pagination.total as number,
+              totalPages: res.pagination.totalPages as number
+            });
+          }
+        } else if (!res.success) {
+          addToast(res.error || 'Lỗi tải danh sách tin đăng', 'error');
+        }
+      } catch (_err) {
+        console.error(_err);
+        addToast('Lỗi kết nối, vui lòng thử lại', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadListings();
+  }, [accessToken, filter, currentPage, clearAuth, addToast, router]);
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
@@ -125,14 +140,24 @@ export default function MyListingsSection() {
     try {
       setLoading(true);
       const res = await updateListingStatus(id, newStatus, accessToken);
+      
+      // Check for 401 status code
+      if (res.statusCode === 401) {
+        clearAuth();
+        addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+        router.push('/dang-nhap');
+        return;
+      }
+      
       if (res.success) {
         setListings(prev => prev.map(l => l.id === id ? { ...l, status: newStatus as ListingStatus } : l));
-        setMessage({ type: 'success', text: `Đã đổi trạng thái thành: ${newStatus}` });
+        addToast(`Đã đổi trạng thái thành: ${newStatus}`, 'success');
       } else {
-        setMessage({ type: 'error', text: res.error || 'Cập nhật thất bại' });
+        addToast(res.error || 'Cập nhật thất bại', 'error');
       }
-    } catch (e) {
-      setMessage({ type: 'error', text: 'Lỗi mạng' });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_e) {
+      addToast('Lỗi kết nối', 'error');
     } finally {
       setLoading(false);
     }
@@ -148,16 +173,27 @@ export default function MyListingsSection() {
         try {
           setLoading(true);
           const res = await deleteListingLocal(id, accessToken!);
+          
+          // Check for 401 status code
+          if (res.statusCode === 401) {
+            clearAuth();
+            addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+            router.push('/dang-nhap');
+            return;
+          }
+          
           if (res.success) {
             setListings(prev => prev.filter(l => l.id !== id));
-            setMessage({ type: 'success', text: 'Đã xóa bài đăng thành công' });
+            addToast('Bài đăng đã bị xóa', 'success');
           } else {
-            setMessage({ type: 'error', text: res.error || 'Xóa thất bại' });
+            addToast(res.error || 'Xóa thất bại', 'error');
           }
-        } catch (e) {
-          setMessage({ type: 'error', text: 'Lỗi mạng' });
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        } catch (_e) {
+          addToast('Lỗi kết nối', 'error');
         } finally {
           setLoading(false);
+          setConfirmModal(null);
         }
       }
     });
@@ -194,10 +230,10 @@ export default function MyListingsSection() {
           {isFilterOpen && (
             <>
               <div 
-                className="fixed inset-0 z-[60]" 
+                className="fixed inset-0 z-60" 
                 onClick={() => setIsFilterOpen(false)}
               ></div>
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg shadow-2xl z-[70] overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right ring-1 ring-black/5">
+              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg shadow-2xl z-70 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right ring-1 ring-black/5">
                 <div className="p-1 space-y-0.5">
                   <button
                     onClick={() => { setFilter("all"); setIsFilterOpen(false); }}
@@ -235,17 +271,8 @@ export default function MyListingsSection() {
         </div>
       </div>
 
-      {message.text && (
-        <div className={`mx-6 mt-4 p-3 rounded-md text-sm pl-4 flex items-center justify-between ${
-          message.type === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'
-        }`}>
-          <span>{message.text}</span>
-          <button onClick={() => setMessage({ type: '', text: '' })} className="hover:opacity-70"><X className="size-4" /></button>
-        </div>
-      )}
-
       {/* Listing Content */}
-      <div className="p-4 md:p-6 overflow-visible relative z-10 min-h-[400px]">
+      <div className="p-4 md:p-6 overflow-visible relative z-10 min-h-96">
         {loading ? (
            <div className="flex justify-center items-center py-20">
              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
@@ -261,6 +288,7 @@ export default function MyListingsSection() {
               >
                 {/* Image */}
                 <div className="relative w-full sm:w-32 h-24 shrink-0 rounded-md overflow-hidden bg-slate-100">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={property.image} alt={property.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   <div className={`absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${statusConfig[property.status]?.bg || 'bg-slate-200'} ${statusConfig[property.status]?.color || 'text-slate-700'} backdrop-blur-md`}>
                     {statusConfig[property.status]?.label || property.status}

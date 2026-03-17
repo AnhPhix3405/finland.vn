@@ -7,7 +7,7 @@ export async function signAccessToken(payload: Record<string, unknown>) {
     return await new SignJWT(payload)
         .setProtectedHeader({ alg: "HS256" })
         .setIssuedAt()
-        .setExpirationTime("1d") // Access token valid for 1 day
+        .setExpirationTime("1m") // Access token valid for 1 day
         .sign(secret);
 }
 
