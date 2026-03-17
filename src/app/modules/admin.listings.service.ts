@@ -114,7 +114,7 @@ export async function getListings(
     if (filters?.search) params.set('search', filters.search);
 
     const response = await fetchWithRetry(`/api/admin/listings?${params.toString()}`, {
-      token: adminToken,
+      ...(adminToken ? { token: adminToken } : {}),
       isAdmin: true
     });
     const result = await response.json();
@@ -146,7 +146,7 @@ export async function updateListingStatus(
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ id: listingId, status }),
-      token: adminToken,
+      ...(adminToken ? { token: adminToken } : {}),
       isAdmin: true
     });
 
@@ -172,7 +172,7 @@ export async function deleteListing(listingId: string): Promise<UpdateListingSta
     const adminToken = useAdminStore.getState().accessToken;
     const response = await fetchWithRetry(`/api/admin/listings?id=${listingId}`, {
       method: 'DELETE',
-      token: adminToken,
+      ...(adminToken ? { token: adminToken } : {}),
       isAdmin: true
     });
 
