@@ -2,6 +2,7 @@
 import Link from "next/link";
 import React, { useState, useEffect } from "react";
 import { useAuthStore } from "@/src/store/authStore";
+import { useNotificationStore } from "@/src/store/notificationStore";
 import LocationSelector from "@/src/components/feature/LocationSelector";
 
 interface Broker {
@@ -19,11 +20,18 @@ interface Broker {
 
 export default function AdminBrokerList() {
   const adminToken = useAuthStore((state) => state.accessToken);
+  const addToast = useNotificationStore((state) => state.addToast);
   const [brokers, setBrokers] = useState<Broker[]>([]);
   const [loadingBrokers, setLoadingBrokers] = useState(false);
   const [operatingId, setOperatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
   const [filters, setFilters] = useState({
     province: "",
     ward: ""
@@ -55,18 +63,32 @@ export default function AdminBrokerList() {
     fetchBrokers();
   }, []);
 
-  const handleToggleLock = async (broker: Broker) => {
+  const handleToggleLock = (broker: Broker) => {
     if (!adminToken) {
-      setError('Cần đăng nhập admin để thực hiện hành động này');
+      const msg = 'Cần đăng nhập admin để thực hiện hành động này';
+      setError(msg);
+      addToast(msg, 'error');
       return;
     }
 
     const action = broker.is_active ? 'lock' : 'unlock';
     const confirmText = broker.is_active
-      ? `Bạn chắc chắn muốn khóa tài khoản ${broker.full_name}?`
-      : `Bạn chắc chắn muốn mở khóa tài khoản ${broker.full_name}?`;
+      ? `Bạn có chắc chắn muốn khóa tài khoản ${broker.full_name}?`
+      : `Bạn có chắc chắn muốn mở khóa tài khoản ${broker.full_name}?`;
 
-    if (!window.confirm(confirmText)) {
+    setConfirmModal({
+      open: true,
+      title: broker.is_active ? 'Khóa tài khoản' : 'Mở khóa tài khoản',
+      message: confirmText,
+      onConfirm: () => performToggleLock(broker, action)
+    });
+  };
+
+  const performToggleLock = async (broker: Broker, action: string) => {
+    if (!adminToken) {
+      const msg = 'Cần đăng nhập admin để thực hiện hành động này';
+      setError(msg);
+      addToast(msg, 'error');
       return;
     }
 
@@ -88,26 +110,46 @@ export default function AdminBrokerList() {
           b.id === broker.id ? { ...b, is_active: !b.is_active } : b
         ));
         setError(null);
+        const successMsg = broker.is_active ? 'Khóa tài khoản thành công!' : 'Mở khóa tài khoản thành công!';
+        addToast(successMsg, 'success');
       } else {
-        setError(result.error || 'Lỗi khi cập nhật trạng thái');
+        const errorMsg = result.error || 'Lỗi khi cập nhật trạng thái';
+        setError(errorMsg);
+        addToast(errorMsg, 'error');
       }
     } catch (err) {
       console.error('Lỗi khi cập nhật trạng thái:', err);
-      setError('Không thể kết nối đến máy chủ');
+      const errorMsg = 'Không thể kết nối đến máy chủ';
+      setError(errorMsg);
+      addToast(errorMsg, 'error');
     } finally {
       setOperatingId(null);
     }
   };
 
-  const handleDeleteBroker = async (broker: Broker) => {
+  const handleDeleteBroker = (broker: Broker) => {
     if (!adminToken) {
-      setError('Cần đăng nhập admin để thực hiện hành động này');
+      const msg = 'Cần đăng nhập admin để thực hiện hành động này';
+      setError(msg);
+      addToast(msg, 'error');
       return;
     }
 
-    const confirmText = `Bạn chắc chắn muốn xóa tài khoản môi giới ${broker.full_name} (${broker.phone})?\n\nHành động này không thể hoàn tác.`;
+    const confirmText = `Bạn có chắc chắn muốn xóa tài khoản môi giới ${broker.full_name} (${broker.phone})?\n\nHành động này không thể hoàn tác.`;
 
-    if (!window.confirm(confirmText)) {
+    setConfirmModal({
+      open: true,
+      title: 'Xóa tài khoản môi giới',
+      message: confirmText,
+      onConfirm: () => performDeleteBroker(broker)
+    });
+  };
+
+  const performDeleteBroker = async (broker: Broker) => {
+    if (!adminToken) {
+      const msg = 'Cần đăng nhập admin để thực hiện hành động này';
+      setError(msg);
+      addToast(msg, 'error');
       return;
     }
 
@@ -125,12 +167,17 @@ export default function AdminBrokerList() {
       if (result.success) {
         setBrokers(brokers.filter(b => b.id !== broker.id));
         setError(null);
+        addToast('Xóa tài khoản môi giới thành công!', 'success');
       } else {
-        setError(result.error || 'Lỗi khi xóa tài khoản');
+        const errorMsg = result.error || 'Lỗi khi xóa tài khoản';
+        setError(errorMsg);
+        addToast(errorMsg, 'error');
       }
     } catch (err) {
       console.error('Lỗi khi xóa tài khoản:', err);
-      setError('Không thể kết nối đến máy chủ');
+      const errorMsg = 'Không thể kết nối đến máy chủ';
+      setError(errorMsg);
+      addToast(errorMsg, 'error');
     } finally {
       setOperatingId(null);
     }
@@ -280,6 +327,37 @@ export default function AdminBrokerList() {
           <span className="text-slate-400 dark:text-slate-500 mx-1">...</span>
           <button className="px-3 py-1.5 rounded-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium transition-colors flex items-center justify-center">Tiếp</button>
         </div>
+
+        {/* Confirmation Modal */}
+        {confirmModal?.open && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
+            <div className="fixed inset-0 bg-black/50" onClick={() => setConfirmModal(null)}></div>
+            <div className="relative bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6 border border-red-500">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="material-symbols-outlined text-red-500 text-2xl">warning</span>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{confirmModal.title}</h3>
+              </div>
+              <p className="text-slate-600 dark:text-slate-300 mb-6 whitespace-pre-wrap">{confirmModal.message}</p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setConfirmModal(null)}
+                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md font-medium transition-colors"
+                >
+                  Thoát
+                </button>
+                <button
+                  onClick={() => {
+                    confirmModal.onConfirm();
+                    setConfirmModal(null);
+                  }}
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-md font-medium transition-colors"
+                >
+                  Xác nhận
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
