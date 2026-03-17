@@ -94,7 +94,8 @@ export async function POST(request: NextRequest) {
             original_name,
             public_id,
             target_id,
-            target_type
+            target_type,
+            sort_order
         } = body;
 
         // Validation
@@ -120,7 +121,8 @@ export async function POST(request: NextRequest) {
                 original_name,
                 public_id,
                 target_id,
-                target_type
+                target_type,
+                sort_order: sort_order ?? 0
             }
         });
 

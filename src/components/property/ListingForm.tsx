@@ -7,6 +7,7 @@ import { createListing } from "@/src/app/modules/listings.service";
 import { uploadListingAttachments } from "@/src/app/modules/upload.service";
 import { getAllTagNamesAPI } from "@/src/app/modules/tags.service.client";
 import { useUserStore } from "@/src/store/userStore";
+import { useAuthStore } from "@/src/store/authStore";
 import { useNotificationStore } from "@/src/store/notificationStore";
 import LocationSelector from "../feature/LocationSelector";
 import { loadAllFormOptions, SelectOption } from "@/src/app/modules/form-options.service";
@@ -17,6 +18,7 @@ interface ListingFormProps {
 
 export function ListingForm({ onSuccess }: ListingFormProps) {
   const { user } = useUserStore();
+  const accessToken = useAuthStore((state) => state.accessToken);
   const addToast = useNotificationStore((state) => state.addToast);
   const [transactionTypeId, setTransactionTypeId] = useState("");
   const [propertyTypeId, setPropertyTypeId] = useState("");
@@ -387,14 +389,33 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
         console.log(`Processed ${listingResult.tags.length} tags:`, listingResult.tags.map(t => t.name));
       }
 
-      // Upload files if any
+      // Upload files sequentially to ensure correct sort_order
       if (selectedFiles.length > 0) {
-        const uploadPromises = selectedFiles.map(file =>
-          uploadListingAttachments(file, listingResult.id)
-        );
-
-        const uploadResults = await Promise.all(uploadPromises);
+        console.log("Uploading files, selectedFiles.length:", selectedFiles.length);
+        const uploadResults = [];
+        for (let i = 0; i < selectedFiles.length; i++) {
+          console.log("Upload file index:", i);
+          const result = await uploadListingAttachments(selectedFiles[i], listingResult.id, i);
+          uploadResults.push(result);
+        }
         console.log("Upload results:", uploadResults);
+
+        // Update listing thumbnail_url with first image (sort_order = 0)
+        if (uploadResults.length > 0 && uploadResults[0]?.secure_url) {
+          try {
+            const response = await fetch(`/api/listings/${listingResult.id}`, {
+              method: 'PATCH',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`
+              },
+              body: JSON.stringify({ thumbnail_url: uploadResults[0].secure_url })
+            });
+            console.log('Thumbnail update response:', response.status);
+          } catch (err) {
+            console.error('Error updating thumbnail:', err);
+          }
+        }
       }
 
       const successMessage = "Đăng bài thành công!";

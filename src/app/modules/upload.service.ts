@@ -47,6 +47,7 @@ type AttachmentData = {
   public_id: string;
   target_id?: string;
   target_type: string;
+  sort_order?: number;
 }
 async function createAttachment(data: AttachmentData) {
   const res = await fetch("/api/attachments", {
@@ -179,7 +180,7 @@ export async function uploadAttachments(file: File) {
   }
 }
 
-export async function uploadListingAttachments(file: File, listingId: string) {
+export async function uploadListingAttachments(file: File, listingId: string, sortOrder: number = 0) {
   // lấy chữ ký
   const signRes = await fetch("/api/upload/listings/sign", {
     method: "POST"
@@ -212,9 +213,10 @@ export async function uploadListingAttachments(file: File, listingId: string) {
     original_name: uploadData.original_filename,
     public_id: uploadData.public_id,
     target_id: listingId,
-    target_type: "listing"
+    target_type: "listing",
+    sort_order: Number(sortOrder)
   }
-  console.log("attachmentData", attachmentData)
+  console.log("attachmentData sort_order:", sortOrder, "->", Number(sortOrder))
   await createAttachment(attachmentData)
   return uploadData;
 }

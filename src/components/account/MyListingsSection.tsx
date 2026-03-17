@@ -31,6 +31,13 @@ interface PropertyListing {
   transaction_type?: string;
 }
 
+interface PaginationState {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
   "Đang hiển thị": { label: "Đang hiển thị", color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
   "Đã ẩn": { label: "Đã ẩn", color: "text-slate-500", bg: "bg-slate-100 dark:bg-slate-800" },
@@ -56,42 +63,54 @@ export default function MyListingsSection() {
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [listings, setListings] = useState<PropertyListing[]>([]);
-  const [message, setMessage] = useState({ type: '', text: '' }); // Thêm UX feedback
+  const [message, setMessage] = useState({ type: '', text: '' });
+  const [pagination, setPagination] = useState<PaginationState>({ page: 1, limit: 10, total: 0, totalPages: 0 });
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const fetchListings = async (page: number = 1) => {
+    if (!accessToken) return;
+    try {
+      setLoading(true);
+      const res = await getMyListings(accessToken, filter === "all" ? "all" : filter, page);
+      
+      if (res.success && res.data) {
+        const mapped = res.data.map((l: Record<string, unknown>) => ({
+           id: String(l.id),
+           listing_code: l.listing_code ? String(l.listing_code) : String(l.id).slice(0, 8),
+           title: String(l.title),
+           price: formatPrice(l.price as string | number),
+           address: l.address ? `${l.address}, ${l.ward}` : `${l.ward}, ${l.province}`,
+           image: (l.thumbnail_url as string) || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=400",
+           status: (l.status as ListingStatus) || "Đang chờ duyệt",
+           date: l.created_at ? new Date(l.created_at as string).toLocaleDateString('vi-VN') : "?",
+           views: typeof l.views_count === 'number' ? l.views_count : 0,
+           slug: l.slug ? String(l.slug) : undefined,
+           transaction_type: (l.transaction_types as Record<string, unknown>)?.hashtag ? String((l.transaction_types as Record<string, unknown>).hashtag) : undefined
+        }));
+        setListings(mapped);
+        if (res.pagination) {
+          setPagination({
+            page: res.pagination.page as number,
+            limit: res.pagination.limit as number,
+            total: res.pagination.total as number,
+            totalPages: res.pagination.totalPages as number
+          });
+        }
+      }
+    } catch (_err) {
+      console.error(_err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (!accessToken) return;
+    fetchListings(currentPage);
+  }, [accessToken, filter, currentPage]);
 
-    const fetchListings = async () => {
-      try {
-        setLoading(true);
-        // Trả về tất cả vì ta thực hiện filter cục bộ trên client cho mượt
-        const res = await getMyListings(accessToken, "all");
-        
-        if (res.success && res.data) {
-          const mapped = res.data.map((l: Record<string, unknown>) => ({
-             id: String(l.id),
-             listing_code: l.listing_code ? String(l.listing_code) : String(l.id).slice(0, 8),
-             title: String(l.title),
-             price: formatPrice(l.price as string | number),
-             address: l.address ? `${l.address}, ${l.ward}` : `${l.ward}, ${l.province}`,
-             image: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=400", // Placeholder if no cover
-             status: (l.status as ListingStatus) || "Đang chờ duyệt",
-             date: "?",
-             views: 0,
-             slug: l.slug ? String(l.slug) : undefined,
-             transaction_type: (l.transaction_types as Record<string, unknown>)?.hashtag ? String((l.transaction_types as Record<string, unknown>).hashtag) : undefined
-          }));
-          setListings(mapped);
-        }
-      } catch (_err) {
-        console.error(_err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchListings();
-  }, [accessToken]);
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
 
   const handleUpdateStatus = async (id: string, newStatus: string) => {
     if (!accessToken) return;
@@ -321,6 +340,39 @@ export default function MyListingsSection() {
             </div>
           )}
         </div>
+        )}
+
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-3 py-1.5 text-xs font-medium rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800"
+            >
+              Trước
+            </button>
+            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
+              <button
+                key={page}
+                onClick={() => handlePageChange(page)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md border ${
+                  currentPage === page
+                    ? 'bg-emerald-600 text-white border-emerald-600'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === pagination.totalPages}
+              className="px-3 py-1.5 text-xs font-medium rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800"
+            >
+              Sau
+            </button>
+          </div>
         )}
       </div>
     </div>

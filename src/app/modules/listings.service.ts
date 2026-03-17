@@ -185,10 +185,11 @@ export async function getListingsByHashtags(hashtags: string[], params?: {
 // Function cho trang "Tin đăng của tôi" (yêu cầu Authorization token)
 export async function getMyListings(
   token: string, 
-  status: string = "all"
+  status: string = "all",
+  page: number = 1
 ): Promise<{ success: boolean; data: Record<string, unknown>[]; pagination?: Record<string, unknown>; error?: string }> {
   try {
-    const response = await fetch(`/api/brokers/me/listings?status=${status}&limit=50`, {
+    const response = await fetch(`/api/brokers/me/listings?status=${status}&page=${page}&limit=10`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }

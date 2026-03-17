@@ -311,7 +311,9 @@ export async function PATCH(
     }
 
     // New restriction: if status is pending or hidden, no actions allowed
-    if (existingListing.status === 'Đang chờ duyệt' || existingListing.status === 'Đã ẩn') {
+    // Exception: allow updating thumbnail_url for any status
+    const isThumbnailUpdate = Object.keys(body).length === 1 && body.thumbnail_url !== undefined;
+    if ((existingListing.status === 'Đang chờ duyệt' || existingListing.status === 'Đã ẩn') && !isThumbnailUpdate) {
       return NextResponse.json(
         { 
           success: false, 
