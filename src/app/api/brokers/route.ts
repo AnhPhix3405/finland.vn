@@ -11,7 +11,6 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10');
     const is_active = searchParams.get('is_active');
     const search = searchParams.get('search');
-    const specialization = searchParams.get('specialization');
     const province = searchParams.get('province');
     const ward = searchParams.get('ward');
 
@@ -25,9 +24,6 @@ export async function GET(request: NextRequest) {
       where.is_active = is_active === 'true';
     }
 
-    if (specialization) {
-      where.specialization = { contains: specialization, mode: 'insensitive' };
-    }
 
     if (province) {
       where.province = { contains: province, mode: 'insensitive' };
@@ -86,12 +82,12 @@ export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
     console.log('🔹 [API BROKERS PATCH] Request body:', body);
-    
-    const { id, phone, avatar_url, full_name, email, province, ward, address, specialization, bio } = body;
+
+    const { id, phone, avatar_url, full_name, email, province, ward, address, bio } = body;
 
     // Use id if provided, otherwise find broker by phone
     let brokerId = id;
-    
+
     if (!brokerId && phone) {
       console.log('🔹 [API BROKERS PATCH] No id, looking up by phone:', phone);
       const broker = await prisma.brokers.findFirst({
@@ -123,7 +119,6 @@ export async function PATCH(request: NextRequest) {
         ...(province !== undefined && { province }),
         ...(ward !== undefined && { ward }),
         ...(address !== undefined && { address }),
-        ...(specialization !== undefined && { specialization }),
         ...(bio !== undefined && { bio }),
       }
     });
