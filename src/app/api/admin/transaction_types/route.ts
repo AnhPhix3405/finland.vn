@@ -194,18 +194,6 @@ export async function DELETE(request: NextRequest) {
             );
         }
 
-        // Kiểm tra có project nào đang sử dụng không
-        const projectsUsingType = await prisma.projects.count({
-            where: { transaction_type_id: id }
-        });
-
-        if (projectsUsingType > 0) {
-            return NextResponse.json(
-                { success: false, error: `Không thể xóa. Có ${projectsUsingType} dự án đang sử dụng loại hình này` },
-                { status: 400 }
-            );
-        }
-
         // Kiểm tra có listing nào đang sử dụng không
         const listingsUsingType = await prisma.listings.count({
             where: { transaction_type_id: id }

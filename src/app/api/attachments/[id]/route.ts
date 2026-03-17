@@ -159,7 +159,7 @@ export async function PATCH(
             if (sort_order === 0) {
                 await prisma.projects.update({
                     where: { id: attachment.target_id },
-                    data: { thumbnail_url: updatedAttachment.secure_url || updatedAttachment.url } as any
+                    data: { thumbnail_url: updatedAttachment.secure_url || updatedAttachment.url }
                 });
                 console.log('Updated thumbnail_url to first image');
             } else {
@@ -173,7 +173,7 @@ export async function PATCH(
                 if (primaryAttachment) {
                     await prisma.projects.update({
                         where: { id: attachment.target_id },
-                        data: { thumbnail_url: primaryAttachment.secure_url || primaryAttachment.url } as any
+                        data: { thumbnail_url: primaryAttachment.secure_url || primaryAttachment.url }
                     });
                     console.log('Updated thumbnail_url to primary attachment');
                 } else {

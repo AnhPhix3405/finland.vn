@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { loginAdmin } from '@/src/app/modules/auth/auth.service';
+import Link from 'next/link';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -18,7 +19,7 @@ export default function AdminLoginPage() {
 
     try {
       const result = await loginAdmin(email, password);
-      
+
       if (result.success) {
         router.push('/admin');
         router.refresh();
@@ -40,7 +41,7 @@ export default function AdminLoginPage() {
         <div className="absolute top-0 -right-40 w-80 h-80 bg-teal-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
         <div className="absolute -bottom-40 left-20 w-80 h-80 bg-emerald-400 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000"></div>
       </div>
-      
+
       <div className="relative w-full max-w-md px-6 py-12">
         <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-8 shadow-2xl">
           <div className="text-center mb-8">
@@ -120,13 +121,13 @@ export default function AdminLoginPage() {
           </form>
 
           <div className="mt-8 text-center">
-            <a href="/" className="text-slate-400 hover:text-emerald-400 text-sm transition-colors inline-flex items-center gap-1">
+            <Link href="/" className="text-slate-400 hover:text-emerald-400 text-sm transition-colors inline-flex items-center gap-1">
               <span className="material-symbols-outlined text-sm">arrow_back</span>
               Quay về trang chủ
-            </a>
+            </Link>
           </div>
         </div>
-        
+
         <p className="text-center text-slate-500 text-xs mt-6">
           © 2026 Finland.vn. All rights reserved.
         </p>

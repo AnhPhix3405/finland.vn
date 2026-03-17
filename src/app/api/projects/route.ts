@@ -202,9 +202,8 @@ export async function POST(request: NextRequest) {
         price: priceValue,
         property_type_id: property_type_id || undefined,
         content: content?.trim() || undefined,
-        developer: developer?.trim() || undefined,
         status: 'đang mở bán',
-      } as any
+      }
     });
 
     return NextResponse.json({
