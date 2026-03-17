@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from "@/src/store/authStore";
+import { useNotificationStore } from "@/src/store/notificationStore";
 import { uploadNewsThumbnail } from "@/src/app/modules/upload.service";
 import RichTextEditor from '@/src/components/ui/RichTextEditor';
 
@@ -16,6 +17,7 @@ interface Tag {
 export default function AdminAddNewsPage() {
   const router = useRouter();
   const adminToken = useAuthStore((state) => state.accessToken);
+  const addToast = useNotificationStore((state) => state.addToast);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [content, setContent] = useState('');
@@ -121,13 +123,18 @@ export default function AdminAddNewsPage() {
       const result = await res.json();
 
       if (result.success) {
+        addToast('Tin tức đã được tạo thành công!', 'success');
         router.push('/admin/tin-tuc');
       } else {
-        setError(result.error || 'Lỗi khi tạo bài viết');
+        const errorMsg = result.error || 'Lỗi khi tạo bài viết';
+        setError(errorMsg);
+        addToast(errorMsg, 'error');
       }
     } catch (err) {
       console.error('Error creating news:', err);
-      setError('Không thể kết nối đến máy chủ');
+      const errorMsg = 'Không thể kết nối đến máy chủ';
+      setError(errorMsg);
+      addToast(errorMsg, 'error');
     } finally {
       setIsSubmitting(false);
     }

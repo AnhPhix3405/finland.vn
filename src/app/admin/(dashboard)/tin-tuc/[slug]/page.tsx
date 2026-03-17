@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuthStore } from "@/src/store/authStore";
+import { useNotificationStore } from "@/src/store/notificationStore";
 import { uploadNewsThumbnail } from "@/src/app/modules/upload.service";
 import RichTextEditor from '@/src/components/ui/RichTextEditor';
 
@@ -18,6 +19,7 @@ export default function AdminEditNewsPage() {
   const params = useParams();
   const slug = params.slug as string;
   const adminToken = useAuthStore((state) => state.accessToken);
+  const addToast = useNotificationStore((state) => state.addToast);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -161,13 +163,18 @@ export default function AdminEditNewsPage() {
       const result = await res.json();
 
       if (result.success) {
+        addToast('Tin tức đã được cập nhật thành công!', 'success');
         router.push('/admin/tin-tuc');
       } else {
-        setError(result.error || 'Lỗi khi cập nhật bài viết');
+        const errorMsg = result.error || 'Lỗi khi cập nhật bài viết';
+        setError(errorMsg);
+        addToast(errorMsg, 'error');
       }
     } catch (err) {
       console.error('Error updating news:', err);
-      setError('Không thể kết nối đến máy chủ');
+      const errorMsg = 'Không thể kết nối đến máy chủ';
+      setError(errorMsg);
+      addToast(errorMsg, 'error');
     } finally {
       setIsSubmitting(false);
       setIsUploading(false);
@@ -198,13 +205,18 @@ export default function AdminEditNewsPage() {
       const result = await res.json();
 
       if (result.success) {
+        addToast('Tin tức đã được xóa thành công!', 'success');
         router.push('/admin/tin-tuc');
       } else {
-        setError(result.error || 'Lỗi khi xóa bài viết');
+        const errorMsg = result.error || 'Lỗi khi xóa bài viết';
+        setError(errorMsg);
+        addToast(errorMsg, 'error');
       }
     } catch (err) {
       console.error('Error deleting news:', err);
-      setError('Không thể kết nối đến máy chủ');
+      const errorMsg = 'Không thể kết nối đến máy chủ';
+      setError(errorMsg);
+      addToast(errorMsg, 'error');
     } finally {
       setIsSubmitting(false);
     }

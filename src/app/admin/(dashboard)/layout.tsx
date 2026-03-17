@@ -1,5 +1,6 @@
 import AdminSidebar from "@/src/components/admin/AdminSidebar";
 import AdminHeader from "@/src/components/admin/AdminHeader";
+import { NotificationWrapper } from "@/src/components/layout/NotificationWrapper";
 import { ProjectProvider } from "@/src/context/ProjectContext";
 import { Metadata } from "next";
 
@@ -23,6 +24,7 @@ export default function AdminLayout({
             {children}
           </ProjectProvider>
         </main>
+        <NotificationWrapper />
       </div>
     </div>
   );

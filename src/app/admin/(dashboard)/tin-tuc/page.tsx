@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from "@/src/store/authStore";
+import { useNotificationStore } from "@/src/store/notificationStore";
 
 interface NewsArticle {
   id: string;
@@ -16,10 +17,23 @@ interface NewsArticle {
 
 export default function AdminNewsListPage() {
   const adminToken = useAuthStore((state) => state.accessToken);
+  const addToast = useNotificationStore((state) => state.addToast);
   const [news, setNews] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
+
+  // Mark as mounted to avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const fetchNews = async () => {
     if (!adminToken) {
@@ -29,6 +43,7 @@ export default function AdminNewsListPage() {
     }
 
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch('/api/admin/news', {
         headers: {
@@ -53,19 +68,39 @@ export default function AdminNewsListPage() {
   };
 
   useEffect(() => {
+    if (!mounted) return;
+    
+    // Only show error if adminToken is confirmed null after mounting
+    if (!adminToken) {
+      setError('Cần đăng nhập admin để xem tin tức');
+      setLoading(false);
+      return;
+    }
+
+    setError(null);
     fetchNews();
-  }, [adminToken]);
+  }, [adminToken, mounted]);
 
   const handleDeleteNews = async (newsItem: NewsArticle) => {
     if (!adminToken) {
-      setError('Cần đăng nhập admin để xóa tin tức');
+      const msg = 'Cần đăng nhập admin để xóa tin tức';
+      setError(msg);
+      addToast(msg, 'error');
       return;
     }
 
-    if (!window.confirm(`Bạn chắc chắn muốn xóa bài "${newsItem.title}"?\n\nHành động này không thể hoàn tác.`)) {
-      return;
-    }
+    // Show confirmation modal instead of window.confirm
+    setConfirmModal({
+      open: true,
+      title: 'Xóa tin tức',
+      message: `Bạn có chắc chắn muốn xóa vĩnh viễn bài này?`,
+      onConfirm: async () => {
+        await performDeleteNews(newsItem);
+      }
+    });
+  };
 
+  const performDeleteNews = async (newsItem: NewsArticle) => {
     setDeletingId(newsItem.id);
     try {
       const res = await fetch(`/api/admin/news/${newsItem.slug}`, {
@@ -80,12 +115,17 @@ export default function AdminNewsListPage() {
       if (result.success) {
         setNews(news.filter(n => n.id !== newsItem.id));
         setError(null);
+        addToast('Tin tức đã được xóa thành công!', 'success');
       } else {
-        setError(result.error || 'Lỗi khi xóa tin tức');
+        const errorMsg = result.error || 'Lỗi khi xóa tin tức';
+        setError(errorMsg);
+        addToast(errorMsg, 'error');
       }
     } catch (err) {
       console.error('Error deleting news:', err);
-      setError('Không thể kết nối đến máy chủ');
+      const errorMsg = 'Không thể kết nối đến máy chủ';
+      setError(errorMsg);
+      addToast(errorMsg, 'error');
     } finally {
       setDeletingId(null);
     }
@@ -201,6 +241,36 @@ export default function AdminNewsListPage() {
         </div>
 
         
+        {/* Confirmation Modal */}
+        {confirmModal?.open && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
+            <div className="fixed inset-0 bg-black/50" onClick={() => setConfirmModal(null)}></div>
+            <div className="relative bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6 border border-red-500">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="material-symbols-outlined text-red-500 text-2xl">warning</span>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{confirmModal.title}</h3>
+              </div>
+              <p className="text-slate-600 dark:text-slate-300 mb-6 whitespace-pre-wrap">{confirmModal.message}</p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setConfirmModal(null)}
+                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md font-medium transition-colors"
+                >
+                  Thoát
+                </button>
+                <button
+                  onClick={() => {
+                    confirmModal.onConfirm();
+                    setConfirmModal(null);
+                  }}
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-md font-medium transition-colors"
+                >
+                  Xác nhận
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
