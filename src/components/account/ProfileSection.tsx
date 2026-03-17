@@ -5,6 +5,7 @@ import { useUserStore } from "@/src/store/userStore";
 import { useState, useEffect, useRef } from "react";
 import { updateBroker, UpdateBrokerData } from "@/src/app/modules/broker.service";
 import { uploadBrokerAvatar } from "@/src/app/modules/upload.service";
+import LocationSelector from "../feature/LocationSelector";
 
 export default function ProfileSection() {
   const { user } = useUserStore();
@@ -19,6 +20,8 @@ export default function ProfileSection() {
     full_name: '',
     email: '',
     province: '',
+    ward: '',
+    address: '',
   });
 
   // Initialize form data when user is loaded
@@ -28,6 +31,8 @@ export default function ProfileSection() {
         full_name: user.full_name || '',
         email: user.email || '',
         province: user.province || '',
+        ward: user.ward || '',
+        address: user.address || '',
       });
     }
   }, [user]);
@@ -89,7 +94,9 @@ export default function ProfileSection() {
       const hasFormChanges = (
         formData.full_name !== user.full_name ||
         formData.email !== (user.email || '') ||
-        formData.province !== (user.province || '')
+        formData.province !== (user.province || '') ||
+        formData.ward !== (user.ward || '') ||
+        formData.address !== (user.address || '')
       );
       console.log('🔹 [PROFILE] hasFormChanges:', hasFormChanges);
       
@@ -255,23 +262,30 @@ export default function ProfileSection() {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="interestedArea" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Khu vực <span className="text-red-500">*</span>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                Khu vực
               </label>
-              <select 
-                id="interestedArea"
-                name="province"
-                value={formData.province}
+              <LocationSelector
+                selectedProvince={formData.province || ''}
+                onProvinceChange={(value) => setFormData(prev => ({ ...prev, province: value, ward: '' }))}
+                selectedWard={formData.ward || ''}
+                onWardChange={(value) => setFormData(prev => ({ ...prev, ward: value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="address" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                Địa chỉ
+              </label>
+              <input 
+                id="address"
+                name="address"
+                type="text" 
+                value={formData.address || ''}
                 onChange={handleInputChange}
+                placeholder="Số nhà, đường..."
                 className="w-full rounded-md border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-slate-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500 transition-all text-sm h-10 px-3 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-                required
-              >
-                <option value="">Chọn khu vực</option>
-                <option value="Hà Nội">Hà Nội</option>
-                <option value="Hồ Chí Minh">TP. Hồ Chí Minh</option>
-                <option value="Đà Nẵng">Đà Nẵng</option>
-                <option value="Khác">Khác</option>
-              </select>
+              />
             </div>
 
             <div className="space-y-3 md:col-span-2 pt-2 pb-4">

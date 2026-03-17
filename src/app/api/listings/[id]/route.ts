@@ -31,7 +31,7 @@ export async function GET(
     let currentBrokerId: string | null = null;
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
-    
+
     if (token) {
       try {
         const payload = await verifyToken(token);
@@ -46,10 +46,10 @@ export async function GET(
 
     // Try to find by slug first, then by ID
     let listing = null;
-    
+
     // Check if it's a UUID (ID) or slug
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
-    
+
     const dbStartTime = Date.now();
     if (isUUID) {
       // Find by ID
@@ -102,7 +102,6 @@ export async function GET(
               phone: true,
               email: true,
               avatar_url: true,
-              specialization: true,
               bio: true
             }
           },
@@ -168,7 +167,7 @@ export async function GET(
         }
       });
       isBookmarked = !!bookmark;
-      
+
       console.log('GET /api/listings/[id] - Checking bookmark:', {
         brokerId: currentBrokerId,
         listingId: listing.id,
@@ -252,7 +251,7 @@ export async function DELETE(
 
     // Permission check: ensure the broker owns this listing
     if (existingListing.broker_id !== auth.payload?.id) {
-       return NextResponse.json({ success: false, error: 'Bạn không có quyền xóa bài đăng này' }, { status: 403 });
+      return NextResponse.json({ success: false, error: 'Bạn không có quyền xóa bài đăng này' }, { status: 403 });
     }
 
     // Delete associated tags first (if any)
@@ -286,7 +285,7 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    
+
     // Authenticate broker
     const auth = await verifyBrokerAuth(request);
     if ('error' in auth) {
@@ -315,9 +314,9 @@ export async function PATCH(
     const isThumbnailUpdate = Object.keys(body).length === 1 && body.thumbnail_url !== undefined;
     if ((existingListing.status === 'Đang chờ duyệt' || existingListing.status === 'Đã ẩn') && !isThumbnailUpdate) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: `Tin đăng đang ở trạng thái "${existingListing.status}", không thể chỉnh sửa.` 
+        {
+          success: false,
+          error: `Tin đăng đang ở trạng thái "${existingListing.status}", không thể chỉnh sửa.`
         },
         { status: 400 }
       );

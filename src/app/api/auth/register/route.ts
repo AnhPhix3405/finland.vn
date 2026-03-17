@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
             password,
             province,
             ward,
+            address,
             referrer_phone
         } = body;
 
@@ -128,6 +129,7 @@ export async function POST(request: NextRequest) {
                 password_hash,
                 province,
                 ward,
+                address,
                 referrer_phone,
                 is_active: true
             }

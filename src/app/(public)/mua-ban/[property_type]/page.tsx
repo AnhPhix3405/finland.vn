@@ -161,7 +161,9 @@ export default function MuaBanPropertyTypePage() {
   // Handle filter change
   const handleFilterChange = (filters: FilterState) => {
     setCurrentFilters(filters);
-    if (filters.propertyType && filters.propertyType !== propertyType) {
+    if (!filters.propertyType) {
+      router.push('/mua-ban');
+    } else if (filters.propertyType !== propertyType) {
       router.push(`/mua-ban/${filters.propertyType}`);
     }
   };

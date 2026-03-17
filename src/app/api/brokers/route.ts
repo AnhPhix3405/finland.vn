@@ -87,7 +87,7 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     console.log('🔹 [API BROKERS PATCH] Request body:', body);
     
-    const { id, phone, avatar_url, full_name, email, province, ward, specialization, bio } = body;
+    const { id, phone, avatar_url, full_name, email, province, ward, address, specialization, bio } = body;
 
     // Use id if provided, otherwise find broker by phone
     let brokerId = id;
@@ -122,6 +122,7 @@ export async function PATCH(request: NextRequest) {
         ...(email !== undefined && { email }),
         ...(province !== undefined && { province }),
         ...(ward !== undefined && { ward }),
+        ...(address !== undefined && { address }),
         ...(specialization !== undefined && { specialization }),
         ...(bio !== undefined && { bio }),
       }

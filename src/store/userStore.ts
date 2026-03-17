@@ -7,11 +7,11 @@ export interface User {
     phone: string;
     email?: string;
     avatar_url?: string;
-    specialization?: string;
     bio?: string;
     is_active: boolean;
     province?: string;
     ward?: string;
+    address?: string;
     referrer_phone?: string;
     created_at?: string | Date;
     updated_at?: string | Date;

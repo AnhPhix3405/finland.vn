@@ -9,7 +9,7 @@ export interface UpdateBrokerData {
   email?: string;
   province?: string;
   ward?: string;
-  specialization?: string;
+  address?: string;
   bio?: string;
   avatar_url?: string;
 }

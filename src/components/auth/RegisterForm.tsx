@@ -37,7 +37,8 @@ export function RegisterForm() {
     phone: "",
     full_name: "",
     province: "",
-    ward: "", // Map ward to district from form
+    ward: "",
+    address: "",
     referrer_phone: "",
     email: "",
     password: "",
@@ -340,6 +341,26 @@ export function RegisterForm() {
             {errors.province || errors.ward}
           </div>
         )}
+
+        {/* Address */}
+        <div>
+          <label
+            htmlFor="address"
+            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+          >
+            Địa chỉ <span className="text-slate-400 font-normal">(không bắt buộc)</span>
+          </label>
+          <input
+            type="text"
+            id="address"
+            name="address"
+            value={formData.address}
+            onChange={handleChange}
+            placeholder="Nhập địa chỉ (số nhà, đường...)"
+            disabled={isLoading}
+            className="block w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-sm disabled:opacity-50"
+          />
+        </div>
 
         {/* Referral Phone Number */}
         <div>

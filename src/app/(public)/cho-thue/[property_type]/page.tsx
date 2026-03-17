@@ -157,7 +157,9 @@ export default function ChoThuePropertyTypePage() {
   // Handle filter change
   const handleFilterChange = (filters: FilterState) => {
     setCurrentFilters(filters);
-    if (filters.propertyType && filters.propertyType !== propertyType) {
+    if (!filters.propertyType) {
+      router.push('/cho-thue');
+    } else if (filters.propertyType !== propertyType) {
       router.push(`/cho-thue/${filters.propertyType}`);
     }
   };
