@@ -1,7 +1,8 @@
 "use client";
 
-import { User, Camera, Bell, Loader2 } from "lucide-react";
+import { User, Camera, Bell, Loader2, MapPin, FileText } from "lucide-react";
 import { useUserStore } from "@/src/store/userStore";
+import { useNotificationStore } from "@/src/store/notificationStore";
 import { useState, useEffect, useRef } from "react";
 import { updateBroker, UpdateBrokerData } from "@/src/app/modules/broker.service";
 import { uploadBrokerAvatar } from "@/src/app/modules/upload.service";
@@ -9,8 +10,8 @@ import LocationSelector from "../feature/LocationSelector";
 
 export default function ProfileSection() {
   const { user } = useUserStore();
+  const addToast = useNotificationStore((state) => state.addToast);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -22,6 +23,7 @@ export default function ProfileSection() {
     province: '',
     ward: '',
     address: '',
+    bio: '',
   });
 
   // Initialize form data when user is loaded
@@ -33,14 +35,14 @@ export default function ProfileSection() {
         province: user.province || '',
         ward: user.ward || '',
         address: user.address || '',
+        bio: user.bio || '',
       });
     }
   }, [user]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (message.text) setMessage({ type: '', text: '' });
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,18 +50,17 @@ export default function ProfileSection() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      setMessage({ type: 'error', text: 'Chỉ chấp nhận file ảnh (JPG, PNG, GIF)' });
+      addToast('Chỉ chấp nhận file ảnh (JPG, PNG, GIF)', 'error');
       return;
     }
     if (file.size > 5 * 1024 * 1024) { // 5MB
-      setMessage({ type: 'error', text: 'Kích thước file không được vượt quá 5MB' });
+      addToast('Kích thước file không được vượt quá 5MB', 'error');
       return;
     }
 
     setSelectedFile(file);
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
-    setMessage({ type: '', text: '' });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,7 +68,6 @@ export default function ProfileSection() {
     if (!user?.phone) return;
 
     setIsSubmitting(true);
-    setMessage({ type: '', text: '' });
 
     console.log('🔹 [PROFILE] Starting profile update for user:', user);
     console.log('🔹 [PROFILE] user.id:', user?.id);
@@ -96,7 +96,8 @@ export default function ProfileSection() {
         formData.email !== (user.email || '') ||
         formData.province !== (user.province || '') ||
         formData.ward !== (user.ward || '') ||
-        formData.address !== (user.address || '')
+        formData.address !== (user.address || '') ||
+        formData.bio !== (user.bio || '')
       );
       console.log('🔹 [PROFILE] hasFormChanges:', hasFormChanges);
       
@@ -109,16 +110,16 @@ export default function ProfileSection() {
           setSelectedFile(null);
           setPreviewUrl(null);
           if (fileInputRef.current) fileInputRef.current.value = '';
-          setMessage({ type: 'success', text: 'Cập nhật thông tin thành công!' });
+          addToast('Cập nhật thông tin thành công!', 'success');
         } else {
-          setMessage({ type: 'error', text: result.error || 'Có lỗi xảy ra khi cập nhật thông tin' });
+          addToast(result.error || 'Có lỗi xảy ra khi cập nhật thông tin', 'error');
         }
       } else {
-        setMessage({ type: 'info', text: 'Không có thay đổi nào để lưu' });
+        addToast('Không có thay đổi nào để lưu', 'info');
       }
     } catch (error) {
       console.error('🔹 [PROFILE] Update profile error:', error);
-      setMessage({ type: 'error', text: 'Lỗi kết nối. Vui lòng thử lại.' });
+      addToast('Lỗi kết nối. Vui lòng thử lại.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -199,18 +200,6 @@ export default function ProfileSection() {
           </div>
         </div>
 
-        {message.text && (
-          <div className={`mb-6 p-3 rounded-sm text-sm ${
-            message.type === 'success' 
-              ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-600 dark:text-green-400'
-              : message.type === 'info'
-              ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400'
-              : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400'
-          }`}>
-            {message.text}
-          </div>
-        )}
-
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
@@ -274,7 +263,8 @@ export default function ProfileSection() {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="address" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+              <label htmlFor="address" className="block text-base font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-emerald-600" />
                 Địa chỉ
               </label>
               <input 
@@ -285,6 +275,22 @@ export default function ProfileSection() {
                 onChange={handleInputChange}
                 placeholder="Số nhà, đường..."
                 className="w-full rounded-md border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-slate-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500 transition-all text-sm h-10 px-3 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <label htmlFor="bio" className="block text-base font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-emerald-600" />
+                Giới thiệu bản thân
+              </label>
+              <textarea 
+                id="bio"
+                name="bio"
+                value={formData.bio || ''}
+                onChange={handleInputChange}
+                placeholder="Giới thiệu ngắn về bản thân, kinh nghiệm..."
+                rows={4}
+                className="w-full rounded-md border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-slate-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500 transition-all text-sm p-3 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 resize-none"
               />
             </div>
 
@@ -320,7 +326,6 @@ export default function ProfileSection() {
                 setSelectedFile(null);
                 setPreviewUrl(null);
                 if (fileInputRef.current) fileInputRef.current.value = '';
-                setMessage({ type: '', text: '' });
               }}
               disabled={isSubmitting}
               className="w-full sm:w-auto px-6 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"

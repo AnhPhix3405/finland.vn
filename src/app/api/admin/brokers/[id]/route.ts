@@ -92,7 +92,6 @@ export async function PATCH(
         is_active: true,
         email: true,
         avatar_url: true,
-        specialization: true,
         province: true,
         ward: true,
         bio: true
@@ -164,9 +163,9 @@ export async function DELETE(
 
     if (listingsCount > 0) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: `Không thể xóa. Môi giới này có ${listingsCount} tin đăng hoạt động` 
+        {
+          success: false,
+          error: `Không thể xóa. Môi giới này có ${listingsCount} tin đăng hoạt động`
         },
         { status: 400 }
       );
