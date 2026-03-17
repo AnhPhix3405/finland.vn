@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/lib/prisma';
 import { verifyToken } from '@/src/app/modules/auth/jwt';
 import { processNewsTagsForCreation } from '@/src/app/modules/news.tags.service';
+import { generateSlug } from '@/src/lib/slug-utils';
 
 // Helper to verify admin token
 async function verifyAdminAuth(request: NextRequest) {
@@ -18,17 +19,6 @@ async function verifyAdminAuth(request: NextRequest) {
   }
 
   return { valid: true, payload };
-}
-
-// Helper to generate slug
-function generateSlug(title: string): string {
-  return title
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, '') // Remove special chars
-    .replace(/\s+/g, '-') // Replace spaces with -
-    .replace(/-+/g, '-') // Replace multiple - with single -
-    .replace(/^-+|-+$/g, ''); // Remove leading/trailing -
 }
 
 // GET - Get all news articles (Admin only)

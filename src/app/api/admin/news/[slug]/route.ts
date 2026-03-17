@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/lib/prisma';
 import { verifyToken } from '@/src/app/modules/auth/jwt';
 import { updateNewsTags } from '@/src/app/modules/news.tags.service';
+import { removeVietnameseTones, generateSlug } from '@/src/lib/slug-utils';
 
 // Helper to verify admin token
 async function verifyAdminAuth(request: NextRequest) {
@@ -130,11 +131,34 @@ export async function PATCH(
       );
     }
 
+    // Generate new slug if title is being updated
+    let newSlug = slug;
+    if (title && title !== existingNews.title) {
+      const baseSlug = removeVietnameseTones(title);
+      newSlug = generateSlug(title);
+      
+      // Check if the new slug already exists (and is not the current news)
+      const existingWithNewSlug = await prisma.news.findFirst({
+        where: {
+          slug: newSlug,
+          id: { not: existingNews.id }
+        }
+      });
+      
+      if (existingWithNewSlug) {
+        return NextResponse.json(
+          { success: false, error: 'Slug đã tồn tại, vui lòng sử dụng tên khác' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Update news article
     const updatedNews = await prisma.news.update({
       where: { slug },
       data: {
         title: title || undefined,
+        slug: newSlug !== slug ? newSlug : undefined,
         description: description !== undefined ? description : undefined,
         content: content || undefined,
         thumbnail_url: thumbnail_url !== undefined ? thumbnail_url : undefined

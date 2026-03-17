@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/lib/prisma';
 import { processTagsForListing } from '@/src/app/modules/tags.service.server';
 import { verifyToken } from '@/src/app/modules/auth/jwt';
+import { customAlphabet } from 'nanoid';
+import { removeVietnameseTones } from '@/src/lib/slug-utils';
 
 // Helper function to handle BigInt serialization
 function serializeData(data: Record<string, unknown> | unknown[]) {
@@ -12,63 +14,8 @@ function serializeData(data: Record<string, unknown> | unknown[]) {
   );
 }
 
-// Helper function to convert Vietnamese text to URL-friendly slug
-function createSlug(text: string): string {
-  // Vietnamese character mappings
-  const vietnameseMap: { [key: string]: string } = {
-    'à': 'a', 'á': 'a', 'ạ': 'a', 'ả': 'a', 'ã': 'a', 'â': 'a', 'ầ': 'a', 'ấ': 'a', 'ậ': 'a', 'ẩ': 'a', 'ẫ': 'a', 'ă': 'a', 'ằ': 'a', 'ắ': 'a', 'ặ': 'a', 'ẳ': 'a', 'ẵ': 'a',
-    'è': 'e', 'é': 'e', 'ẹ': 'e', 'ẻ': 'e', 'ẽ': 'e', 'ê': 'e', 'ề': 'e', 'ế': 'e', 'ệ': 'e', 'ể': 'e', 'ễ': 'e',
-    'ì': 'i', 'í': 'i', 'ị': 'i', 'ỉ': 'i', 'ĩ': 'i',
-    'ò': 'o', 'ó': 'o', 'ọ': 'o', 'ỏ': 'o', 'õ': 'o', 'ô': 'o', 'ồ': 'o', 'ố': 'o', 'ộ': 'o', 'ổ': 'o', 'ỗ': 'o', 'ơ': 'o', 'ờ': 'o', 'ớ': 'o', 'ợ': 'o', 'ở': 'o', 'ỡ': 'o',
-    'ù': 'u', 'ú': 'u', 'ụ': 'u', 'ủ': 'u', 'ũ': 'u', 'ư': 'u', 'ừ': 'u', 'ứ': 'u', 'ự': 'u', 'ử': 'u', 'ữ': 'u',
-    'ỳ': 'y', 'ý': 'y', 'ỵ': 'y', 'ỷ': 'y', 'ỹ': 'y',
-    'đ': 'd',
-    'À': 'A', 'Á': 'A', 'Ạ': 'A', 'Ả': 'A', 'Ã': 'A', 'Â': 'A', 'Ầ': 'A', 'Ấ': 'A', 'Ậ': 'A', 'Ẩ': 'A', 'Ẫ': 'A', 'Ă': 'A', 'Ằ': 'A', 'Ắ': 'A', 'Ặ': 'A', 'Ẳ': 'A', 'Ẵ': 'A',
-    'È': 'E', 'É': 'E', 'Ẹ': 'E', 'Ẻ': 'E', 'Ẽ': 'E', 'Ê': 'E', 'Ề': 'E', 'Ế': 'E', 'Ệ': 'E', 'Ể': 'E', 'Ễ': 'E',
-    'Ì': 'I', 'Í': 'I', 'Ị': 'I', 'Ỉ': 'I', 'Ĩ': 'I',
-    'Ò': 'O', 'Ó': 'O', 'Ọ': 'O', 'Ỏ': 'O', 'Õ': 'O', 'Ô': 'O', 'Ồ': 'O', 'Ố': 'O', 'Ộ': 'O', 'Ổ': 'O', 'Ỗ': 'O', 'Ơ': 'O', 'Ờ': 'O', 'Ớ': 'O', 'Ợ': 'O', 'Ở': 'O', 'Ỡ': 'O',
-    'Ù': 'U', 'Ú': 'U', 'Ụ': 'U', 'Ủ': 'U', 'Ũ': 'U', 'Ư': 'U', 'Ừ': 'U', 'Ứ': 'U', 'Ự': 'U', 'Ử': 'U', 'Ữ': 'U',
-    'Ỳ': 'Y', 'Ý': 'Y', 'Ỵ': 'Y', 'Ỷ': 'Y', 'Ỹ': 'Y',
-    'Đ': 'D'
-  };
 
-  let slug = text.toLowerCase();
 
-  // Replace Vietnamese characters
-  for (const [viet, eng] of Object.entries(vietnameseMap)) {
-    slug = slug.replace(new RegExp(viet, 'g'), eng);
-  }
-
-  return slug
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with single
-    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
-}
-
-// Helper function to ensure unique slug
-async function generateUniqueSlug(title: string): Promise<string> {
-  const baseSlug = createSlug(title);
-  let slug = baseSlug;
-  let counter = 1;
-
-  // Check if slug already exists
-  while (true) {
-    const existingListing = await prisma.listings.findFirst({
-      where: { slug }
-    });
-
-    if (!existingListing) {
-      break;
-    }
-
-    slug = `${baseSlug}-${counter}`;
-    counter++;
-  }
-
-  return slug;
-}
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -336,6 +283,7 @@ export async function GET(request: NextRequest) {
       console.log('First listing sample:', {
         id: firstListing.id,
         title: firstListing.title,
+        slug: firstListing.slug,
         transaction_type_id: firstListing.transaction_type_id,
         property_type_id: firstListing.property_type_id,
         status: firstListing.status,
@@ -413,6 +361,7 @@ export async function GET(request: NextRequest) {
       firstItem: listingsWithBookmarks[0] ? {
         id: listingsWithBookmarks[0].id,
         title: listingsWithBookmarks[0].title,
+        slug: listingsWithBookmarks[0].slug,
         thumbnail_url: listingsWithBookmarks[0].thumbnail_url,
         price: listingsWithBookmarks[0].price?.toString()
       } : null
@@ -615,28 +564,34 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate slug from title + listing_code (without FIN prefix)
-    // Example: "anh la phi" + "260001" -> "anh-la-phi-260001"
-    const titleSlug = createSlug(title);
-    const listingCodeNumber = finalListingCode.replace('FIN', ''); // e.g., "260001"
-    let finalSlug = `${titleSlug}-${listingCodeNumber}`;
+    // Generate slug from title with nanoid random suffix
+    const titleSlug = removeVietnameseTones(title);
+    console.log('[POST] Title slug:', titleSlug);
+    
+    const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 10);
+    const randomSuffix = nanoid();
+    console.log('[POST] Random suffix:', randomSuffix);
+    
+    let finalSlug = `${titleSlug}-${randomSuffix}`;
+    console.log('[POST] Initial slug:', finalSlug);
 
     // Ensure uniqueness
-    let counter = 1;
-    let uniqueSlug = finalSlug;
-    while (true) {
+    let attempts = 0;
+    while (attempts < 5) {
       const existingListing = await prisma.listings.findFirst({
-        where: { slug: uniqueSlug }
+        where: { slug: finalSlug }
       });
       if (!existingListing) {
-        finalSlug = uniqueSlug;
         break;
       }
-      uniqueSlug = `${titleSlug}-${listingCodeNumber}-${counter}`;
-      counter++;
+      console.log('[POST] Slug conflict, regenerating...');
+      const newRandom = nanoid();
+      console.log('[POST] New random suffix:', newRandom);
+      finalSlug = `${titleSlug}-${newRandom}`;
+      attempts++;
     }
 
-    console.log('Generated slug:', finalSlug);
+    console.log('[POST] Final generated slug:', finalSlug);
 
     // Resolve contact info: use provided value or fall back to broker data
     let finalContactName: string | null = null;
