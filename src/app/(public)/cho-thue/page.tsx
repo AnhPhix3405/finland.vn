@@ -11,6 +11,7 @@ import Link from "next/link";
 
 export default function ChoThuePage() {
   const router = useRouter();
+  const accessToken = useAuthStore((state) => state.accessToken);
   const [properties, setProperties] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentFilters, setCurrentFilters] = useState<FilterState>({});
@@ -22,7 +23,6 @@ export default function ChoThuePage() {
     totalPages: 0
   });
   const isHydrated = useAuthStore((state) => state.isHydrated);
-  const requestIdRef = useRef<number>(0);
   const [error, setError] = useState<string | null>(null);
 
   const buildHashtags = (filters: FilterState) => {
@@ -59,32 +59,26 @@ export default function ChoThuePage() {
   };
 
   const loadListings = async (filters: FilterState, page: number = 1) => {
-    // Track request to prevent duplicate/race condition requests
-    const currentRequestId = ++requestIdRef.current;
-    
     try {
       setLoading(true);
       const hashtags = buildHashtags(filters);
       const result = await getListingsByHashtags(hashtags, {
         page,
-        limit: pagination.limit,
+        limit: 12,
         province: filters.province,
         ward: filters.ward,
         priceMin: filters.priceMin,
         priceMax: filters.priceMax,
-        sortBy: filters.sortBy
+        sortBy: filters.sortBy,
+        token: accessToken || undefined,
       });
       
-      // Check if this request is still valid (not superseded by another request)
-      if (currentRequestId !== requestIdRef.current) {
-        return;
-      }
-      
-      // Handle empty or invalid response data
-      if (!result || !result.data) {
+      // Handle empty or invalid response data - only return early for null/undefined, not for empty array
+      if (!result) {
         console.error('Invalid API response:', result);
         setProperties([]);
         setPagination({ page: 1, limit: 12, total: 0, totalPages: 0 });
+        setLoading(false);
         return;
       }
       
@@ -159,7 +153,7 @@ export default function ChoThuePage() {
     
     const initialFilters = {};
     setCurrentFilters(initialFilters);
-    loadListings(initialFilters);
+    loadListings(initialFilters, 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHydrated]);
 

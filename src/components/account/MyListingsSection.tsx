@@ -67,6 +67,14 @@ export default function MyListingsSection() {
   const [pagination, setPagination] = useState<PaginationState>({ page: 1, limit: 10, total: 0, totalPages: 0 });
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
+
   const fetchListings = async (page: number = 1) => {
     if (!accessToken) return;
     try {
@@ -130,22 +138,29 @@ export default function MyListingsSection() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!accessToken || !window.confirm('Bạn có chắc chắn muốn xóa bài đăng này ko? Hành động này không thể hoàn tác.')) return;
-    try {
-      setLoading(true);
-      const res = await deleteListingLocal(id, accessToken);
-      if (res.success) {
-         setListings(prev => prev.filter(l => l.id !== id));
-         setMessage({ type: 'success', text: 'Đã xóa bài đăng thành công' });
-      } else {
-         setMessage({ type: 'error', text: res.error || 'Xóa thất bại' });
+  const handleDelete = (id: string) => {
+    if (!accessToken) return;
+    setConfirmModal({
+      open: true,
+      title: 'Xóa bài đăng',
+      message: 'Bạn có chắc chắn muốn xóa bài đăng này? Hành động này không thể hoàn tác.',
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          const res = await deleteListingLocal(id, accessToken!);
+          if (res.success) {
+            setListings(prev => prev.filter(l => l.id !== id));
+            setMessage({ type: 'success', text: 'Đã xóa bài đăng thành công' });
+          } else {
+            setMessage({ type: 'error', text: res.error || 'Xóa thất bại' });
+          }
+        } catch (e) {
+          setMessage({ type: 'error', text: 'Lỗi mạng' });
+        } finally {
+          setLoading(false);
+        }
       }
-    } catch (e) {
-      setMessage({ type: 'error', text: 'Lỗi mạng' });
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   const filteredListings = filter === "all" ? listings : listings.filter((l) => l.status === filter);
@@ -375,6 +390,37 @@ export default function MyListingsSection() {
           </div>
         )}
       </div>
+
+      {/* Confirmation Modal */}
+      {confirmModal?.open && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setConfirmModal(null)}></div>
+          <div className="relative bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6 border border-red-500">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="material-symbols-outlined text-red-500 text-2xl">warning</span>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{confirmModal.title}</h3>
+            </div>
+            <p className="text-slate-600 dark:text-slate-300 mb-6">{confirmModal.message}</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmModal(null)}
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md font-medium transition-colors"
+              >
+                Thoát
+              </button>
+              <button
+                onClick={() => {
+                  confirmModal.onConfirm();
+                  setConfirmModal(null);
+                }}
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-md font-medium transition-colors"
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

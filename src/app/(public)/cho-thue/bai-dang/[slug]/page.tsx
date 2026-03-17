@@ -64,6 +64,7 @@ interface Listing {
     name: string;
     hashtag: string;
   } | null;
+  is_bookmarked?: boolean;
 }
 
 interface Attachment {
@@ -380,6 +381,7 @@ export default function ChoThueDetailOrFilterPage() {
           type="cho-thue"
           listing={listing}
           attachments={attachments}
+          isBookmarked={listing?.is_bookmarked || false}
           isDemo={false}
         />
       </div>

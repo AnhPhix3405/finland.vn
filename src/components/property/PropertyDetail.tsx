@@ -88,15 +88,17 @@ interface PropertyDetailProps {
   type: "mua-ban" | "cho-thue";
   listing?: Listing | null;
   attachments?: Attachment[];
+  isBookmarked?: boolean;
+  onBookmarkToggle?: (isBookmarked: boolean) => void;
   isDemo?: boolean;
 }
 
-export function PropertyDetail({ type, listing, attachments: propsAttachments, isDemo = false }: PropertyDetailProps) {
+export function PropertyDetail({ type, listing, attachments: propsAttachments, isBookmarked: propIsBookmarked, onBookmarkToggle, isDemo = false }: PropertyDetailProps) {
   const router = useRouter();
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [startIndex, setStartIndex] = useState(0);
-  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(propIsBookmarked || false);
   const [isLoadingBookmark, setIsLoadingBookmark] = useState(false);
   const addToast = useNotificationStore((state) => state.addToast);
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -124,6 +126,11 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
     fetchAttachments();
   }, [listing?.id, propsAttachments]);
 
+  // Sync prop isBookmarked with state
+  useEffect(() => {
+    setIsBookmarked(propIsBookmarked || false);
+  }, [propIsBookmarked]);
+
   const handleBookmarkClick = async () => {
     if (!accessToken) {
       addToast('Bạn cần đăng nhập để lưu bài đăng', 'error');
@@ -138,6 +145,7 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
       if (result.success) {
         const newBookmarkedState = result.data.bookmarked;
         setIsBookmarked(newBookmarkedState);
+        onBookmarkToggle?.(newBookmarkedState);
         addToast(result.data.message, 'success', 2000);
       } else {
         addToast(result.error, 'error');

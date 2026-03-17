@@ -65,6 +65,7 @@ interface Listing {
     hashtag: string;
   } | null;
   listing_code?: string | null;
+  is_bookmarked?: boolean;
 }
 
 interface Attachment {
@@ -386,6 +387,7 @@ export default function MuaBanDetailOrFilterPage() {
             type="mua-ban"
             listing={listing}
             attachments={attachments}
+            isBookmarked={listing?.is_bookmarked || false}
             isDemo={false}
           />
         </div>

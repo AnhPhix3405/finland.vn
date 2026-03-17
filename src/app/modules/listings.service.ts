@@ -175,6 +175,7 @@ export async function getListingsByHashtags(hashtags: string[], params?: {
   priceMin?: string;
   priceMax?: string;
   sortBy?: string;
+  token?: string;
 }): Promise<{data: Record<string, unknown>[], pagination: Record<string, unknown>}> {
   return getListings({
     ...params,

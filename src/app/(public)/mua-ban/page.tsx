@@ -93,6 +93,7 @@ export default function MuaBanPage() {
         priceMin: filters.priceMin,
         priceMax: filters.priceMax,
         sortBy: filters.sortBy,
+        token: accessToken || undefined,
       });
 
       // Track API latency
