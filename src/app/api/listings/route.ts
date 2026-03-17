@@ -238,13 +238,17 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // Determine sort order
-    let orderBy: Record<string, unknown> = { id: 'desc' };
+    // Determine sort order - default is newest (created_at desc)
+    let orderBy: Record<string, unknown> = { created_at: 'desc' };
     
     if (sortBy === 'price_asc') {
       orderBy = { price: 'asc' };
     } else if (sortBy === 'price_desc') {
       orderBy = { price: 'desc' };
+    } else if (sortBy === 'newest') {
+      orderBy = { created_at: 'desc' };
+    } else if (sortBy === 'oldest') {
+      orderBy = { created_at: 'asc' };
     }
 
     const listings = await prisma.listings.findMany({
