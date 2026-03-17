@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/src/store/authStore';
+import { useAdminStore } from '@/src/store/adminStore';
 import { useNotificationStore } from '@/src/store/notificationStore';
 
 /**
@@ -9,9 +10,9 @@ import { useNotificationStore } from '@/src/store/notificationStore';
  */
 export async function fetchWithRetry(
   url: string,
-  options: RequestInit & { token?: string } = {}
+  options: RequestInit & { token?: string; isAdmin?: boolean } = {}
 ): Promise<Response> {
-  const { token, ...fetchOptions } = options;
+  const { token, isAdmin = false, ...fetchOptions } = options;
   
   // Set authorization header if token provided
   const headers = {
@@ -31,7 +32,13 @@ export async function fetchWithRetry(
     console.log('🔄 Token expired, attempting refresh...');
     
     try {
-      const refreshResponse = await fetch('/api/auth/refresh-token', {
+      // Wait 1-2 seconds before retrying to avoid jittery behavior
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Use appropriate refresh endpoint (admin vs user)
+      const refreshEndpoint = isAdmin ? '/api/admin/refresh-token' : '/api/auth/refresh-token';
+      
+      const refreshResponse = await fetch(refreshEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -43,8 +50,12 @@ export async function fetchWithRetry(
       if (refreshResult.success && refreshResult.data?.access_token) {
         console.log('✓ Token refreshed successfully, retrying request...');
         
-        // Update token in store
-        useAuthStore.getState().updateAccessToken(refreshResult.data.access_token);
+        // Update token in appropriate store
+        if (isAdmin) {
+          useAdminStore.getState().updateAccessToken(refreshResult.data.access_token);
+        } else {
+          useAuthStore.getState().updateAccessToken(refreshResult.data.access_token);
+        }
 
         // Retry request with new token
         const retryHeaders = {

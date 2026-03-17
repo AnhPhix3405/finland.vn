@@ -1,4 +1,5 @@
 import { useAdminStore } from "@/src/store/adminStore";
+import { fetchWithRetry } from "@/src/lib/api/fetch-with-retry";
 
 export type ListingStatus = 
   | 'Đang hiển thị' 
@@ -83,6 +84,7 @@ export interface UpdateListingStatusResponse {
   data?: Listing;
   message?: string;
   error?: string;
+  statusCode?: number;
 }
 
 /**
@@ -98,7 +100,7 @@ export async function getListings(
     ward?: string;
     search?: string;
   }
-): Promise<ListingListResponse> {
+): Promise<ListingListResponse & { statusCode?: number }> {
   try {
     const adminToken = useAdminStore.getState().accessToken;
     const params = new URLSearchParams();
@@ -111,13 +113,15 @@ export async function getListings(
     if (filters?.ward) params.set('ward', filters.ward);
     if (filters?.search) params.set('search', filters.search);
 
-    const response = await fetch(`/api/admin/listings?${params.toString()}`, {
-      headers: {
-        'Authorization': `Bearer ${adminToken}`
-      }
+    const response = await fetchWithRetry(`/api/admin/listings?${params.toString()}`, {
+      token: adminToken,
+      isAdmin: true
     });
     const result = await response.json();
-    return result;
+    return {
+      ...result,
+      statusCode: response.status
+    };
   } catch (error) {
     console.error('Error fetching admin listings:', error);
     return {
@@ -136,16 +140,21 @@ export async function updateListingStatus(
 ): Promise<UpdateListingStatusResponse> {
   try {
     const adminToken = useAdminStore.getState().accessToken;
-    const response = await fetch(`/api/admin/listings`, {
+    const response = await fetchWithRetry(`/api/admin/listings`, {
       method: 'PUT',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${adminToken}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({ id: listingId, status }),
+      token: adminToken,
+      isAdmin: true
     });
 
-    return await response.json();
+    const result = await response.json();
+    return {
+      ...result,
+      statusCode: response.status
+    };
   } catch (error) {
     console.error('Error updating listing status:', error);
     return {
@@ -161,14 +170,17 @@ export async function updateListingStatus(
 export async function deleteListing(listingId: string): Promise<UpdateListingStatusResponse> {
   try {
     const adminToken = useAdminStore.getState().accessToken;
-    const response = await fetch(`/api/admin/listings?id=${listingId}`, {
+    const response = await fetchWithRetry(`/api/admin/listings?id=${listingId}`, {
       method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${adminToken}`
-      }
+      token: adminToken,
+      isAdmin: true
     });
 
-    return await response.json();
+    const result = await response.json();
+    return {
+      ...result,
+      statusCode: response.status
+    };
   } catch (error) {
     console.error('Error deleting listing:', error);
     return {

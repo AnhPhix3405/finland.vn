@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAdminStore } from "@/src/store/adminStore";
 import { useNotificationStore } from "@/src/store/notificationStore";
 import { uploadNewsThumbnail } from "@/src/app/modules/upload.service";
+import { fetchWithRetry } from "@/src/lib/api/fetch-with-retry";
 import RichTextEditor from '@/src/components/ui/RichTextEditor';
 
 interface Tag {
@@ -79,11 +80,20 @@ export default function AdminEditNewsPage() {
 
     const fetchNews = async () => {
       try {
-        const res = await fetch(`/api/admin/news/${slug}`, {
-          headers: {
-            'Authorization': `Bearer ${adminToken}`
-          }
+        const res = await fetchWithRetry(`/api/admin/news/${slug}`, {
+          token: adminToken,
+          isAdmin: true
         });
+
+        // Check for 401 status code
+        if (res.status === 401) {
+          const { clearAuth } = useAdminStore.getState();
+          clearAuth();
+          setError('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại');
+          addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+          router.push('/admin/login');
+          return;
+        }
 
         const result = await res.json();
 
@@ -145,11 +155,10 @@ export default function AdminEditNewsPage() {
         setIsUploading(false);
       }
 
-      const res = await fetch(`/api/admin/news/${slug}`, {
+      const res = await fetchWithRetry(`/api/admin/news/${slug}`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminToken}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           title,
@@ -157,8 +166,20 @@ export default function AdminEditNewsPage() {
           content,
           thumbnail_url: finalThumbnailUrl || null,
           tags: selectedTags
-        })
+        }),
+        token: adminToken,
+        isAdmin: true
       });
+
+      // Check for 401 status code
+      if (res.status === 401) {
+        const { clearAuth } = useAdminStore.getState();
+        clearAuth();
+        setError('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại');
+        addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+        router.push('/admin/login');
+        return;
+      }
 
       const result = await res.json();
 
@@ -201,6 +222,16 @@ export default function AdminEditNewsPage() {
           'Authorization': `Bearer ${adminToken}`
         }
       });
+
+      // Check for 401 status code
+      if (res.status === 401) {
+        const { clearAuth } = useAdminStore.getState();
+        clearAuth();
+        setError('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại');
+        addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+        router.push('/admin/login');
+        return;
+      }
 
       const result = await res.json();
 

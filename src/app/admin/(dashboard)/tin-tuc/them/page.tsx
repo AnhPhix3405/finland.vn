@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAdminStore } from "@/src/store/adminStore";
 import { useNotificationStore } from "@/src/store/notificationStore";
 import { uploadNewsThumbnail } from "@/src/app/modules/upload.service";
+import { fetchWithRetry } from "@/src/lib/api/fetch-with-retry";
 import RichTextEditor from '@/src/components/ui/RichTextEditor';
 
 interface Tag {
@@ -105,11 +106,10 @@ export default function AdminAddNewsPage() {
         }
       }
 
-      const res = await fetch('/api/admin/news', {
+      const res = await fetchWithRetry('/api/admin/news', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminToken}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           title,
@@ -117,8 +117,20 @@ export default function AdminAddNewsPage() {
           content,
           thumbnail_url: thumbnail_url || null,
           tags: selectedTags
-        })
+        }),
+        token: adminToken,
+        isAdmin: true
       });
+
+      // Check for 401 status code
+      if (res.status === 401) {
+        const { clearAuth } = useAdminStore.getState();
+        clearAuth();
+        setError('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại');
+        addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+        router.push('/admin/login');
+        return;
+      }
 
       const result = await res.json();
 

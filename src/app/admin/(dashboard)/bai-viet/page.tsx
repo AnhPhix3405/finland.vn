@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import HashtagManagerModal from "@/src/components/admin/HashtagManagerModal.tsx";
 import LocationSelector from "@/src/components/feature/LocationSelector";
+import { useAdminStore } from "@/src/store/adminStore";
 import {
   getListings,
   updateListingStatus,
@@ -28,6 +30,8 @@ const TRANSACTION_OPTIONS = [
 ];
 
 export default function AdminArticleList() {
+  const router = useRouter();
+  const { clearAuth } = useAdminStore();
   const addToast = useNotificationStore((state) => state.addToast);
 
   const [isHashtagModalOpen, setIsHashtagModalOpen] = useState(false);
@@ -65,6 +69,15 @@ export default function AdminArticleList() {
         search: searchTerm || undefined,
       });
 
+      // Check for 401 status code
+      if (result.statusCode === 401) {
+        console.log('❌ Admin token invalid, redirecting to login');
+        clearAuth();
+        addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+        router.push('/admin/login');
+        return;
+      }
+
       if (result.success && result.data) {
         setListings(result.data);
       }
@@ -82,6 +95,15 @@ export default function AdminArticleList() {
       message: 'Bạn có chắc chắn muốn duyệt bài viết này?',
       onConfirm: async () => {
         const result = await updateListingStatus(listingId, 'Đang hiển thị');
+        
+        // Check for 401 status code
+        if (result.statusCode === 401) {
+          clearAuth();
+          addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+          router.push('/admin/login');
+          return;
+        }
+        
         if (result.success) {
           setListings(prev => prev.map(l => l.id === listingId ? { ...l, status: 'Đang hiển thị' } : l));
           addToast('Đã duyệt bài viết thành công!', 'success');
@@ -99,6 +121,15 @@ export default function AdminArticleList() {
       message: 'Bạn có chắc chắn muốn từ chối bài viết này?',
       onConfirm: async () => {
         const result = await updateListingStatus(listingId, 'Bị từ chối');
+        
+        // Check for 401 status code
+        if (result.statusCode === 401) {
+          clearAuth();
+          addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+          router.push('/admin/login');
+          return;
+        }
+        
         if (result.success) {
           setListings(prev => prev.map(l => l.id === listingId ? { ...l, status: 'Bị từ chối' } : l));
           addToast('Đã từ chối bài viết!', 'success');
@@ -116,6 +147,15 @@ export default function AdminArticleList() {
       message: 'Bạn có chắc chắn muốn xóa vĩnh viễn bài viết này?',
       onConfirm: async () => {
         const result = await deleteListing(listingId);
+        
+        // Check for 401 status code
+        if (result.statusCode === 401) {
+          clearAuth();
+          addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+          router.push('/admin/login');
+          return;
+        }
+        
         if (result.success) {
           setListings(prev => prev.filter(l => l.id !== listingId));
           addToast('Đã xóa bài viết thành công!', 'success');
@@ -129,6 +169,15 @@ export default function AdminArticleList() {
   const handleToggleVisibility = async (listingId: string, currentStatus: string | null | undefined) => {
     const newStatus = currentStatus === 'Đã ẩn' ? 'Đang hiển thị' : 'Đã ẩn';
     const result = await updateListingStatus(listingId, newStatus);
+    
+    // Check for 401 status code
+    if (result.statusCode === 401) {
+      clearAuth();
+      addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+      router.push('/admin/login');
+      return;
+    }
+    
     if (result.success) {
       setListings(prev => prev.map(l => l.id === listingId ? { ...l, status: newStatus } : l));
       addToast(newStatus === 'Đã ẩn' ? 'Đã ẩn bài viết!' : 'Đã hiển thị bài viết!', 'success');

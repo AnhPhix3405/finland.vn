@@ -7,7 +7,7 @@ export async function signAccessToken(payload: Record<string, unknown>) {
     return await new SignJWT(payload)
         .setProtectedHeader({ alg: "HS256" })
         .setIssuedAt()
-        .setExpirationTime("1m") // Access token valid for 1 day
+        .setExpirationTime("15m") // Access token valid for 15 minutes
         .sign(secret);
 }
 
@@ -33,7 +33,7 @@ export async function signAdminAccessToken(payload: Record<string, unknown>) {
     return await new SignJWT({ ...payload, role: 'admin' })
         .setProtectedHeader({ alg: "HS256" })
         .setIssuedAt()
-        .setExpirationTime("15m") // Admin access token valid for 15 minutes
+        .setExpirationTime("1m") // Admin access token valid for 15 minutes
         .sign(secret);
 }
 
