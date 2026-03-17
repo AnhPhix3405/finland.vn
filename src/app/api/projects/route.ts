@@ -13,6 +13,10 @@ export async function GET(request: NextRequest) {
     const province = searchParams.get('province');
     const ward = searchParams.get('ward');
     const property_type_id = searchParams.get('property_type_id');
+    const propertyType = searchParams.get('propertyType');
+    const priceMin = searchParams.get('priceMin');
+    const priceMax = searchParams.get('priceMax');
+    const sortBy = searchParams.get('sortBy');
 
     const skip = (page - 1) * limit;
 
@@ -35,8 +39,24 @@ export async function GET(request: NextRequest) {
       where.property_type_id = property_type_id;
     }
 
+    if (propertyType) {
+      where.property_types = {
+        hashtag: propertyType
+      };
+    }
+
     if (ward) {
       where.ward = ward;
+    }
+
+    if (priceMin || priceMax) {
+      where.price = {};
+      if (priceMin) {
+        where.price.gte = parseFloat(priceMin);
+      }
+      if (priceMax) {
+        where.price.lte = parseFloat(priceMax);
+      }
     }
 
     if (search) {
@@ -50,14 +70,28 @@ export async function GET(request: NextRequest) {
     const totalCount = await prisma.projects.count({ where });
 
     // Lấy danh sách dự án
+    let orderBy: Prisma.projectsOrderByWithRelationInput | Prisma.projectsOrderByWithRelationInput[] = [];
+    
+    if (sortBy === 'price_asc') {
+      orderBy = [{ price: 'asc' }, { created_at: 'desc' }];
+    } else if (sortBy === 'price_desc') {
+      orderBy = [{ price: 'desc' }, { created_at: 'desc' }];
+    } else if (sortBy === 'newest') {
+      orderBy = [{ created_at: 'desc' }, { name: 'asc' }];
+    } else {
+      orderBy = [{ created_at: 'desc' }, { name: 'asc' }];
+    }
+
+    // Handle null/0 price for sorting - add to where when sorting by price
+    if ((sortBy === 'price_asc' || sortBy === 'price_desc') && !priceMin && !priceMax) {
+      where.price = { gt: 0 };
+    }
+
     const projects = await prisma.projects.findMany({
       where,
       skip,
       take: limit,
-      orderBy: [
-        { created_at: 'desc' },
-        { name: 'asc' }
-      ]
+      orderBy
     });
 
     return NextResponse.json({

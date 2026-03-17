@@ -117,7 +117,7 @@ export function PropertyFilter({ hidePrice = false, onFilterChange }: PropertyFi
   const getDisplayText = (key: keyof FilterState, defaultText: string) => {
     const value = filters[key];
     if (!value) return defaultText;
-    
+
     if (key === 'propertyType') {
       const type = propertyTypes.find(t => t.hashtag === value);
       return type ? type.name : defaultText;
@@ -127,7 +127,7 @@ export function PropertyFilter({ hidePrice = false, onFilterChange }: PropertyFi
       const sort = sortOptions.find(s => s.value === value);
       return sort ? sort.name : defaultText;
     }
-    
+
     return value || defaultText;
   };
 
@@ -150,21 +150,27 @@ export function PropertyFilter({ hidePrice = false, onFilterChange }: PropertyFi
           <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
             Loại hình
           </label>
-          <button 
+          <button
             onClick={() => setShowPropertyTypes(!showPropertyTypes)}
             className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50 border border-slate-300 hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:hover:bg-slate-700 rounded-sm text-sm font-medium transition-colors text-slate-700 dark:text-slate-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
           >
             {getDisplayText('propertyType', 'Chọn loại hình')}
             <ChevronDown className="text-slate-400 w-4 h-4" aria-hidden="true" />
           </button>
-          
+
           {showPropertyTypes && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-sm shadow-lg z-50 max-h-60 overflow-y-auto">
+            <div className="absolute top-20 left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-sm shadow-lg z-50 max-h-60 overflow-y-auto">
+              <button
+                onClick={() => handlePropertyTypeChange('')}
+                className={`w-full px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700 text-sm transition-colors font-medium ${!filters.propertyType ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`}
+              >
+                Tất cả
+              </button>
               {propertyTypes.map((type) => (
                 <button
                   key={type.id}
                   onClick={() => handlePropertyTypeChange(type.hashtag)}
-                  className="w-full px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700 text-sm text-slate-700 dark:text-slate-300 transition-colors"
+                  className={`w-full px-4 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-700 text-sm transition-colors ${filters.propertyType === type.hashtag ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`}
                 >
                   {type.name}
                 </button>
@@ -213,7 +219,7 @@ export function PropertyFilter({ hidePrice = false, onFilterChange }: PropertyFi
           <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">
             Sắp xếp
           </label>
-          <button 
+          <button
             onClick={() => setShowSort(!showSort)}
             className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50 border border-slate-300 hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:hover:bg-slate-700 rounded-sm text-sm font-medium transition-colors text-slate-700 dark:text-slate-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
           >
@@ -223,7 +229,7 @@ export function PropertyFilter({ hidePrice = false, onFilterChange }: PropertyFi
             </span>
             <ChevronDown className="text-slate-400 w-4 h-4" aria-hidden="true" />
           </button>
-          
+
           {showSort && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-sm shadow-lg z-50 max-h-60 overflow-y-auto">
               {sortOptions.map((option) => (
@@ -240,7 +246,7 @@ export function PropertyFilter({ hidePrice = false, onFilterChange }: PropertyFi
         </div>
 
         {/* Search Button */}
-        <button 
+        <button
           onClick={handleSearch}
           className="bg-emerald-600 text-white font-bold px-8 py-2.5 rounded-sm hover:bg-emerald-700 transition-colors flex items-center gap-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
         >

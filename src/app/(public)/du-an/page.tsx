@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { PropertyFilter } from "../../../components/property/PropertyFilter";
+import { PropertyFilter, FilterState } from "../../../components/property/PropertyFilter";
 import { Pagination } from "../../../components/shared/Pagination";
 import { useProjectContext } from "@/src/context/ProjectContext";
 import { getProjects } from "@/src/app/modules/projects.service";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 interface Project {
@@ -21,11 +21,11 @@ interface Project {
     name: string;
   };
   status?: string;
-  area_min?: number;
-  area_max?: number;
+  area?: number;
   price?: number;
   content?: string;
   created_at?: string;
+  thumbnail_url?: string;
 }
 
 export default function ProjectList() {
@@ -34,32 +34,65 @@ export default function ProjectList() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentFilters, setCurrentFilters] = useState<FilterState>({});
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 12,
+    total: 0,
+    totalPages: 0
+  });
+
+  const loadProjects = async (filters: FilterState, page: number = 1) => {
+    try {
+      setLoading(true);
+      const result = await getProjects({
+        page,
+        limit: pagination.limit,
+        province: filters.province,
+        ward: filters.ward,
+        propertyType: filters.propertyType,
+        priceMin: filters.priceMin,
+        priceMax: filters.priceMax,
+        sortBy: filters.sortBy,
+      });
+      
+      if (result.success) {
+        setProjects(result.data || []);
+        if (result.pagination) {
+          setPagination({
+            page: result.pagination.page,
+            limit: result.pagination.limit,
+            total: result.pagination.total,
+            totalPages: result.pagination.totalPages
+          });
+        }
+      } else {
+        setError(result.error || 'Không thể tải danh sách dự án');
+      }
+    } catch (err) {
+      console.error('Error fetching projects:', err);
+      setError('Lỗi khi tải danh sách dự án');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        setLoading(true);
-        const result = await getProjects({ limit: 12 });
-        
-        if (result.success) {
-          setProjects(result.data || []);
-        } else {
-          setError(result.error || 'Không thể tải danh sách dự án');
-        }
-      } catch (err) {
-        console.error('Error fetching projects:', err);
-        setError('Lỗi khi tải danh sách dự án');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProjects();
+    loadProjects({});
   }, []);
 
   const handleProjectClick = (project: Project) => {
     setProjectSlug(project.slug);
     router.push(`/du-an/${project.slug}`);
+  };
+
+  const handleFilterChange = (filters: FilterState) => {
+    setCurrentFilters(filters);
+    loadProjects(filters, 1);
+  };
+
+  const handlePageChange = (page: number) => {
+    loadProjects(currentFilters, page);
   };
 
   const getStatusBadge = (status?: string) => {
@@ -96,6 +129,19 @@ export default function ProjectList() {
       return `${areaMax} m²`;
     }
     return 'Liên hệ';
+  };
+
+  const formatPrice = (price?: number | string) => {
+    if (!price || price === 0) return 'Liên hệ';
+    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+    if (isNaN(numPrice)) return 'Liên hệ';
+
+    if (numPrice >= 1000000000) {
+      return `${(numPrice / 1000000000).toFixed(1)} Tỷ`;
+    } else if (numPrice >= 1000000) {
+      return `${(numPrice / 1000000).toFixed(0)} Triệu`;
+    }
+    return `${numPrice.toLocaleString('vi-VN')} VND`;
   };
 
   const formatLocation = (province?: string, ward?: string) => {
@@ -154,7 +200,7 @@ export default function ProjectList() {
       </nav>
       <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-6 uppercase tracking-tight">DANH SÁCH DỰ ÁN BẤT ĐỘNG SẢN</h1>
       
-      <PropertyFilter hidePrice={true} />
+      <PropertyFilter onFilterChange={handleFilterChange} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {projects.length === 0 ? (
@@ -172,7 +218,7 @@ export default function ProjectList() {
                 <img 
                   alt={project.name} 
                   className="w-full h-full object-cover" 
-                  src={`https://lh3.googleusercontent.com/aida-public/AB6AXuDegODUZ6REUfZ6wkYPWzTvrGzNKwi9JzombB3Jm48DAIJ6gU_Hcip9JPHZawF2rOio2uMXLrU1OxdeQEccJN8BVYW3aLazAcmZuCXbn17s81oYARqRzA-VpwhKIjoRnPYKUdiVh2LRe0G7cZ-0UnMSkC8uZokSoX-EuTpK-RoVvRFwTlG0oEnHn3JFa5oYq9rSfn0VyqzW2enpvmLRt07e7y42Ow2L-dFD6LKIXCOG6f-ZQ2E3R6496POzsn00YuELKLh2o2H1XF1O`}
+                  src={project.thumbnail_url || 'https://via.placeholder.com/400x200?text=No+Image'}
                   onError={(e) => {
                     e.currentTarget.src = 'https://via.placeholder.com/400x200?text=No+Image';
                   }}
@@ -188,14 +234,19 @@ export default function ProjectList() {
                   {formatLocation(project.province, project.ward)}
                 </div>
                 <div className="flex justify-between items-center mb-4 mt-auto">
-                  <span className="text-xs font-medium text-gray-500 dark:text-slate-400">
-                    {formatArea(project.area_min, project.area_max)}
+                  <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                    {formatPrice(project.price)}
                   </span>
-                  {project.property_types && (
-                    <span className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-1 rounded">
-                      {project.property_types.name}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-500 dark:text-slate-400">
+                      {project.area ? `${project.area.toLocaleString('vi-VN')} m²` : ''}
                     </span>
-                  )}
+                    {project.property_types && (
+                      <span className="text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-1 rounded">
+                        {project.property_types.name}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="mt-auto pt-3 border-t border-gray-100 dark:border-slate-700">
                   <div className="flex justify-center items-center w-full px-4 py-2 border border-emerald-600 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-xs font-bold uppercase tracking-wider transition-colors">
@@ -208,7 +259,11 @@ export default function ProjectList() {
         )}
       </div>
 
-      <Pagination />
+      <Pagination 
+        currentPage={pagination.page} 
+        totalPages={pagination.totalPages} 
+        onPageChange={handlePageChange} 
+      />
     </div>
   );
 }

@@ -17,6 +17,7 @@ export default function AdminProjectList() {
   const [propertyTypes, setPropertyTypes] = useState<PropertyType[]>([]);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [loading, setLoading] = useState(false);
   const { setActiveProjectId } = useProjectContext();
   const router = useRouter();
 
@@ -42,19 +43,22 @@ export default function AdminProjectList() {
   }, []);
 
   const fetchProjects = async () => {
+    setLoading(true);
     try {
       const params: Record<string, string> = {};
       if (searchTerm) params.search = searchTerm;
       if (filterProvince) params.province = filterProvince;
       if (filterWard) params.ward = filterWard;
       if (filterPropertyType) params.property_type_id = filterPropertyType;
-
+      
       const json = await getProjects(params);
       if (json.success && Array.isArray(json.data)) {
         setProjects(json.data);
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -172,6 +176,14 @@ export default function AdminProjectList() {
             >
               <span className="material-symbols-outlined text-lg">search</span>
               Tìm
+            </button>
+            <button
+              onClick={() => fetchProjects()}
+              disabled={loading}
+              className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-sm text-sm font-medium flex items-center gap-1 transition-colors disabled:opacity-50"
+              title="Làm mới"
+            >
+              <span className={`material-symbols-outlined text-lg ${loading ? 'animate-spin' : ''}`}>refresh</span>
             </button>
           </div>
           <button

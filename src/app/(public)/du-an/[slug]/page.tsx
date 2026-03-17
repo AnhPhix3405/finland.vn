@@ -22,10 +22,11 @@ interface Project {
     name: string;
   };
   status?: string;
-  area_min?: number;
-  area_max?: number;
+  area?: number;
   price?: number;
   content?: string;
+  project_code?: string;
+  thumbnail_url?: string;
   project_tags?: Array<{
     tags: {
       id: string;
@@ -65,6 +66,24 @@ export default function ProjectDetail() {
     } else if (direction === 'right' && startIndex + 4 < attachments.length) {
       setStartIndex(startIndex + 1);
     }
+  };
+
+  const formatPrice = (price?: number | string | null) => {
+    if (!price) return "Liên hệ";
+    const numPrice = Number(price);
+    if (isNaN(numPrice)) return "Liên hệ";
+
+    if (numPrice >= 1000000000) {
+      const billions = numPrice / 1000000000;
+      return `${billions.toFixed(1)} Tỷ`;
+    } else if (numPrice >= 1000000) {
+      const millions = numPrice / 1000000;
+      return `${millions.toFixed(0)} Triệu`;
+    } else if (numPrice >= 1000) {
+      const thousands = numPrice / 1000;
+      return `${thousands.toFixed(0)} Nghìn`;
+    }
+    return `${numPrice.toLocaleString('vi-VN')} đồng`;
   };
 
   useEffect(() => {
@@ -218,8 +237,8 @@ export default function ProjectDetail() {
             <div className="w-full h-[400px] relative">
               <img 
                 alt={project.name} 
-                className="w-full h-full object-cover border border-gray-200 dark:border-slate-700" 
-                src={attachments.length > 0 ? attachments[selectedImageIndex]?.secure_url || attachments[0]?.secure_url : 'https://via.placeholder.com/800x400?text=No+Image'}
+                className="w-full h-full object-cover border border-gray-200 dark:border-slate-700 cursor-pointer" 
+                src={attachments.length > 0 ? attachments[selectedImageIndex]?.secure_url : (project.thumbnail_url || 'https://via.placeholder.com/800x400?text=No+Image')}
                 onError={(e) => {
                   e.currentTarget.src = 'https://via.placeholder.com/800x400?text=No+Image';
                 }}
@@ -299,7 +318,12 @@ export default function ProjectDetail() {
             <div className="flex flex-wrap items-center gap-6 pt-4 border-t border-gray-100 dark:border-slate-700">
               <div>
                 <span className="block text-sm text-slate-500 dark:text-slate-400 mb-1">Diện tích</span>
-                <span className="text-xl font-semibold text-slate-900 dark:text-white">{formatArea(project.area_min, project.area_max)}</span>
+                <span className="text-xl font-semibold text-slate-900 dark:text-white">{project.area ? `${project.area.toLocaleString('vi-VN')} m²` : '---'}</span>
+              </div>
+              <div className="w-px h-10 bg-gray-200 dark:bg-slate-700 hidden sm:block"></div>
+              <div>
+                <span className="block text-sm text-slate-500 dark:text-slate-400 mb-1">Giá</span>
+                <span className="text-xl font-semibold text-emerald-600 dark:text-emerald-400">{formatPrice(project.price)}</span>
               </div>
               {project.property_types && (
                 <>

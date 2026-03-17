@@ -43,7 +43,7 @@ export const deleteProject = async (id: string) => {
     return response.json();
 };
 
-export const getProjects = async (params?: { page?: number; limit?: number; status?: string; search?: string; slug?: string; province?: string; ward?: string; property_type_id?: string }) => {
+export const getProjects = async (params?: { page?: number; limit?: number; status?: string; search?: string; slug?: string; province?: string; ward?: string; property_type_id?: string; propertyType?: string; priceMin?: string; priceMax?: string; sortBy?: string }) => {
     let urlStr = '/api/projects';
     if (typeof window !== 'undefined') {
         urlStr = new URL('/api/projects', window.location.origin).toString();
@@ -58,6 +58,10 @@ export const getProjects = async (params?: { page?: number; limit?: number; stat
     if (params?.province) url.searchParams.append('province', params.province);
     if (params?.ward) url.searchParams.append('ward', params.ward);
     if (params?.property_type_id) url.searchParams.append('property_type_id', params.property_type_id);
+    if (params?.propertyType) url.searchParams.append('propertyType', params.propertyType);
+    if (params?.priceMin) url.searchParams.append('priceMin', params.priceMin);
+    if (params?.priceMax) url.searchParams.append('priceMax', params.priceMax);
+    if (params?.sortBy) url.searchParams.append('sortBy', params.sortBy);
 
     const response = await fetch(url.toString(), {
         method: 'GET',
