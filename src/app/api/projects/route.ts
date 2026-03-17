@@ -28,7 +28,6 @@ export async function GET(request: NextRequest) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { project_code: { contains: search, mode: 'insensitive' } },
-        { developer: { contains: search, mode: 'insensitive' } }
       ];
     }
 
@@ -136,7 +135,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const generatedSlug = slug?.trim() ? slug.trim() : generateSlug(name);
+    // Generate project_code (e.g. FIN260001)
+    const currentYearStr = new Date().getFullYear().toString().substring(2, 4);
+    const prefix = `FIN${currentYearStr}`;
+
+    // Find max sequence from DB - query with raw SQL for better performance
+    const maxProject = await prisma.$queryRaw<Array<{ project_code: string }>>`
+      SELECT project_code FROM projects 
+      WHERE project_code LIKE ${`${prefix}%`}
+      ORDER BY project_code DESC 
+      LIMIT 1
+    `;
+
+    let nextSequenceNumber = 1;
+    if (maxProject && maxProject.length > 0 && maxProject[0].project_code) {
+      const lastSeqStr = maxProject[0].project_code.slice(-4);
+      const lastSeqNum = parseInt(lastSeqStr, 10);
+      if (!isNaN(lastSeqNum)) {
+        nextSequenceNumber = lastSeqNum + 1;
+      }
+    }
+
+    // Project code: FIN + year + 4 digits (e.g., FIN260001)
+    const sequenceStr = nextSequenceNumber.toString().padStart(4, '0');
+    const finalProjectCode = `${prefix}${sequenceStr}`;
+
+    // Slug: -P + year + 4 digits = P260001 (6 digits total)
+    const slugSequence = `${currentYearStr}${sequenceStr}`;
+    const baseSlug = slug?.trim() ? slug.trim() : generateSlug(name);
+    const generatedSlug = `${baseSlug}-P${slugSequence}`;
 
     const existingProject = await prisma.projects.findFirst({
       where: { slug: generatedSlug }
@@ -156,6 +183,7 @@ export async function POST(request: NextRequest) {
       data: {
         name: name.trim(),
         slug: generatedSlug,
+        project_code: finalProjectCode,
         province: province?.trim() || undefined,
         ward: ward?.trim() || undefined,
         area: areaValue,
@@ -164,7 +192,7 @@ export async function POST(request: NextRequest) {
         content: content?.trim() || undefined,
         developer: developer?.trim() || undefined,
         status: 'đang mở bán',
-      } 
+      } as any
     });
 
     return NextResponse.json({
@@ -193,9 +221,9 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Skip validation if only updating thumbnail
-    const isThumbnailOnlyUpdate = !!thumbnail_url && !name && !province;
-    if (!isThumbnailOnlyUpdate) {
+    // Skip validation if only updating thumbnail or no critical fields
+    const isPartialUpdate = !!thumbnail_url || (!name && !province && !area && !price && !property_type_id);
+    if (!isPartialUpdate) {
       const validationErrors = validateProjectData({ name, province, ward, area, price, property_type_id });
       if (validationErrors.length > 0) {
         return NextResponse.json(
@@ -232,9 +260,34 @@ export async function PATCH(request: NextRequest) {
     const priceValue = price !== undefined ? parseFloat(String(price).replace(/,/g, '')) : undefined;
 
     const updateData: Record<string, unknown> = {};
-    
-    if (name) updateData.name = name.trim();
-    if (slug) updateData.slug = slug.trim();
+
+    // Ensure slug has correct suffix based on project_code
+    // project_code: FIN260001 -> get last 6 chars: 260001
+    // slug suffix should be: P260001
+    if (existingProject.project_code) {
+      const codePart = existingProject.project_code.slice(-6); // Get last 6 digits: "260001"
+      const expectedSuffix = `P${codePart}`;
+
+      // Check if slug needs to be updated
+      let newSlug = existingProject.slug;
+
+      if (name) {
+        updateData.name = name.trim();
+        const newBaseSlug = generateSlug(name.trim());
+        newSlug = `${newBaseSlug}-${expectedSuffix}`;
+      } else if (existingProject.slug && !existingProject.slug.includes(expectedSuffix)) {
+        // Fix slug suffix even if name not changed
+        const slugBase = existingProject.slug.split('-P')[0];
+        newSlug = `${slugBase}-${expectedSuffix}`;
+      }
+
+      if (newSlug !== existingProject.slug) {
+        updateData.slug = newSlug;
+      }
+    } else if (name) {
+      updateData.name = name.trim();
+    }
+
     if (province !== undefined) updateData.province = province?.trim() || null;
     if (ward !== undefined) updateData.ward = ward?.trim() || null;
     if (areaValue !== undefined) updateData.area = areaValue;
@@ -259,6 +312,56 @@ export async function PATCH(request: NextRequest) {
     console.error('Error updating project:', error);
     return NextResponse.json(
       { success: false, error: 'Lỗi khi cập nhật dự án' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE - Xóa dự án
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    console.log('DELETE project request, id:', id);
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'ID dự án là bắt buộc' },
+        { status: 400 }
+      );
+    }
+
+    // Kiểm tra dự án tồn tại
+    const existingProject = await prisma.projects.findUnique({
+      where: { id }
+    });
+
+    if (!existingProject) {
+      console.log('Project not found:', id);
+      return NextResponse.json(
+        { success: false, error: 'Không tìm thấy dự án' },
+        { status: 404 }
+      );
+    }
+
+    console.log('Deleting project:', existingProject.id);
+
+    // Xóa dự án (attachments sẽ tự động xóa theo cascade nếu đã cấu hình)
+    await prisma.projects.delete({
+      where: { id }
+    });
+
+    console.log('Project deleted successfully');
+
+    return NextResponse.json({
+      success: true,
+      message: 'Xóa dự án thành công'
+    });
+
+  } catch (error) {
+    console.error('Error deleting project:', error);
+    return NextResponse.json(
+      { success: false, error: 'Lỗi khi xóa dự án' },
       { status: 500 }
     );
   }

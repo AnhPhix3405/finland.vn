@@ -32,6 +32,7 @@ export default function AdminProjectDetail() {
   const [description, setDescription] = useState<string>('');
 
   const [projectName, setProjectName] = useState<string>('');
+  const [projectCode, setProjectCode] = useState<string>('');
   const [projectArea, setProjectArea] = useState<string>('');
   const [projectPrice, setProjectPrice] = useState<string>('');
   const [selectedPropertyTypeId, setSelectedPropertyTypeId] = useState<string>('');
@@ -87,6 +88,7 @@ export default function AdminProjectDetail() {
           const p = res.data[0];
           if (p.id) setProjectId(p.id);
           setProjectName(p.name || '');
+          setProjectCode(p.project_code || '');
           setProjectArea(p.area?.toString() || '');
           setProjectPrice(p.price ? Number(p.price).toLocaleString('en-US') : '');
           setSelectedPropertyTypeId(p.property_type_id || '');
@@ -170,9 +172,48 @@ export default function AdminProjectDetail() {
     setNewFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  const scrollToError = (elementId: string) => {
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => element.focus(), 300);
+    }
+  };
+
   const handleSave = async () => {
     if (!projectId) {
       setToast({ message: 'Không tìm thấy project ID!', type: 'error' });
+      return;
+    }
+
+    // Validate required fields
+    if (!projectName.trim()) {
+      setToast({ message: 'Tên dự án là bắt buộc', type: 'error' });
+      scrollToError('projectName');
+      return;
+    }
+
+    if (!selectedPropertyTypeId) {
+      setToast({ message: 'Loại hình bất động sản là bắt buộc', type: 'error' });
+      scrollToError('propertyType');
+      return;
+    }
+
+    if (!selectedProvince) {
+      setToast({ message: 'Tỉnh/Thành phố là bắt buộc', type: 'error' });
+      scrollToError('projectCity');
+      return;
+    }
+
+    if (!projectArea) {
+      setToast({ message: 'Diện tích là bắt buộc', type: 'error' });
+      scrollToError('projectArea');
+      return;
+    }
+
+    if (!projectPrice) {
+      setToast({ message: 'Giá là bắt buộc', type: 'error' });
+      scrollToError('projectPrice');
       return;
     }
 
@@ -180,12 +221,11 @@ export default function AdminProjectDetail() {
     try {
       const updateRes = await updateProject({
         id: projectId,
-        name: projectName || 'Dự án cập nhật',
-        slug: slug,
+        name: projectName,
         province: selectedProvince,
         ward: selectedDistrict,
-        area: projectArea ? Number(projectArea) : undefined,
-        price: projectPrice ? Number(projectPrice.replace(/,/g, '')) : undefined,
+        area: Number(projectArea),
+        price: Number(projectPrice.replace(/,/g, '')),
         property_type_id: selectedPropertyTypeId || undefined,
         content: description,
       });
@@ -269,6 +309,10 @@ export default function AdminProjectDetail() {
                 <input value={projectName} onChange={(e) => setProjectName(e.target.value)} className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white placeholder-slate-400" id="projectName" placeholder="Nhập tên dự án..." type="text" />
               </div>
               <div className="col-span-1">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Mã dự án</label>
+                <input value={projectCode} disabled className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-sm text-sm text-slate-500 dark:text-slate-400" placeholder="Mã tự sinh" type="text" />
+              </div>
+              <div className="col-span-1">
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="propertyType">Loại hình <span className="text-red-500">*</span></label>
                 <select 
                   value={selectedPropertyTypeId} 
@@ -289,11 +333,11 @@ export default function AdminProjectDetail() {
                 )}
               </div>
               <div className="col-span-1 md:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="projectPrice">Giá (VND)</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="projectPrice">Giá (VND) <span className="text-red-500">*</span></label>
                 <input value={projectPrice} onChange={formatCurrencyOnChange} className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white placeholder-slate-400" id="projectPrice" placeholder="Ví dụ: 2,500,000,000" type="text" />
               </div>
               <div className="col-span-1">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="projectArea">Diện tích (m²)</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="projectArea">Diện tích (m²) <span className="text-red-500">*</span></label>
                 <input value={projectArea} onChange={(e) => setProjectArea(e.target.value)} className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white placeholder-slate-400" id="projectArea" placeholder="Ví dụ: 500" type="number" />
               </div>
               <LocationSelector

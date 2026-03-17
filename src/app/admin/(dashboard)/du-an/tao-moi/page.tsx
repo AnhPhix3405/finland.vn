@@ -93,7 +93,9 @@ export default function AdminCreateProject() {
             newErrors.province = "Tỉnh/Thành phố là bắt buộc";
         }
 
-        if (projectArea) {
+        if (!projectArea) {
+            newErrors.projectArea = "Diện tích là bắt buộc";
+        } else {
             const areaNum = parseFloat(projectArea);
             if (isNaN(areaNum) || areaNum <= 0) {
                 newErrors.projectArea = "Diện tích phải là số dương";
@@ -102,7 +104,9 @@ export default function AdminCreateProject() {
             }
         }
 
-        if (projectPrice) {
+        if (!projectPrice) {
+            newErrors.projectPrice = "Giá là bắt buộc";
+        } else {
             const priceNum = parseFloat(projectPrice.replace(/,/g, ''));
             if (isNaN(priceNum) || priceNum < 0) {
                 newErrors.projectPrice = "Giá không hợp lệ";
@@ -248,7 +252,7 @@ export default function AdminCreateProject() {
                             </div>
 
                             <div className="col-span-1">
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="projectPrice">Giá (VND)</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="projectPrice">Giá (VND) <span className="text-red-500">*</span></label>
                                 <input 
                                     value={projectPrice} 
                                     onChange={(e) => { formatCurrencyOnChange(e); clearError('projectPrice'); }} 
@@ -261,7 +265,7 @@ export default function AdminCreateProject() {
                             </div>
 
                             <div className="col-span-1">
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="projectArea">Diện tích (m²)</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="projectArea">Diện tích (m²) <span className="text-red-500">*</span></label>
                                 <input 
                                     value={projectArea} 
                                     onChange={(e) => { setProjectArea(e.target.value); clearError('projectArea'); }} 
