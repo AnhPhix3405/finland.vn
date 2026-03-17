@@ -155,7 +155,7 @@ export async function PATCH(
 
     // Update news article
     const updatedNews = await prisma.news.update({
-      where: { slug },
+      where: { id: existingNews.id },
       data: {
         title: title || undefined,
         slug: newSlug !== slug ? newSlug : undefined,
@@ -178,6 +178,8 @@ export async function PATCH(
       }
     });
 
+    console.log(`[PATCH] Updated news - ID: ${updatedNews.id}, newSlug: ${newSlug}, oldSlug: ${slug}`);
+
     // Update tags if provided
     let processedTags: { id: string; name: string; slug: string }[] = [];
     if (tags && Array.isArray(tags)) {
@@ -190,9 +192,11 @@ export async function PATCH(
       }
     }
 
-    // Fetch updated news with final tags
+    // Fetch updated news with final tags (using ID for reliability since slug might have changed)
+    console.log(`[PATCH] Fetching news - ID: ${updatedNews.id}, newSlug: ${newSlug}`);
+    
     const finalNews = await prisma.news.findUnique({
-      where: { slug },
+      where: { id: updatedNews.id },
       include: {
         news_tags: {
           include: {
@@ -208,17 +212,25 @@ export async function PATCH(
       }
     });
 
+    if (!finalNews) {
+      console.error(`[PATCH Error] News not found after update - ID: ${updatedNews.id}`);
+      return NextResponse.json(
+        { success: false, error: 'Lỗi: Không tìm thấy bài viết sau cập nhật' },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       data: {
-        id: finalNews!.id,
-        title: finalNews!.title,
-        slug: finalNews!.slug,
-        description: finalNews!.description,
-        content: finalNews!.content,
-        thumbnail_url: finalNews!.thumbnail_url,
-        created_at: finalNews!.created_at,
-        tags: finalNews!.news_tags.map(nt => nt.tags)
+        id: finalNews.id,
+        title: finalNews.title,
+        slug: finalNews.slug,
+        description: finalNews.description,
+        content: finalNews.content,
+        thumbnail_url: finalNews.thumbnail_url,
+        created_at: finalNews.created_at,
+        tags: finalNews.news_tags.map(nt => nt.tags)
       },
       message: 'Cập nhật bài viết thành công',
       processedTags: processedTags

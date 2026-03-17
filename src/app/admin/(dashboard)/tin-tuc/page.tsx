@@ -200,12 +200,7 @@ export default function AdminNewsListPage() {
           </div>
         </div>
 
-        {/* Stats */}
-        {!loading && (
-          <div className="flex justify-between items-center bg-white dark:bg-slate-800 p-4 rounded-sm border border-slate-200 dark:border-slate-700 shadow-sm">
-            <p className="text-xs text-slate-500 dark:text-slate-400">Tổng số bài viết: {news.length}</p>
-          </div>
-        )}
+        
       </div>
     </div>
   );

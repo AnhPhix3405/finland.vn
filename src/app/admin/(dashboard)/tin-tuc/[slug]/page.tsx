@@ -251,15 +251,6 @@ export default function AdminEditNewsPage() {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Cập nhật Tin Tức</h1>
         </div>
         <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={isSubmitting || isUploading}
-            className="px-4 py-2 border border-red-300 dark:border-red-700 bg-white dark:bg-slate-800 text-red-700 dark:text-red-400 rounded-sm text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 flex items-center gap-2"
-          >
-            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">delete</span>
-            Xóa
-          </button>
           <Link href="/admin/tin-tuc" className="px-4 py-2 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-sm text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
             Huỷ
           </Link>
