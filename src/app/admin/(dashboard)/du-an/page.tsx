@@ -11,9 +11,9 @@ import LocationSelector from "@/src/components/feature/LocationSelector";
 export default function AdminProjectList() {
   const [projects, setProjects] = useState<Record<string, unknown>[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedProvince, setSelectedProvince] = useState('');
-  const [selectedWard, setSelectedWard] = useState('');
-  const [selectedPropertyType, setSelectedPropertyType] = useState('');
+  const [filterProvince, setFilterProvince] = useState('');
+  const [filterWard, setFilterWard] = useState('');
+  const [filterPropertyType, setFilterPropertyType] = useState('');
   const [propertyTypes, setPropertyTypes] = useState<PropertyType[]>([]);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
@@ -63,7 +63,6 @@ export default function AdminProjectList() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProjects();
   }, []);
 
@@ -87,34 +86,6 @@ export default function AdminProjectList() {
     }
   };
 
-  const [filterProvince, setFilterProvince] = useState('');
-  const [filterWard, setFilterWard] = useState('');
-  const [filterWardsList, setFilterWardsList] = useState<{ name: string }[]>([]);
-  const [filterPropertyType, setFilterPropertyType] = useState('');
-
-  useEffect(() => {
-    if (!filterProvince) {
-      setFilterWardsList([]);
-      return;
-    }
-    const fetchWards = async () => {
-      try {
-        const url = `https://vietnamlabs.com/api/vietnamprovince?province=${encodeURIComponent(filterProvince)}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data?.success && data?.data?.wards) {
-          setFilterWardsList(data.data.wards);
-        } else {
-          setFilterWardsList([]);
-        }
-      } catch (err) {
-        console.error('Error fetching wards:', err);
-        setFilterWardsList([]);
-      }
-    };
-    fetchWards();
-  }, [filterProvince]);
-
   const handleSearch = () => {
     fetchProjects();
   };
@@ -136,28 +107,15 @@ export default function AdminProjectList() {
               />
             </div>
 
-            <select
-              value={filterProvince}
-              onChange={(e) => { setFilterProvince(e.target.value); setFilterWard(''); }}
-              className="py-2 px-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white text-slate-700 min-w-[140px]"
-            >
-              <option value="">Tất cả Tỉnh/TP</option>
-              {['Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ', 'Lâm Đồng', 'Đồng Nai', 'Bình Dương', 'Bà Rịa - Vũng Tàu', 'Khánh Hoà', 'Kiên Giang', 'Quảng Ninh', 'Thừa Thiên Huế', 'An Giang', 'Tiền Giang', 'Sơn La', 'Thanh Hoá', 'Nghệ An', 'Hà Tĩnh', 'Quảng Bình', 'Quảng Trị', 'Quảng Ngãi', 'Bình Định', 'Phú Yên', 'Gia Lai', 'Đắk Lắk', 'Lào Cai', 'Yên Bái', 'Tuyên Quang', 'Thái Nguyên', 'Vĩnh Phúc', 'Bắc Ninh', 'Hưng Yên', 'Nam Định', 'Ninh Bình', 'Hà Nam', 'Hải Dương', 'Thái Bình'].map(p => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
-
-            <select
-              value={filterWard}
-              onChange={(e) => setFilterWard(e.target.value)}
-              disabled={!filterProvince || filterWardsList.length === 0}
-              className="py-2 px-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white text-slate-700 min-w-[140px] disabled:opacity-50"
-            >
-              <option value="">Tất cả Phường/Xã</option>
-              {filterWardsList.map((ward, idx) => (
-                <option key={idx} value={ward.name}>{ward.name}</option>
-              ))}
-            </select>
+            <div className="w-80">
+              <LocationSelector
+                showLabels={false}
+                selectedProvince={filterProvince}
+                onProvinceChange={(value) => { setFilterProvince(value); setFilterWard(''); }}
+                selectedWard={filterWard}
+                onWardChange={(value) => setFilterWard(value)}
+              />
+            </div>
 
             <select
               value={filterPropertyType}
@@ -211,8 +169,7 @@ export default function AdminProjectList() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                {/* Dữ liệu lấy từ API */}
-                {projects.map((project: Record<string, unknown>) => (
+                {projects.map((project: any) => (
                   <tr key={String(project.id)} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                     <td className="px-6 py-3">
                       {project.thumbnail_url ? (
@@ -260,7 +217,6 @@ export default function AdminProjectList() {
                     </td>
                   </tr>
                 ))}
-
               </tbody>
             </table>
           </div>
@@ -275,7 +231,6 @@ export default function AdminProjectList() {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh]">
           <div className="absolute inset-0 bg-black/50" onClick={() => setDeleteConfirm(null)} />

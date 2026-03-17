@@ -13,13 +13,15 @@ interface LocationSelectorProps {
     onProvinceChange: (value: string) => void;
     selectedWard: string;
     onWardChange: (value: string) => void;
+    showLabels?: boolean;
 }
 
 export default function LocationSelector({
     selectedProvince,
     onProvinceChange,
     selectedWard,
-    onWardChange
+    onWardChange,
+    showLabels = true
 }: LocationSelectorProps) {
     const [wardsList, setWardsList] = useState<{ name: string }[]>([]);
 
@@ -47,18 +49,20 @@ export default function LocationSelector({
     }, [selectedProvince]);
 
     return (
-        <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="projectCity">
-                    Tỉnh / Thành phố <span className="text-red-500">*</span>
-                </label>
+        <div className={`grid grid-cols-2 ${showLabels ? 'gap-4' : 'gap-2'}`}>
+            <div className={showLabels ? "space-y-2" : ""}>
+                {showLabels && (
+                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="projectCity">
+                        Tỉnh / Thành phố
+                    </label>
+                )}
                 <select
                     value={selectedProvince}
                     onChange={(e) => {
                         onProvinceChange(e.target.value);
                         onWardChange('');
                     }}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 transition-all text-slate-900 dark:text-white"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2 px-4 text-sm focus:ring-2 focus:ring-emerald-500 transition-all text-slate-900 dark:text-white"
                     id="projectCity"
                     name="province"
                 >
@@ -69,15 +73,17 @@ export default function LocationSelector({
                 </select>
             </div>
 
-            <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="projectDistrict">
-                    Phường / Xã <span className="text-red-500">*</span>
-                </label>
+            <div className={showLabels ? "space-y-2" : ""}>
+                {showLabels && (
+                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="projectDistrict">
+                        Phường / Xã
+                    </label>
+                )}
                 <select
                     value={selectedWard}
                     onChange={(e) => onWardChange(e.target.value)}
                     disabled={!selectedProvince || wardsList.length === 0}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 transition-all text-slate-900 dark:text-white disabled:opacity-50"
+                    className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2 px-4 text-sm focus:ring-2 focus:ring-emerald-500 transition-all text-slate-900 dark:text-white disabled:opacity-50"
                     id="projectDistrict"
                 >
                     <option value="">Chọn Phường / Xã</option>

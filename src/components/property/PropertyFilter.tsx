@@ -138,6 +138,7 @@ export function PropertyFilter({ hidePrice = false, onFilterChange }: PropertyFi
         {/* Location Selector */}
         <div className="md:col-span-2">
           <LocationSelector
+            showLabels={false}
             selectedProvince={filters.province || ''}
             onProvinceChange={handleProvinceChange}
             selectedWard={filters.ward || ''}
@@ -146,13 +147,10 @@ export function PropertyFilter({ hidePrice = false, onFilterChange }: PropertyFi
         </div>
 
         {/* Property Type Dropdown */}
-        <div className="flex flex-col gap-2 relative" ref={propertyTypeRef}>
-          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-            Loại hình
-          </label>
+        <div className="flex flex-col gap-2 relative justify-end" ref={propertyTypeRef}>
           <button
             onClick={() => setShowPropertyTypes(!showPropertyTypes)}
-            className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50 border border-slate-300 hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:hover:bg-slate-700 rounded-sm text-sm font-medium transition-colors text-slate-700 dark:text-slate-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            className="w-full flex items-center justify-between px-4 py-2 bg-slate-50 border border-slate-300 hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:hover:bg-slate-700 rounded-sm text-sm font-medium transition-colors text-slate-700 dark:text-slate-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
           >
             {getDisplayText('propertyType', 'Chọn loại hình')}
             <ChevronDown className="text-slate-400 w-4 h-4" aria-hidden="true" />

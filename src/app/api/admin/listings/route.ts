@@ -21,6 +21,12 @@ export async function GET(request: NextRequest) {
     const transactionType = searchParams.get('transaction_type');
     // Filter by status
     const status = searchParams.get('status');
+    // Filter by province
+    const province = searchParams.get('province');
+    // Filter by ward
+    const ward = searchParams.get('ward');
+    // Search by broker name or listing code
+    const search = searchParams.get('search');
 
     const whereClause: Record<string, unknown> = {};
 
@@ -34,6 +40,24 @@ export async function GET(request: NextRequest) {
     // Add status filter
     if (status) {
       whereClause.status = status;
+    }
+
+    // Add province filter
+    if (province) {
+      whereClause.province = { contains: province, mode: 'insensitive' };
+    }
+
+    // Add ward filter
+    if (ward) {
+      whereClause.ward = { contains: ward, mode: 'insensitive' };
+    }
+
+    // Add search filter (broker name or listing code)
+    if (search) {
+      whereClause.OR = [
+        { brokers: { full_name: { contains: search, mode: 'insensitive' } } },
+        { listing_code: { contains: search, mode: 'insensitive' } }
+      ];
     }
 
     const listings = await prisma.listings.findMany({

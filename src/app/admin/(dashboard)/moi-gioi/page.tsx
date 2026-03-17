@@ -2,6 +2,7 @@
 import Link from "next/link";
 import React, { useState, useEffect } from "react";
 import { useAuthStore } from "@/src/store/authStore";
+import LocationSelector from "@/src/components/feature/LocationSelector";
 
 interface Broker {
   id: string;
@@ -9,7 +10,9 @@ interface Broker {
   phone: string;
   email: string | null;
   avatar_url: string | null;
-  working_area: string | null;
+  province: string | null;
+  ward: string | null;
+  address: string | null;
   slug: string | null;
   is_active: boolean;
 }
@@ -20,11 +23,22 @@ export default function AdminBrokerList() {
   const [loadingBrokers, setLoadingBrokers] = useState(false);
   const [operatingId, setOperatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filters, setFilters] = useState({
+    province: "",
+    ward: ""
+  });
 
   const fetchBrokers = async () => {
     setLoadingBrokers(true);
     try {
-      const res = await fetch('/api/brokers?limit=100');
+      const params = new URLSearchParams();
+      params.set('limit', '100');
+      if (filters.province) params.set('province', filters.province);
+      if (filters.ward) params.set('ward', filters.ward);
+      if (searchTerm) params.set('search', searchTerm);
+      
+      const res = await fetch(`/api/brokers?${params.toString()}`);
       const json = await res.json();
       if (json.success) {
         setBrokers(json.data);
@@ -137,7 +151,9 @@ export default function AdminBrokerList() {
         <p className="text-sm text-slate-900 dark:text-slate-100 font-bold">{broker.full_name}</p>
       </td>
       <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{broker.phone}</td>
-      <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{broker.working_area ?? '—'}</td>
+      <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
+        {[broker.address, broker.ward, broker.province].filter(Boolean).join(', ') || '—'}
+      </td>
       <td className="px-6 py-4 text-sm">
         {broker.is_active ? (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 text-xs font-medium">
@@ -200,9 +216,29 @@ export default function AdminBrokerList() {
                 className="pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white w-full sm:w-80 placeholder-slate-400"
                 placeholder="Tìm theo tên, số điện thoại..."
                 type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && fetchBrokers()}
+              />
+            </div>
+            <div className="w-120">
+              <LocationSelector
+                showLabels={false}
+                selectedProvince={filters.province}
+                onProvinceChange={(value) => setFilters(prev => ({ ...prev, province: value, ward: "" }))}
+                selectedWard={filters.ward}
+                onWardChange={(value) => setFilters(prev => ({ ...prev, ward: value }))}
               />
             </div>
           </div>
+          <button
+            onClick={() => fetchBrokers()}
+            disabled={loadingBrokers}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-sm text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-lg">filter_list</span>
+            Lọc
+          </button>
 
         </div>
 

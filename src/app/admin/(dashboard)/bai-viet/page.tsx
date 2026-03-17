@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import HashtagManagerModal from "@/src/components/admin/HashtagManagerModal.tsx";
-import { 
-  updateListingStatus, 
-  deleteListing, 
+import LocationSelector from "@/src/components/feature/LocationSelector";
+import {
+  updateListingStatus,
+  deleteListing,
   type Listing
 } from '@/src/app/modules/admin.listings.service';
 import { useNotificationStore } from "@/src/store/notificationStore";
@@ -27,14 +28,11 @@ const TRANSACTION_OPTIONS = [
 
 export default function AdminArticleList() {
   const addToast = useNotificationStore((state) => state.addToast);
-  
+
   const [isHashtagModalOpen, setIsHashtagModalOpen] = useState(false);
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  
-  const [statusFilter, setStatusFilter] = useState("");
-  const [transactionFilter, setTransactionFilter] = useState("");
 
   // Confirmation modal state
   const [confirmModal, setConfirmModal] = useState<{
@@ -44,9 +42,16 @@ export default function AdminArticleList() {
     onConfirm: () => void;
   } | null>(null);
 
+  const [filters, setFilters] = useState({
+    status: "",
+    transaction: "",
+    province: "",
+    ward: ""
+  });
+
   useEffect(() => {
     loadListings();
-  }, [statusFilter, transactionFilter]);
+  }, []);
 
   const loadListings = async () => {
     try {
@@ -54,13 +59,16 @@ export default function AdminArticleList() {
       const params = new URLSearchParams();
       params.set('page', '1');
       params.set('limit', '50');
-      
-      if (statusFilter) params.set('status', statusFilter);
-      if (transactionFilter) params.set('transaction_type', transactionFilter);
-      
+
+      if (filters.status) params.set('status', filters.status);
+      if (filters.transaction) params.set('transaction_type', filters.transaction);
+      if (filters.province) params.set('province', filters.province);
+      if (filters.ward) params.set('ward', filters.ward);
+      if (searchTerm) params.set('search', searchTerm);
+
       const response = await fetch(`/api/admin/listings?${params.toString()}`);
       const result = await response.json();
-      
+
       if (result.success && result.data) {
         setListings(result.data);
       }
@@ -152,52 +160,68 @@ export default function AdminArticleList() {
     return new Date(dateStr).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
-  const filteredListings = listings.filter(l => 
-    l.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    l.brokers.full_name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   return (
     <div className="p-6">
       <div className="w-full space-y-6">
-        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <div className="relative">
+        <div className="flex flex-col gap-3">
+          {/* First row: Search and Status/Transaction filters */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1 sm:flex-initial sm:w-64">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
               <input
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white w-full sm:w-64"
-                placeholder="Tìm kiếm bài viết..."
+                onKeyDown={(e) => e.key === "Enter" && loadListings()}
+                className="pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white w-full"
+                placeholder="Tìm theo tên tác giả hoặc mã tin..."
               />
             </div>
             <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm text-sm dark:text-white"
+              value={filters.status}
+              onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+              className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm text-sm dark:text-white flex-1 sm:flex-initial"
             >
               {STATUS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
             </select>
             <select
-              value={transactionFilter}
-              onChange={(e) => setTransactionFilter(e.target.value)}
-              className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm text-sm dark:text-white"
+              value={filters.transaction}
+              onChange={(e) => setFilters(prev => ({ ...prev, transaction: e.target.value }))}
+              className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm text-sm dark:text-white flex-1 sm:flex-initial"
             >
               {TRANSACTION_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
             </select>
           </div>
-          <div className="flex items-center gap-2">
+
+          {/* Second row: Location filter and action buttons */}
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            <div className="flex-1 sm:flex-initial sm:w-120">
+              <LocationSelector
+                selectedProvince={filters.province}
+                onProvinceChange={(value) => setFilters(prev => ({ ...prev, province: value, ward: "" }))}
+                selectedWard={filters.ward}
+                onWardChange={(value) => setFilters(prev => ({ ...prev, ward: value }))}
+                showLabels={false}
+              />
+            </div>
             <button
               onClick={() => loadListings()}
               disabled={loading}
-              className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-3 py-2 rounded-sm text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-sm text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-lg">filter_list</span>
+              Lọc
+            </button>
+            <button
+              onClick={() => loadListings()}
+              disabled={loading}
+              className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-3 py-2 rounded-sm text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
               title="Làm mới dữ liệu"
             >
               <span className={`material-symbols-outlined text-lg ${loading ? 'animate-spin' : ''}`}>refresh</span>
             </button>
             <button
               onClick={() => setIsHashtagModalOpen(true)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-sm text-sm font-medium flex items-center gap-2"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-sm text-sm font-medium flex items-center justify-center gap-2"
             >
               <span className="material-symbols-outlined text-sm">tag</span>
               Quản lý Hashtag
@@ -220,10 +244,10 @@ export default function AdminArticleList() {
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                 {loading ? (
                   <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-500">Đang tải dữ liệu...</td></tr>
-                ) : filteredListings.length === 0 ? (
+                ) : listings.length === 0 ? (
                   <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-500">Không có dữ liệu</td></tr>
                 ) : (
-                  filteredListings.map(listing => (
+                  listings.map(listing => (
                     <tr key={listing.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
                       <td className="px-6 py-4">
                         <p className="text-sm font-medium line-clamp-2">{listing.title}</p>

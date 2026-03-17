@@ -117,8 +117,9 @@ export default function BrokerList() {
           <div className="flex flex-row ml-auto">
             {/* Location Selector - bên phải */}
             <div className="flex gap-2 items-end">
-              <div className="w-120">
+              <div className="w-72">
                 <LocationSelector
+                  showLabels={false}
                   selectedProvince={province}
                   onProvinceChange={(value) => {
                     setProvince(value);
