@@ -11,7 +11,6 @@ interface Broker {
   email: string | null;
   avatar_url: string | null;
   working_area: string | null;
-  specialization: string | null;
   bio: string | null;
   is_active: boolean;
 }
@@ -167,20 +166,6 @@ export default function AdminBrokerDetail() {
                       defaultValue={broker?.email ?? ''}
                     />
                   </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Chuyên môn</label>
-                  <select
-                    key={broker?.id}
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-1 focus:ring-primary focus:border-primary dark:text-white"
-                    defaultValue={broker?.specialization ?? ''}
-                  >
-                    <option value="">Chọn chuyên môn...</option>
-                    <option value="canho">Căn hộ</option>
-                    <option value="datnen">Đất nền</option>
-                    <option value="bietthu">Biệt thự</option>
-                    <option value="nhapho">Nhà phố</option>
-                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Khu vực hoạt động</label>

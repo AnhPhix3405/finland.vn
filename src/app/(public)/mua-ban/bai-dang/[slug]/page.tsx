@@ -46,7 +46,6 @@ interface Listing {
     phone: string;
     email?: string | null;
     avatar_url?: string | null;
-    specialization?: string | null;
     bio?: string | null;
   };
   tags?: Array<{
@@ -223,7 +222,7 @@ export default function MuaBanDetailOrFilterPage() {
       try {
         setLoading(true);
         apiStartTime.current = performance.now();
-        
+
         const headers: HeadersInit = {};
         if (accessToken) {
           headers['Authorization'] = `Bearer ${accessToken}`;
@@ -238,19 +237,19 @@ export default function MuaBanDetailOrFilterPage() {
         if (result.success) {
           renderStartTime.current = performance.now();
           setListing(result.data);
-          
+
           // Fetch attachments
           const attachStartTime = performance.now();
           const attachRes = await getAttachmentsByTarget(result.data.id, 'listing');
           const attachApiTime = (performance.now() - attachStartTime) / 1000;
           console.log(`🔹 [PERF] API attachments latency: ${attachApiTime.toFixed(3)}s`);
-          
+
           if (attachRes.success) {
             const sorted = (attachRes.data || []).sort((a: Attachment, b: Attachment) => (a.sort_order || 0) - (b.sort_order || 0));
             console.log('📸 Attachments sorted:', sorted);
             setAttachments(sorted);
           }
-          
+
           const renderTime = (performance.now() - renderStartTime.current) / 1000;
           const totalTime = (performance.now() - componentStartTime.current) / 1000;
           console.log(`🔹 [PERF] Data processing & setState: ${renderTime.toFixed(3)}s`);

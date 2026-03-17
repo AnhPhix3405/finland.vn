@@ -21,7 +21,7 @@ export default function DebugUserPage() {
   return (
     <div className="max-w-4xl mx-auto p-8">
       <h1 className="text-2xl font-bold mb-8">Debug User State</h1>
-      
+
       <div className="space-y-6">
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-6">
           <h2 className="text-lg font-semibold mb-4">Auth Store</h2>
@@ -40,7 +40,6 @@ export default function DebugUserPage() {
               <p><strong>Phone:</strong> {user.phone}</p>
               <p><strong>Email:</strong> {user.email || "N/A"}</p>
               <p><strong>Avatar URL:</strong> {user.avatar_url || "N/A"}</p>
-              <p><strong>Specialization:</strong> {user.specialization || "N/A"}</p>
               <p><strong>Province:</strong> {user.province || "N/A"}</p>
               <p><strong>Ward:</strong> {user.ward || "N/A"}</p>
               <p><strong>Is Active:</strong> {user.is_active ? "✅ Yes" : "❌ No"}</p>

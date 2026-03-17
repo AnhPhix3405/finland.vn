@@ -61,7 +61,6 @@ interface Listing {
     phone: string;
     email?: string | null;
     avatar_url?: string | null;
-    specialization?: string | null;
     bio?: string | null;
   };
   tags?: Array<{
@@ -404,17 +403,16 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
                 <button className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-colors">
                   <Share2 className="size-5 text-slate-600" />
                 </button>
-                <button 
+                <button
                   onClick={handleBookmarkClick}
                   disabled={isLoadingBookmark}
                   className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
                 >
-                  <Heart 
-                    className={`size-5 transition-all ${
-                      isBookmarked 
-                        ? 'fill-red-500 text-red-500' 
+                  <Heart
+                    className={`size-5 transition-all ${isBookmarked
+                        ? 'fill-red-500 text-red-500'
                         : 'text-slate-600'
-                    }`} 
+                      }`}
                   />
                 </button>
               </div>

@@ -43,7 +43,6 @@ interface Listing {
     phone: string;
     email?: string | null;
     avatar_url?: string | null;
-    specialization?: string | null;
     bio?: string | null;
   };
   tags?: Array<{
@@ -110,7 +109,7 @@ export default function ChoThuePropertyTypePage() {
         const formatPrice = (price: string | number) => {
           if (!price) return "Thỏa thuận";
           const numPrice = Number(price);
-          
+
           if (numPrice >= 1000000000) {
             return `${(numPrice / 1000000000).toFixed(2)} Tỷ/tháng`;
           } else if (numPrice >= 1000000) {
@@ -209,9 +208,9 @@ export default function ChoThuePropertyTypePage() {
               </p>
             </div>
           )}
-          
+
           {properties.length > 0 && (
-            <Pagination 
+            <Pagination
               currentPage={pagination.page}
               totalPages={pagination.totalPages}
               onPageChange={handlePageChange}

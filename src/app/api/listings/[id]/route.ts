@@ -63,7 +63,6 @@ export async function GET(
               phone: true,
               email: true,
               avatar_url: true,
-              specialization: true,
               bio: true
             }
           },

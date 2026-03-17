@@ -10,7 +10,6 @@ interface Broker {
   email: string | null;
   avatar_url: string | null;
   working_area: string | null;
-  specialization: string | null;
   slug: string | null;
   is_active: boolean;
 }
@@ -49,8 +48,8 @@ export default function AdminBrokerList() {
     }
 
     const action = broker.is_active ? 'lock' : 'unlock';
-    const confirmText = broker.is_active 
-      ? `Bạn chắc chắn muốn khóa tài khoản ${broker.full_name}?` 
+    const confirmText = broker.is_active
+      ? `Bạn chắc chắn muốn khóa tài khoản ${broker.full_name}?`
       : `Bạn chắc chắn muốn mở khóa tài khoản ${broker.full_name}?`;
 
     if (!window.confirm(confirmText)) {
@@ -71,7 +70,7 @@ export default function AdminBrokerList() {
       const result = await res.json();
 
       if (result.success) {
-        setBrokers(brokers.map(b => 
+        setBrokers(brokers.map(b =>
           b.id === broker.id ? { ...b, is_active: !b.is_active } : b
         ));
         setError(null);
@@ -151,20 +150,20 @@ export default function AdminBrokerList() {
         )}
       </td>
       <td className="px-6 py-4 text-right whitespace-nowrap">
-        <button 
+        <button
           onClick={() => handleToggleLock(broker)}
           disabled={operatingId === broker.id}
           aria-label={broker.is_active ? "Khóa tài khoản" : "Mở khóa tài khoản"}
-          className="text-orange-400 hover:text-orange-600 dark:hover:text-orange-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors p-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500" 
+          className="text-orange-400 hover:text-orange-600 dark:hover:text-orange-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors p-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
           title={broker.is_active ? "Khóa tài khoản" : "Mở khóa tài khoản"}
         >
           <span className="material-symbols-outlined text-lg" aria-hidden="true">{broker.is_active ? 'lock' : 'lock_open'}</span>
         </button>
-        <button 
+        <button
           onClick={() => handleDeleteBroker(broker)}
           disabled={operatingId === broker.id}
           aria-label="Xóa môi giới"
-          className="text-slate-400 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors p-1 ml-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500" 
+          className="text-slate-400 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors p-1 ml-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
           title="Xóa"
         >
           <span className="material-symbols-outlined text-lg" aria-hidden="true">delete</span>
@@ -182,7 +181,7 @@ export default function AdminBrokerList() {
               <span className="material-symbols-outlined text-lg flex-shrink-0">error</span>
               <div className="flex-1">
                 <p className="text-sm font-medium">{error}</p>
-                <button 
+                <button
                   onClick={() => setError(null)}
                   className="text-xs mt-2 underline hover:no-underline"
                 >
@@ -192,7 +191,7 @@ export default function AdminBrokerList() {
             </div>
           </div>
         )}
-        
+
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             <div className="relative">
