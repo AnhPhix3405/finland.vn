@@ -29,9 +29,9 @@ interface Listing {
   ward: string;
   address?: string | null;
   area?: number | null;
-  width?: number | null;
-  length?: number | null;
   price?: string | null;
+  price_per_m2?: number | null;
+  price_per_frontage_meter?: number | null;
   direction?: string | null;
   status?: string | null;
   slug?: string | null;

@@ -56,8 +56,8 @@ export default function EditListingPage() {
   const [address, setAddress] = useState("");
   const [area, setArea] = useState("");
   const [price, setPrice] = useState("");
-  const [width, setWidth] = useState("");
-  const [length, setLength] = useState("");
+  const [pricePerM2, setPricePerM2] = useState("");
+  const [pricePerFrontageMeter, setPricePerFrontageMeter] = useState("");
   const [direction, setDirection] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
@@ -123,8 +123,8 @@ export default function EditListingPage() {
           setAddress(l.address || "");
           setArea(l.area?.toString() || "");
           setPrice(l.price ? Number(l.price).toLocaleString('vi-VN') : "");
-          setWidth(l.width?.toString() || "");
-          setLength(l.length?.toString() || "");
+          setPricePerM2(l.price_per_m2?.toString() || "");
+          setPricePerFrontageMeter(l.price_per_frontage_meter?.toString() || "");
           setDirection(l.direction || "");
           setContactName(l.contact_name || "");
           setContactPhone(l.contact_phone || "");
@@ -259,6 +259,15 @@ export default function EditListingPage() {
     }
     if (!listingId) return;
 
+    if (pricePerM2 && parseFloat(pricePerM2) <= 0) {
+      addToast("Giá/m² phải lớn hơn 0", "error");
+      return;
+    }
+    if (pricePerFrontageMeter && parseFloat(pricePerFrontageMeter) <= 0) {
+      addToast("Giá/mặt tiền phải lớn hơn 0", "error");
+      return;
+    }
+
     setIsUploading(true);
 
     try {
@@ -273,9 +282,9 @@ export default function EditListingPage() {
         ward,
         address,
         area: area ? parseFloat(area) : null,
-        width: width ? parseFloat(width) : null,
-        length: length ? parseFloat(length) : null,
         price: price ? price.replace(/\D/g, '') : null,
+        price_per_m2: pricePerM2 ? parseFloat(pricePerM2) : null,
+        price_per_frontage_meter: pricePerFrontageMeter ? parseFloat(pricePerFrontageMeter) : null,
         direction,
         contact_name: contactName.trim() || null,
         contact_phone: contactPhone.trim() || null,
@@ -441,18 +450,14 @@ export default function EditListingPage() {
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">VNĐ</span>
                   </div>
                 </div>
-                {showDimensions && (
-                  <>
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold">Ngang (m)</label>
-                      <input type="number" step="0.1" value={width} onChange={(e) => setWidth(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border rounded-lg py-2.5 px-4 text-sm" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold">Dài (m)</label>
-                      <input type="number" step="0.1" value={length} onChange={(e) => setLength(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border rounded-lg py-2.5 px-4 text-sm" />
-                    </div>
-                  </>
-                )}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">Giá/m² (VNĐ)</label>
+                  <input type="number" value={pricePerM2} onChange={(e) => setPricePerM2(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border rounded-lg py-2.5 px-4 text-sm" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">Giá/mặt tiền (VNĐ)</label>
+                  <input type="number" value={pricePerFrontageMeter} onChange={(e) => setPricePerFrontageMeter(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border rounded-lg py-2.5 px-4 text-sm" />
+                </div>
                 {showFloors && (
                   <div className="space-y-2">
                     <label className="text-sm font-semibold">Số tầng</label>
@@ -469,10 +474,10 @@ export default function EditListingPage() {
                   <label className="text-sm font-semibold">Hướng</label>
                   <select value={direction} onChange={(e) => setDirection(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border rounded-lg py-2.5 px-4 text-sm">
                     <option value="">Chọn Hướng</option>
-                    <option value="Dong">Đông</option>
-                    <option value="Tay">Tây</option>
+                    <option value="Đông">Đông</option>
+                    <option value="Tây">Tây</option>
                     <option value="Nam">Nam</option>
-                    <option value="Bac">Bắc</option>
+                    <option value="Bắc">Bắc</option>
                   </select>
                 </div>
               </div>

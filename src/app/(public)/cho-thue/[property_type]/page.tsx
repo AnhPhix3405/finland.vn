@@ -29,9 +29,9 @@ interface Listing {
   ward: string;
   address?: string | null;
   area?: number | null;
-  width?: number | null;
-  length?: number | null;
   price?: string | null;
+  price_per_m2?: number | null;
+  price_per_frontage_meter?: number | null;
   direction?: string | null;
   status?: string | null;
   slug?: string | null;
@@ -111,12 +111,12 @@ export default function ChoThuePropertyTypePage() {
           if (!price) return "Thỏa thuận";
           const numPrice = Number(price);
           
-          if (numPrice >= 1000000) {
-            const millions = numPrice / 1000000;
-            return `${millions.toFixed(1)} Triệu/tháng`;
+          if (numPrice >= 1000000000) {
+            return `${(numPrice / 1000000000).toFixed(2)} Tỷ/tháng`;
+          } else if (numPrice >= 1000000) {
+            return `${(numPrice / 1000000).toFixed(1)} Triệu/tháng`;
           } else if (numPrice >= 1000) {
-            const thousands = numPrice / 1000;
-            return `${thousands.toFixed(0)} Nghìn/tháng`;
+            return `${(numPrice / 1000).toFixed(0)} Nghìn/tháng`;
           } else {
             return `${numPrice.toLocaleString('vi-VN')} VND/tháng`;
           }

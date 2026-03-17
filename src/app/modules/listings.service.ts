@@ -12,9 +12,9 @@ export interface CreateListingData {
   ward: string;
   address?: string;
   area?: number;
-  width?: number;
-  length?: number;
   price?: string | number;
+  price_per_m2?: number;
+  price_per_frontage_meter?: number;
   direction?: string;
   visibility?: boolean;
   status?: string;

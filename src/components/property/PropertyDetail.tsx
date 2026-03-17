@@ -4,8 +4,6 @@ import { useMemo, useState, useEffect } from "react";
 import {
   MapPin,
   Ruler,
-  Bed,
-  Layers,
   Maximize2,
   Compass,
   Phone,
@@ -47,9 +45,9 @@ interface Listing {
   ward: string;
   address?: string | null;
   area?: number | null;
-  width?: number | null;
-  length?: number | null;
   price?: string | null;
+  price_per_m2?: number | null;
+  price_per_frontage_meter?: number | null;
   direction?: string | null;
   status?: string | null;
   slug?: string | null;
@@ -171,20 +169,30 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
       if (!price) return "Thỏa thuận";
       const numPrice = Number(price);
       if (type === "mua-ban") {
-        if (numPrice >= 1000000000) return `${(numPrice / 1000000000).toFixed(1)} Tỷ`;
+        if (numPrice >= 1000000000) return `${(numPrice / 1000000000).toFixed(2)} Tỷ`;
         if (numPrice >= 1000000) return `${(numPrice / 1000000).toFixed(0)} Triệu`;
         if (numPrice >= 1000) return `${(numPrice / 1000).toFixed(0)} Nghìn`;
         return `${numPrice.toLocaleString("vi-VN")} VND`;
       } else {
+        if (numPrice >= 1000000000) return `${(numPrice / 1000000000).toFixed(2)} Tỷ/tháng`;
         if (numPrice >= 1000000) return `${(numPrice / 1000000).toFixed(1)} Triệu/tháng`;
         if (numPrice >= 1000) return `${(numPrice / 1000).toFixed(0)} Nghìn/tháng`;
         return `${numPrice.toLocaleString("vi-VN")} VND/tháng`;
       }
     };
 
-    const formatDimensions = (width?: number | null, length?: number | null) => {
-      if (width && length) return `${width}m x ${length}m`;
-      return "Không xác định";
+    const formatPricePerM2 = (pricePerM2?: number | null) => {
+      if (!pricePerM2) return "Không xác định";
+      if (pricePerM2 >= 1000000000) return `${(pricePerM2 / 1000000000).toFixed(2)} Tỷ/m²`;
+      if (pricePerM2 >= 1000000) return `${(pricePerM2 / 1000000).toFixed(1)} Triệu/m²`;
+      return `${(pricePerM2 / 1000).toFixed(0)} Nghìn/m²`;
+    };
+
+    const formatPricePerFrontage = (pricePerFrontageMeter?: number | null) => {
+      if (!pricePerFrontageMeter) return "Không xác định";
+      if (pricePerFrontageMeter >= 1000000000) return `${(pricePerFrontageMeter / 1000000000).toFixed(2)} Tỷ/m`;
+      if (pricePerFrontageMeter >= 1000000) return `${(pricePerFrontageMeter / 1000000).toFixed(1)} Triệu/m`;
+      return `${(pricePerFrontageMeter / 1000).toFixed(0)} Nghìn/m`;
     };
 
     if (listing) {
@@ -198,7 +206,8 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
         area: listing.area || 0,
         bedrooms: listing.bedroom_count || 0,
         floors: listing.floor_count || 0,
-        dimensions: formatDimensions(listing.width, listing.length),
+        pricePerM2: formatPricePerM2(listing.price_per_m2),
+        pricePerFrontage: formatPricePerFrontage(listing.price_per_frontage_meter),
         direction: listing.direction || "Không xác định",
         description: listing.description,
         broker: listing.brokers,
@@ -228,7 +237,8 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
       area: type === "mua-ban" ? 120 : 1500,
       bedrooms: type === "mua-ban" ? 5 : 0,
       floors: type === "mua-ban" ? 5 : 0,
-      dimensions: type === "mua-ban" ? "6m x 20m" : "30m x 50m",
+      pricePerM2: "354.2 Triệu/m²",
+      pricePerFrontage: "2.1 Tỷ/m",
       direction: "Đông Nam",
       description: "**Vị trí đắc địa** tại khu vực trung tâm. Pháp lý đầy đủ, sang tên ngay trong ngày.",
       broker: { full_name: "Trần Anh Hưng", phone: "0987.654.321", avatar_url: "https://i.pravatar.cc/150?u=anhhung" },
@@ -378,16 +388,16 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
                 <span className="text-xs text-slate-500 mb-1 font-medium">Diện tích</span>
                 <span className="text-xl font-bold text-slate-900 dark:text-white">{property.area} m²</span>
               </div>
-              {property.bedrooms > 0 && (
+              {property.pricePerM2 && property.pricePerM2 !== "Không xác định" && (
                 <div className="flex flex-col">
-                  <span className="text-xs text-slate-500 mb-1 font-medium">Phòng ngủ</span>
-                  <span className="text-xl font-bold text-slate-900 dark:text-white">{property.bedrooms} PN</span>
+                  <span className="text-xs text-slate-500 mb-1 font-medium">Giá / m²</span>
+                  <span className="text-xl font-bold text-slate-900 dark:text-white">{property.pricePerM2}</span>
                 </div>
               )}
-              {property.floors > 0 && (
+              {property.pricePerFrontage && property.pricePerFrontage !== "Không xác định" && (
                 <div className="flex flex-col">
-                  <span className="text-xs text-slate-500 mb-1 font-medium">Số tầng</span>
-                  <span className="text-xl font-bold text-slate-900 dark:text-white">{property.floors} Tầng</span>
+                  <span className="text-xs text-slate-500 mb-1 font-medium">Giá / mặt tiền</span>
+                  <span className="text-xl font-bold text-slate-900 dark:text-white">{property.pricePerFrontage}</span>
                 </div>
               )}
               <div className="flex flex-wrap gap-2">
@@ -427,9 +437,15 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-12 py-2">
               <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 py-2">
                 <div className="flex items-center gap-2 text-slate-500 text-sm">
-                  <Ruler className="size-4" /> Diện tích
+                  <Home className="size-4" /> Số tầng
                 </div>
-                <span className="text-sm font-semibold">{property.area} m² ({property.dimensions})</span>
+                <span className="text-sm font-semibold">{property.floors > 0 ? `${property.floors} Tầng` : "---"}</span>
+              </div>
+              <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 py-2">
+                <div className="flex items-center gap-2 text-slate-500 text-sm">
+                  <Home className="size-4" /> Số phòng ngủ
+                </div>
+                <span className="text-sm font-semibold">{property.bedrooms > 0 ? `${property.bedrooms} PN` : "---"}</span>
               </div>
               <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 py-2">
                 <div className="flex items-center gap-2 text-slate-500 text-sm">
@@ -437,22 +453,6 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
                 </div>
                 <span className="text-sm font-semibold">{property.direction}</span>
               </div>
-              {property.floors > 0 && (
-                <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 py-2">
-                  <div className="flex items-center gap-2 text-slate-500 text-sm">
-                    <Layers className="size-4" /> Số tầng
-                  </div>
-                  <span className="text-sm font-semibold">{property.floors} tầng</span>
-                </div>
-              )}
-              {property.bedrooms > 0 && (
-                <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 py-2">
-                  <div className="flex items-center gap-2 text-slate-500 text-sm">
-                    <Bed className="size-4" /> Số phòng ngủ
-                  </div>
-                  <span className="text-sm font-semibold">{property.bedrooms} phòng</span>
-                </div>
-              )}
               <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 py-2">
                 <div className="flex items-center gap-2 text-slate-500 text-sm">
                   <Home className="size-4" /> Loại hình

@@ -47,7 +47,7 @@ export default function LocationSelector({
     }, [selectedProvince]);
 
     return (
-        <>
+        <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="projectCity">
                     Tỉnh / Thành phố <span className="text-red-500">*</span>
@@ -86,6 +86,6 @@ export default function LocationSelector({
                     ))}
                 </select>
             </div>
-        </>
+        </div>
     );
 }

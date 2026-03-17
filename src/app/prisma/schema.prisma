@@ -95,36 +95,36 @@ model tags {
 }
 
 model listings {
-  id                  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  broker_id           String             @db.Uuid
-  title               String
-  description         String
-  province            String             @db.VarChar(100)
-  ward                String             @db.VarChar(100)
-  address             String?
-  area                Decimal?           @db.Decimal(10, 2)
-  width               Decimal?           @db.Decimal(6, 2)
-  length              Decimal?           @db.Decimal(6, 2)
-  price               BigInt?
-  direction           String?            @db.VarChar(20)
-  status              String?
-  property_type_id    String?            @db.Uuid
-  transaction_type_id String?            @db.Uuid
-  slug                String?            @unique(map: "idx_listings_slug_unique")
-  contact_name        String?            @db.VarChar(255)
-  contact_phone       String?            @db.VarChar(50)
-  listing_code        String?            @unique @db.VarChar(20)
-  floor_count         Int?
-  bedroom_count       Int?
-  thumbnail_url       String?
-  views_count         Int                @default(0)
-  created_at          DateTime           @default(now()) @db.Timestamptz(6)
-  updated_at          DateTime           @default(now()) @db.Timestamptz(6)
-  bookmarks           bookmarks[]
-  brokers             brokers            @relation(fields: [broker_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_listings_broker")
-  property_types      property_types?    @relation(fields: [property_type_id], references: [id], onUpdate: NoAction, map: "fk_listings_property_type")
-  transaction_types   transaction_types? @relation(fields: [transaction_type_id], references: [id], onUpdate: NoAction, map: "fk_listings_transaction_type")
-  tags                tags[]
+  id                       String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  broker_id                String             @db.Uuid
+  title                    String
+  description              String
+  province                 String             @db.VarChar(100)
+  ward                     String             @db.VarChar(100)
+  address                  String?
+  area                     Decimal?           @db.Decimal(10, 2)
+  price                    BigInt?
+  direction                String?            @db.VarChar(20)
+  status                   String?
+  property_type_id         String?            @db.Uuid
+  transaction_type_id      String?            @db.Uuid
+  slug                     String?            @unique(map: "idx_listings_slug_unique")
+  contact_name             String?            @db.VarChar(255)
+  contact_phone            String?            @db.VarChar(50)
+  listing_code             String?            @unique @db.VarChar(20)
+  floor_count              Int?
+  bedroom_count            Int?
+  thumbnail_url            String?
+  views_count              Int                @default(0)
+  created_at               DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime           @default(now()) @db.Timestamptz(6)
+  price_per_m2             Decimal?           @db.Decimal(15, 2)
+  price_per_frontage_meter Decimal?           @db.Decimal(15, 2)
+  bookmarks                bookmarks[]
+  brokers                  brokers            @relation(fields: [broker_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_listings_broker")
+  property_types           property_types?    @relation(fields: [property_type_id], references: [id], onUpdate: NoAction, map: "fk_listings_property_type")
+  transaction_types        transaction_types? @relation(fields: [transaction_type_id], references: [id], onUpdate: NoAction, map: "fk_listings_transaction_type")
+  tags                     tags[]
 
   @@index([broker_id], map: "idx_listings_broker_id")
   @@index([price], map: "idx_listings_price")

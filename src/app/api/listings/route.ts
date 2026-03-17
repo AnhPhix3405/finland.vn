@@ -33,12 +33,12 @@ function createSlug(text: string): string {
   };
 
   let slug = text.toLowerCase();
-  
+
   // Replace Vietnamese characters
   for (const [viet, eng] of Object.entries(vietnameseMap)) {
     slug = slug.replace(new RegExp(viet, 'g'), eng);
   }
-  
+
   return slug
     .trim()
     .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
@@ -86,13 +86,13 @@ export async function GET(request: NextRequest) {
     let currentBrokerId: string | null = null;
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
-    
+
     console.log('GET /api/listings - Auth Check:', {
       authHeader: authHeader ? `Bearer ${authHeader.substring(0, 20)}...` : 'NO HEADER',
       hasToken: !!token,
       tokenLength: token?.length || 0
     });
-    
+
     if (token) {
       try {
         const payload = await verifyToken(token);
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
           payloadKeys: Object.keys(payload || {}),
           payload: payload
         });
-        
+
         if (payload && (payload as Record<string, unknown>).id) {
           currentBrokerId = (payload as Record<string, unknown>).id as string;
           console.log('✓ currentBrokerId extracted:', currentBrokerId);
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
         }
       }
     ];
-    
+
     // Add province filter
     if (province && province !== 'all') {
       andConditions.push({ province });
@@ -159,11 +159,11 @@ export async function GET(request: NextRequest) {
         andConditions.push({ price: priceFilter });
       }
     }
-    
+
     if (hashtags) {
       const hashtagList = hashtags.split(',').map(tag => tag.trim().toLowerCase());
       console.log('Filtering by hashtags:', hashtagList);
-      
+
       // Find matching IDs from different tables
       const [transactionTypes, propertyTypes, tags] = await Promise.all([
         prisma.transaction_types.findMany({
@@ -240,7 +240,7 @@ export async function GET(request: NextRequest) {
 
     // Determine sort order - default is newest (created_at desc)
     let orderBy: Record<string, unknown> = { created_at: 'desc' };
-    
+
     if (sortBy === 'price_asc') {
       orderBy = { price: 'asc' };
     } else if (sortBy === 'price_desc') {
@@ -312,7 +312,7 @@ export async function GET(request: NextRequest) {
     });
 
     const total = await prisma.listings.count({ where: whereClause });
-    
+
     // Log without BigInt values to avoid serialization error
     const logWhereClause = JSON.parse(
       JSON.stringify(whereClause, (key, value) =>
@@ -329,7 +329,7 @@ export async function GET(request: NextRequest) {
       whereClause: logWhereClause,
       totalInDb: total
     });
-    
+
     // Log first listing details for debugging
     if (listings.length > 0) {
       const firstListing = listings[0];
@@ -348,7 +348,7 @@ export async function GET(request: NextRequest) {
     let bookmarkMap: Record<string, boolean> = {};
     if (currentBrokerId) {
       console.log('Searching bookmarks for broker:', currentBrokerId);
-      
+
       const bookmarks = await prisma.bookmarks.findMany({
         where: {
           broker_id: currentBrokerId,
@@ -373,7 +373,7 @@ export async function GET(request: NextRequest) {
       bookmarkMap = Object.fromEntries(
         bookmarks.map(b => [b.listing_id, true])
       );
-      
+
       console.log('GET /api/listings - Bookmarks found:', {
         brokerId: currentBrokerId,
         totalListings: listings.length,
@@ -389,17 +389,17 @@ export async function GET(request: NextRequest) {
     const listingsWithBookmarks = listings.map(listing => {
       const listingAttachments = attachmentsByListingId[listing.id] || [];
       const firstAttachment = listingAttachments[0];
-      
+
       // Use thumbnail_url if available, otherwise use first attachment's secure_url or url
       const imageUrl = listing.thumbnail_url || firstAttachment?.secure_url || firstAttachment?.url || null;
-      
+
       return {
         ...listing,
         is_bookmarked: bookmarkMap[listing.id] || false,
         thumbnail_url: imageUrl
       };
     });
-    
+
     // Debug: Log what we're about to return
     console.log('API Response Debug:', {
       success: true,
@@ -511,19 +511,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Validate width (optional)
-    if (body.width) {
-      const widthNum = parseFloat(body.width);
-      if (isNaN(widthNum) || widthNum <= 0 || widthNum > 10000) {
-        errors.width = "Chiều ngang không hợp lệ";
+    // Validate price_per_m2 (optional)
+    if (body.price_per_m2 !== undefined && body.price_per_m2 !== null && body.price_per_m2 !== "") {
+      const pricePerM2Num = parseFloat(body.price_per_m2);
+      if (isNaN(pricePerM2Num) || pricePerM2Num <= 0) {
+        errors.pricePerM2 = "Giá/m² phải lớn hơn 0";
       }
     }
 
-    // Validate length (optional)
-    if (body.length) {
-      const lengthNum = parseFloat(body.length);
-      if (isNaN(lengthNum) || lengthNum <= 0 || lengthNum > 10000) {
-        errors.length = "Chiều dài không hợp lệ";
+    // Validate price_per_frontage_meter (optional)
+    if (body.price_per_frontage_meter !== undefined && body.price_per_frontage_meter !== null && body.price_per_frontage_meter !== "") {
+      const pricePerFrontageMeterNum = parseFloat(body.price_per_frontage_meter);
+      if (isNaN(pricePerFrontageMeterNum) || pricePerFrontageMeterNum <= 0) {
+        errors.pricePerFrontageMeter = "Giá/mặt tiền phải lớn hơn 0";
       }
     }
 
@@ -567,7 +567,7 @@ export async function POST(request: NextRequest) {
     const {
       broker_id, title, description, transaction_type_id,
       property_type_id, province, ward, address,
-      area, width, length, price, direction, tags,
+      area, price, price_per_m2, price_per_frontage_meter, direction, tags,
       contact_name: rawContactName, contact_phone: rawContactPhone,
       floor_count, bedroom_count
     } = body;
@@ -575,7 +575,7 @@ export async function POST(request: NextRequest) {
     // Generate listing_code (e.g. FIN26000001)
     const currentYearStr = new Date().getFullYear().toString().substring(2, 4);
     const prefix = `FIN${currentYearStr}`;
-    
+
     // Find the latest listing code for the current year to determine next sequence
     const latestListing = await prisma.listings.findFirst({
       where: {
@@ -600,7 +600,7 @@ export async function POST(request: NextRequest) {
         nextSequenceNumber = lastSeqNum + 1;
       }
     }
-    
+
     // Format to 6 digits, e.g. 000001
     const sequenceStr = nextSequenceNumber.toString().padStart(6, '0');
     const finalListingCode = `${prefix}${sequenceStr}`;
@@ -680,9 +680,9 @@ export async function POST(request: NextRequest) {
         ward,
         address,
         area: area ?? null,
-        width: width ?? null,
-        length: length ?? null,
         price: priceBigInt,
+        price_per_m2: price_per_m2 ? parseFloat(price_per_m2) : null,
+        price_per_frontage_meter: price_per_frontage_meter ? parseFloat(price_per_frontage_meter) : null,
         direction,
         slug: finalSlug,
         status: 'Đang chờ duyệt',

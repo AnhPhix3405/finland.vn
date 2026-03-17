@@ -47,12 +47,12 @@ export default function ChoThuePage() {
     const numPrice = Number(price);
     
     // For rent (cho-thue)
-    if (numPrice >= 1000000) {
-      const millions = numPrice / 1000000;
-      return `${millions.toFixed(1)} Triệu/tháng`;
+    if (numPrice >= 1000000000) {
+      return `${(numPrice / 1000000000).toFixed(2)} Tỷ/tháng`;
+    } else if (numPrice >= 1000000) {
+      return `${(numPrice / 1000000).toFixed(1)} Triệu/tháng`;
     } else if (numPrice >= 1000) {
-      const thousands = numPrice / 1000;
-      return `${thousands.toFixed(0)} Nghìn/tháng`;
+      return `${(numPrice / 1000).toFixed(0)} Nghìn/tháng`;
     } else {
       return `${numPrice.toLocaleString('vi-VN')} VND/tháng`;
     }

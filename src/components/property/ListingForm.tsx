@@ -60,8 +60,8 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
   const [address, setAddress] = useState("");
   const [area, setArea] = useState("");
   const [price, setPrice] = useState("");
-  const [width, setWidth] = useState("");
-  const [length, setLength] = useState("");
+  const [pricePerM2, setPricePerM2] = useState("");
+  const [pricePerFrontageMeter, setPricePerFrontageMeter] = useState("");
   const [direction, setDirection] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
@@ -245,17 +245,17 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
       }
     }
 
-    if (width) {
-      const widthNum = parseFloat(width);
-      if (isNaN(widthNum) || widthNum <= 0 || widthNum > 10000) {
-        newErrors.width = "Chiều ngang không hợp lệ";
+    if (pricePerM2) {
+      const pricePerM2Num = parseFloat(pricePerM2);
+      if (isNaN(pricePerM2Num) || pricePerM2Num <= 0) {
+        newErrors.pricePerM2 = "Giá/m² phải lớn hơn 0";
       }
     }
 
-    if (length) {
-      const lengthNum = parseFloat(length);
-      if (isNaN(lengthNum) || lengthNum <= 0 || lengthNum > 10000) {
-        newErrors.length = "Chiều dài không hợp lệ";
+    if (pricePerFrontageMeter) {
+      const pricePerFrontageMeterNum = parseFloat(pricePerFrontageMeter);
+      if (isNaN(pricePerFrontageMeterNum) || pricePerFrontageMeterNum <= 0) {
+        newErrors.pricePerFrontageMeter = "Giá/mặt tiền phải lớn hơn 0";
       }
     }
 
@@ -339,9 +339,9 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
         ward,
         address,
         area: area ? parseFloat(area) : undefined,
-        width: width ? parseFloat(width) : undefined,
-        length: length ? parseFloat(length) : undefined,
         price: price ? price.replace(/\D/g, '') : undefined,
+        price_per_m2: pricePerM2 ? parseFloat(pricePerM2) : undefined,
+        price_per_frontage_meter: pricePerFrontageMeter ? parseFloat(pricePerFrontageMeter) : undefined,
         direction,
         broker_id: user.id,
         tags: selectedHashTags, // Include tags in the request
@@ -574,41 +574,36 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
                 required
                 value={price}
                 onChange={(e) => { setPrice(e.target.value); setErrors(prev => ({ ...prev, price: '' })); }}
-                className={`w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white pr-16 ${errors.price ? 'border-red-500 ring-2 ring-red-500' : ''}`}
+                className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white pr-16"
               />
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">VNĐ</span>
             </div>
             {errors.price && <p className="text-red-500 text-xs mt-1">{errors.price}</p>}
           </div>
 
-          {showDimensions && (
-            <>
-              <div className="space-y-2">
-                <label htmlFor="width" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Chiều ngang (m)</label>
-                <input
-                  id="width"
-                  type="number"
-                  step="0.1"
-                  value={width}
-                  onChange={(e) => { setWidth(e.target.value); setErrors(prev => ({ ...prev, width: '' })); }}
-                  className={`w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white ${errors.width ? 'border-red-500 ring-2 ring-red-500' : ''}`}
-                />
-                {errors.width && <p className="text-red-500 text-xs mt-1">{errors.width}</p>}
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="length" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Chiều dài (m)</label>
-                <input
-                  id="length"
-                  type="number"
-                  step="0.1"
-                  value={length}
-                  onChange={(e) => { setLength(e.target.value); setErrors(prev => ({ ...prev, length: '' })); }}
-                  className={`w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white ${errors.length ? 'border-red-500 ring-2 ring-red-500' : ''}`}
-                />
-                {errors.length && <p className="text-red-500 text-xs mt-1">{errors.length}</p>}
-              </div>
-            </>
-          )}
+          <div className="space-y-2">
+            <label htmlFor="pricePerM2" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Giá/m² (VNĐ)</label>
+            <input
+              id="pricePerM2"
+              type="number"
+              value={pricePerM2}
+              onChange={(e) => { setPricePerM2(e.target.value); setErrors(prev => ({ ...prev, pricePerM2: '' })); }}
+              className={`w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white ${errors.pricePerM2 ? 'border-red-500 ring-2 ring-red-500' : ''}`}
+            />
+            {errors.pricePerM2 && <p className="text-red-500 text-xs mt-1">{errors.pricePerM2}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="pricePerFrontageMeter" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Giá/mặt tiền (VNĐ)</label>
+            <input
+              id="pricePerFrontageMeter"
+              type="number"
+              value={pricePerFrontageMeter}
+              onChange={(e) => { setPricePerFrontageMeter(e.target.value); setErrors(prev => ({ ...prev, pricePerFrontageMeter: '' })); }}
+              className={`w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white ${errors.pricePerFrontageMeter ? 'border-red-500 ring-2 ring-red-500' : ''}`}
+            />
+            {errors.pricePerFrontageMeter && <p className="text-red-500 text-xs mt-1">{errors.pricePerFrontageMeter}</p>}
+          </div>
 
           {showFloors && (
             <div className="space-y-2">
@@ -646,14 +641,14 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
               className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
             >
               <option value="">Chọn hướng</option>
-              <option value="Dong">Đông</option>
-              <option value="Tay">Tây</option>
+              <option value="Đông">Đông</option>
+              <option value="Tây">Tây</option>
               <option value="Nam">Nam</option>
-              <option value="Bac">Bắc</option>
-              <option value="Dong Bac">Đông Bắc</option>
-              <option value="Dong Nam">Đông Nam</option>
-              <option value="Tay Bac">Tây Bắc</option>
-              <option value="Tay Nam">Tây Nam</option>
+              <option value="Bắc">Bắc</option>
+              <option value="Đông Bắc">Đông Bắc</option>
+              <option value="Đông Nam">Đông Nam</option>
+              <option value="Tây Bắc">Tây Bắc</option>
+              <option value="Tây Nam">Tây Nam</option>
             </select>
           </div>
         </div>

@@ -323,6 +323,30 @@ export async function PATCH(
       );
     }
 
+    // Validate price_per_m2 > 0
+    const pricePerM2 = body.price_per_m2;
+    if (pricePerM2 !== undefined && pricePerM2 !== null && pricePerM2 !== "") {
+      const pricePerM2Num = parseFloat(pricePerM2);
+      if (isNaN(pricePerM2Num) || pricePerM2Num <= 0) {
+        return NextResponse.json(
+          { success: false, error: "Giá/m² phải lớn hơn 0" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate price_per_frontage_meter > 0
+    const pricePerFrontageMeter = body.price_per_frontage_meter;
+    if (pricePerFrontageMeter !== undefined && pricePerFrontageMeter !== null && pricePerFrontageMeter !== "") {
+      const pricePerFrontageMeterNum = parseFloat(pricePerFrontageMeter);
+      if (isNaN(pricePerFrontageMeterNum) || pricePerFrontageMeterNum <= 0) {
+        return NextResponse.json(
+          { success: false, error: "Giá/mặt tiền phải lớn hơn 0" },
+          { status: 400 }
+        );
+      }
+    }
+
     // Prepare update data
     const updateData: Record<string, unknown> = { ...otherData };
     if (price !== undefined) {
