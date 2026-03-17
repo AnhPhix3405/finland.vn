@@ -1,6 +1,6 @@
 'use client';
 import Link from "next/link";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { uploadProjectFile } from "@/src/app/modules/upload.service";
 import { createProject } from "@/src/app/modules/projects.service";
@@ -8,28 +8,13 @@ import { getPropertyTypes, PropertyType } from "@/src/app/modules/property.servi
 import LocationSelector from "@/src/components/feature/LocationSelector";
 import RichTextEditor from "@/src/components/ui/RichTextEditor";
 
-
-const slugify = (text: string) => {
-    return text
-        .toString()
-        .toLowerCase()
-        .normalize('NFD') // Tách dấu
-        .replace(/[\u0300-\u036f]/g, '') // Xóa dấu
-        .replace(/[đĐ]/g, 'd')
-        .replace(/([^0-9a-z-\s])/g, '') // Xóa ký tự đặc biệt
-        .replace(/\s+/g, '-') // Thay khoảng trắng bằng -
-        .replace(/-+/g, '-') // Xóa - liên tiếp
-        .replace(/^-+|-+$/g, ''); // Xóa - ở đầu/cuối
-};
-
 export default function AdminCreateProject() {
     const router = useRouter();
+    const formRef = useRef<HTMLFormElement>(null);
 
     const [projectName, setProjectName] = useState<string>('');
-    const [projectSlug, setProjectSlug] = useState<string>('');
     const [description, setDescription] = useState<string>('');
-    const [projectAreaMin, setProjectAreaMin] = useState<string>('');
-    const [projectAreaMax, setProjectAreaMax] = useState<string>('');
+    const [projectArea, setProjectArea] = useState<string>('');
     const [projectPrice, setProjectPrice] = useState<string>('');
     const [selectedPropertyTypeId, setSelectedPropertyTypeId] = useState<string>('');
     const [propertyTypes, setPropertyTypes] = useState<PropertyType[]>([]);
@@ -42,6 +27,8 @@ export default function AdminCreateProject() {
 
     const [isUploading, setIsUploading] = useState(false);
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
+
+    const [errors, setErrors] = useState<Record<string, string>>({});
 
     useEffect(() => {
         const fetchPropertyTypes = async () => {
@@ -67,13 +54,6 @@ export default function AdminCreateProject() {
         }
     }, [toast]);
 
-    // Sync slug with name during creation
-    useEffect(() => {
-        setProjectSlug(slugify(projectName));
-    }, [projectName]);
-
-
-
     const formatCurrencyOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value.replace(/\D/g, '');
         if (!value) {
@@ -94,34 +74,110 @@ export default function AdminCreateProject() {
         setNewFiles(prev => prev.filter((_, i) => i !== index));
     };
 
+    const validateForm = (): string | null => {
+        const newErrors: Record<string, string> = {};
+
+        if (!projectName.trim()) {
+            newErrors.projectName = "Tên dự án là bắt buộc";
+        } else if (projectName.trim().length < 2) {
+            newErrors.projectName = "Tên dự án phải có ít nhất 2 ký tự";
+        } else if (projectName.trim().length > 200) {
+            newErrors.projectName = "Tên dự án không được quá 200 ký tự";
+        }
+
+        if (!selectedPropertyTypeId) {
+            newErrors.propertyType = "Loại hình bất động sản là bắt buộc";
+        }
+
+        if (!selectedProvince) {
+            newErrors.province = "Tỉnh/Thành phố là bắt buộc";
+        }
+
+        if (projectArea) {
+            const areaNum = parseFloat(projectArea);
+            if (isNaN(areaNum) || areaNum <= 0) {
+                newErrors.projectArea = "Diện tích phải là số dương";
+            } else if (areaNum > 1000000) {
+                newErrors.projectArea = "Diện tích không hợp lệ (tối đa 1,000,000 m²)";
+            }
+        }
+
+        if (projectPrice) {
+            const priceNum = parseFloat(projectPrice.replace(/,/g, ''));
+            if (isNaN(priceNum) || priceNum < 0) {
+                newErrors.projectPrice = "Giá không hợp lệ";
+            } else if (priceNum > 100000000000000) {
+                newErrors.projectPrice = "Giá không hợp lệ (quá lớn)";
+            }
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length > 0 ? Object.keys(newErrors)[0] : null;
+    };
+
+    const scrollToError = (firstErrorKey: string | null) => {
+        if (!firstErrorKey) return;
+
+        const idMap: Record<string, string> = {
+            projectName: 'projectName',
+            propertyType: 'propertyType',
+            province: 'projectCity',
+            ward: 'projectDistrict',
+            projectArea: 'projectArea',
+            projectPrice: 'projectPrice',
+        };
+
+        const elementId = idMap[firstErrorKey];
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => {
+                (element as HTMLInputElement).focus();
+            }, 300);
+        }
+    };
+
     const handleSave = async () => {
-        if (!projectName || !projectSlug) {
-            setToast({ message: 'Tên dự án và Slug là bắt buộc!', type: 'error' });
+        const firstErrorKey = validateForm();
+        if (firstErrorKey) {
+            scrollToError(firstErrorKey);
             return;
         }
 
         setIsUploading(true);
         try {
-            // 1. Tạo Project trước để lấy ID
             const createRes = await createProject({
                 name: projectName,
-                slug: projectSlug,
                 province: selectedProvince,
-                ward: selectedDistrict,
-                area_min: projectAreaMin ? Number(projectAreaMin) : undefined,
-                area_max: projectAreaMax ? Number(projectAreaMax) : undefined,
-                price: projectPrice ? Number(projectPrice.replace(/,/g, '')) : 0,
+                ward: selectedDistrict || undefined,
+                area: projectArea ? Number(projectArea) : undefined,
+                price: projectPrice ? Number(projectPrice.replace(/,/g, '')) : undefined,
                 property_type_id: selectedPropertyTypeId || undefined,
                 content: description,
             });
 
             if (!createRes.success) {
-                throw new Error(createRes.error || 'Tạo dự án trên database thất bại');
+                const errorMsg = createRes.error || 'Tạo dự án thất bại';
+                
+                if (errorMsg.toLowerCase().includes('thiếu') || errorMsg.toLowerCase().includes('bắt buộc') || errorMsg.toLowerCase().includes('required')) {
+                    const fieldIds = ['projectName', 'propertyType', 'projectCity'];
+                    for (const fieldId of fieldIds) {
+                        const element = document.getElementById(fieldId);
+                        if (element) {
+                            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            setTimeout(() => {
+                                (element as HTMLInputElement).focus();
+                            }, 100);
+                            break;
+                        }
+                    }
+                }
+                
+                throw new Error(errorMsg);
             }
 
             const newId = createRes.data.id;
 
-            // 2. Upload ảnh nếu có
             if (newFiles.length > 0 && newId) {
                 await Promise.all(
                     newFiles.map((file) => uploadProjectFile(file, newId))
@@ -130,7 +186,6 @@ export default function AdminCreateProject() {
 
             setToast({ message: 'Tạo dự án thành công!', type: 'success' });
 
-            // Chờ một chút để user thấy toast rồi redirect
             setTimeout(() => {
                 router.push('/admin/du-an');
             }, 1500);
@@ -144,6 +199,10 @@ export default function AdminCreateProject() {
         }
     };
 
+    const clearError = (field: string) => {
+        setErrors(prev => ({ ...prev, [field]: '' }));
+    };
+
     return (
         <div className="p-6">
             <div className="max-w-4xl mx-auto">
@@ -151,25 +210,27 @@ export default function AdminCreateProject() {
                     <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Thêm dự án mới</h2>
                 </div>
                 <div className="bg-white dark:bg-slate-800 rounded-sm border border-slate-200 dark:border-slate-700 shadow-sm p-6">
-                    <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+                    <form className="space-y-6" onSubmit={(e) => e.preventDefault()} ref={formRef}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="col-span-1 md:col-span-2">
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="projectName">Tên dự án <span className="text-red-500">*</span></label>
-                                <input value={projectName} onChange={(e) => setProjectName(e.target.value)} className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white placeholder-slate-400" id="projectName" placeholder="Nhập tên dự án..." type="text" />
-                            </div>
-
-                            <div className="col-span-1 md:col-span-2">
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="projectSlug">Slug (đường dẫn) <span className="text-red-500">*</span></label>
-                                <input value={projectSlug} onChange={(e) => setProjectSlug(e.target.value)} className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white placeholder-slate-400" id="projectSlug" placeholder="du-an-abc" type="text" />
-                                <p className="text-[10px] text-slate-500 mt-1 italic leading-tight">Tự động sinh từ tên dự án, bạn có thể sửa lại nếu muốn.</p>
+                                <input 
+                                    value={projectName} 
+                                    onChange={(e) => { setProjectName(e.target.value); clearError('projectName'); }} 
+                                    className={`w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white placeholder-slate-400 ${errors.projectName ? 'border-red-500 ring-2 ring-red-500' : ''}`} 
+                                    id="projectName" 
+                                    placeholder="Nhập tên dự án..." 
+                                    type="text" 
+                                />
+                                {errors.projectName && <p className="text-red-500 text-xs mt-1">{errors.projectName}</p>}
                             </div>
 
                             <div className="col-span-1">
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="propertyType">Loại hình <span className="text-red-500">*</span></label>
                                 <select 
                                     value={selectedPropertyTypeId} 
-                                    onChange={(e) => setSelectedPropertyTypeId(e.target.value)} 
-                                    className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white text-slate-700" 
+                                    onChange={(e) => { setSelectedPropertyTypeId(e.target.value); clearError('propertyType'); }} 
+                                    className={`w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white text-slate-700 ${errors.propertyType ? 'border-red-500 ring-2 ring-red-500' : ''}`}
                                     id="propertyType"
                                     disabled={loadingPropertyTypes}
                                 >
@@ -183,28 +244,44 @@ export default function AdminCreateProject() {
                                 {loadingPropertyTypes && (
                                     <p className="text-xs text-slate-500 mt-1">Đang tải loại hình...</p>
                                 )}
+                                {errors.propertyType && <p className="text-red-500 text-xs mt-1">{errors.propertyType}</p>}
                             </div>
 
                             <div className="col-span-1">
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="projectPrice">Giá (VND)</label>
-                                <input value={projectPrice} onChange={formatCurrencyOnChange} className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white placeholder-slate-400" id="projectPrice" placeholder="Ví dụ: 2,500,000,000" type="text" />
+                                <input 
+                                    value={projectPrice} 
+                                    onChange={(e) => { formatCurrencyOnChange(e); clearError('projectPrice'); }} 
+                                    className={`w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white placeholder-slate-400 ${errors.projectPrice ? 'border-red-500 ring-2 ring-red-500' : ''}`} 
+                                    id="projectPrice" 
+                                    placeholder="Ví dụ: 2,500,000,000" 
+                                    type="text" 
+                                />
+                                {errors.projectPrice && <p className="text-red-500 text-xs mt-1">{errors.projectPrice}</p>}
                             </div>
 
                             <div className="col-span-1">
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="projectArea">Diện tích (m2)</label>
-                                <div className="flex flex-row gap-1">
-                                    <input value={projectAreaMin} onChange={(e) => setProjectAreaMin(e.target.value)} className="inline-block min-w-10 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white placeholder-slate-400" id="projectAreaMin" placeholder="Từ" type="number" />
-                                    <input value={projectAreaMax} onChange={(e) => setProjectAreaMax(e.target.value)} className="inline-block min-w-10 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white placeholder-slate-400" id="projectAreaMax" placeholder="Đến" type="number" />
-                                </div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="projectArea">Diện tích (m²)</label>
+                                <input 
+                                    value={projectArea} 
+                                    onChange={(e) => { setProjectArea(e.target.value); clearError('projectArea'); }} 
+                                    className={`w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white placeholder-slate-400 ${errors.projectArea ? 'border-red-500 ring-2 ring-red-500' : ''}`} 
+                                    id="projectArea" 
+                                    placeholder="Ví dụ: 500" 
+                                    type="number" 
+                                />
+                                {errors.projectArea && <p className="text-red-500 text-xs mt-1">{errors.projectArea}</p>}
                             </div>
 
-                            <LocationSelector
-                                selectedProvince={selectedProvince}
-                                onProvinceChange={setSelectedProvince}
-                                selectedWard={selectedDistrict}
-                                onWardChange={setSelectedDistrict}
-                            />
-
+                            <div className="col-span-1 md:col-span-2">
+                                <LocationSelector
+                                    selectedProvince={selectedProvince}
+                                    onProvinceChange={(val) => { setSelectedProvince(val); clearError('province'); }}
+                                    selectedWard={selectedDistrict}
+                                    onWardChange={setSelectedDistrict}
+                                />
+                                {errors.province && <p className="text-red-500 text-xs mt-1">{errors.province}</p>}
+                            </div>
 
                             <div className="col-span-1 md:col-span-2">
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Mô tả dự án</label>

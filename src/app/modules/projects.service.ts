@@ -1,19 +1,17 @@
 export interface ProjectData {
     id?: string;
     project_code?: string;
-    name: string;
-    slug: string;
+    name?: string;
+    slug?: string;
     province?: string;
     ward?: string;
     developer?: string;
-    contact_name?: string;
-    contact_phone?: string;
     content?: string;
     status?: string;
-    area_min?: number | string;
-    area_max?: number | string;
+    area?: number | string;
     price?: number | string;
     property_type_id?: string;
+    thumbnail_url?: string;
 }
 
 export const createProject = async (data: ProjectData) => {

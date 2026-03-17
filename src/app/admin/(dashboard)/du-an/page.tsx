@@ -98,7 +98,8 @@ export default function AdminProjectList() {
                 <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
                   <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-20">Hình ảnh</th>
                   <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tên dự án</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Khu vực / Mã DA</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ngày đăng</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Lượt xem</th>
                   <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Hành động</th>
                 </tr>
               </thead>
@@ -107,15 +108,26 @@ export default function AdminProjectList() {
                 {projects.map((project: Record<string, unknown>) => (
                   <tr key={String(project.id)} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                     <td className="px-6 py-3">
-                      <div className="w-12 h-10 bg-slate-200 dark:bg-slate-700 rounded-sm bg-cover bg-center border border-slate-300 dark:border-slate-600 flex items-center justify-center text-slate-400">
-                        <span className="material-symbols-outlined text-xl">image</span>
-                      </div>
+                      {project.thumbnail_url ? (
+                        <img 
+                          src={String(project.thumbnail_url)} 
+                          alt={String(project.name)}
+                          className="w-12 h-10 rounded-sm object-cover border border-slate-300 dark:border-slate-600"
+                        />
+                      ) : (
+                        <div className="w-12 h-10 bg-slate-200 dark:bg-slate-700 rounded-sm bg-cover bg-center border border-slate-300 dark:border-slate-600 flex items-center justify-center text-slate-400">
+                          <span className="material-symbols-outlined text-xl">image</span>
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-3 text-sm text-slate-900 dark:text-slate-100 font-bold">
                       {String(project.name)}
                     </td>
                     <td className="px-6 py-3 text-sm text-slate-600 dark:text-slate-300">
-                      {String(project.project_code || '---')}
+                      {project.created_at ? new Date(String(project.created_at)).toLocaleString('vi-VN') : '---'}
+                    </td>
+                    <td className="px-6 py-3 text-sm text-slate-600 dark:text-slate-300">
+                      {Number(project.views_count || 0).toLocaleString('vi-VN')}
                     </td>
                     <td className="px-6 py-3 text-right whitespace-nowrap">
                       <button className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors p-1" title="Đang hiển thị">

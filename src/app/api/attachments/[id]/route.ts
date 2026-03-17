@@ -118,6 +118,8 @@ export async function PATCH(
             );
         }
 
+        console.log('Found attachment:', attachment.id, 'target_type:', attachment.target_type, 'target_id:', attachment.target_id);
+
         // Cập nhật attachment
         const updatedAttachment = await prisma.attachments.update({
             where: { id },
@@ -129,14 +131,11 @@ export async function PATCH(
         // Nếu cập nhật sort_order và target_type là 'listing', cập nhật thumbnail_url cho listing
         if (sort_order !== undefined && attachment.target_type === 'listing' && attachment.target_id) {
             if (sort_order === 0) {
-                // Nếu set sort_order = 0, cập nhật thumbnail_url = secure_url của attachment này
                 await prisma.listings.update({
                     where: { id: attachment.target_id },
                     data: { thumbnail_url: updatedAttachment.secure_url || updatedAttachment.url }
                 });
             } else {
-                // Nếu sort_order != 0, kiểm tra xem có attachment nào có sort_order = 0 không
-                // và cập nhật thumbnail_url tương ứng
                 const primaryAttachment = await prisma.attachments.findFirst({
                     where: {
                         target_id: attachment.target_id,
@@ -149,6 +148,36 @@ export async function PATCH(
                         where: { id: attachment.target_id },
                         data: { thumbnail_url: primaryAttachment.secure_url || primaryAttachment.url }
                     });
+                }
+            }
+        }
+
+        // Nếu cập nhật sort_order và target_type là 'project', cập nhật thumbnail_url cho project
+        console.log('Attachment target_type:', attachment.target_type, 'sort_order:', sort_order);
+        if (sort_order !== undefined && attachment.target_type === 'project' && attachment.target_id) {
+            console.log('Updating project thumbnail_url for target_id:', attachment.target_id);
+            if (sort_order === 0) {
+                await prisma.projects.update({
+                    where: { id: attachment.target_id },
+                    data: { thumbnail_url: updatedAttachment.secure_url || updatedAttachment.url } as any
+                });
+                console.log('Updated thumbnail_url to first image');
+            } else {
+                const primaryAttachment = await prisma.attachments.findFirst({
+                    where: {
+                        target_id: attachment.target_id,
+                        target_type: 'project',
+                        sort_order: 0
+                    }
+                });
+                if (primaryAttachment) {
+                    await prisma.projects.update({
+                        where: { id: attachment.target_id },
+                        data: { thumbnail_url: primaryAttachment.secure_url || primaryAttachment.url } as any
+                    });
+                    console.log('Updated thumbnail_url to primary attachment');
+                } else {
+                    console.log('No primary attachment found with sort_order=0');
                 }
             }
         }

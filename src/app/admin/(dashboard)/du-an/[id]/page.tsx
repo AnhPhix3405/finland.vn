@@ -1,7 +1,7 @@
 'use client';
 import Link from "next/link";
 import React, { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { uploadProjectFile, deleteAttachment } from "@/src/app/modules/upload.service";
 import { getProjects, updateProject } from "@/src/app/modules/projects.service";
 import { getPropertyTypes, PropertyType } from "@/src/app/modules/property.service";
@@ -18,11 +18,13 @@ interface Attachment {
   size_bytes: string | null;
   project_id: string;
   created_at: string;
+  sort_order?: number;
 }
 
 export default function AdminProjectDetail() {
   const params = useParams();
   const slug = params?.id as string;
+  const router = useRouter();
   const { activeProjectId } = useProjectContext();
 
   const [deletedImages, setDeletedImages] = useState<string[]>([]);
@@ -30,8 +32,7 @@ export default function AdminProjectDetail() {
   const [description, setDescription] = useState<string>('');
 
   const [projectName, setProjectName] = useState<string>('');
-  const [projectAreaMin, setProjectAreaMin] = useState<string>('');
-  const [projectAreaMax, setProjectAreaMax] = useState<string>('');
+  const [projectArea, setProjectArea] = useState<string>('');
   const [projectPrice, setProjectPrice] = useState<string>('');
   const [selectedPropertyTypeId, setSelectedPropertyTypeId] = useState<string>('');
   const [propertyTypes, setPropertyTypes] = useState<PropertyType[]>([]);
@@ -70,10 +71,12 @@ export default function AdminProjectDetail() {
 
   // Images fetched from API
   const [images, setImages] = useState<Attachment[]>([]);
+  const [originalImages, setOriginalImages] = useState<Attachment[]>([]);
   const [loadingImages, setLoadingImages] = useState(false);
   const [deletedApiImages, setDeletedApiImages] = useState<string[]>([]);
   const [projectId, setProjectId] = useState<string>('');
   const [isUploading, setIsUploading] = useState(false);
+  const [draggedItem, setDraggedItem] = useState<number | null>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -84,8 +87,7 @@ export default function AdminProjectDetail() {
           const p = res.data[0];
           if (p.id) setProjectId(p.id);
           setProjectName(p.name || '');
-          setProjectAreaMin(p.area_min?.toString() || '');
-          setProjectAreaMax(p.area_max?.toString() || '');
+          setProjectArea(p.area?.toString() || '');
           setProjectPrice(p.price ? Number(p.price).toLocaleString('en-US') : '');
           setSelectedPropertyTypeId(p.property_type_id || '');
           setSelectedProvince(p.province || '');
@@ -117,7 +119,9 @@ export default function AdminProjectDetail() {
         const res = await fetch(`/api/attachments/${activeProjectId}?target_type=project`);
         const json = await res.json() as Record<string, unknown>;
         if (json.success) {
-          setImages((json.data as Attachment[]) || []);
+          const sortedImages = ((json.data as Attachment[]) || []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+          setImages(sortedImages);
+          setOriginalImages(sortedImages);
         }
       } catch (err) {
         console.error('Lỗi khi tải ảnh từ API:', err);
@@ -127,6 +131,29 @@ export default function AdminProjectDetail() {
     };
     fetchImages();
   }, [activeProjectId]);
+
+  // Drag & Drop handlers
+  const handleDragStart = (index: number) => {
+    setDraggedItem(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (index: number) => {
+    if (draggedItem === null) return;
+    const newImages = [...images];
+    const [draggedImage] = newImages.splice(draggedItem, 1);
+    newImages.splice(index, 0, draggedImage);
+    // Update sort_order for all images
+    const updatedImages = newImages.map((img, idx) => ({
+      ...img,
+      sort_order: idx
+    }));
+    setImages(updatedImages);
+    setDraggedItem(null);
+  };
 
   const handleRemoveApiImage = (id: string) => {
     setDeletedApiImages(prev => [...prev, id]);
@@ -157,8 +184,7 @@ export default function AdminProjectDetail() {
         slug: slug,
         province: selectedProvince,
         ward: selectedDistrict,
-        area_min: projectAreaMin ? Number(projectAreaMin) : undefined,
-        area_max: projectAreaMax ? Number(projectAreaMax) : undefined,
+        area: projectArea ? Number(projectArea) : undefined,
         price: projectPrice ? Number(projectPrice.replace(/,/g, '')) : undefined,
         property_type_id: selectedPropertyTypeId || undefined,
         content: description,
@@ -174,6 +200,15 @@ export default function AdminProjectDetail() {
           newFiles.map((file) => uploadProjectFile(file, projectId))
         );
         console.log('Upload results:', results);
+
+        // Update thumbnail_url with first image
+        if (results.length > 0 && results[0]?.secure_url) {
+          await updateProject({
+            id: projectId,
+            thumbnail_url: results[0].secure_url
+          });
+        }
+
         setNewFiles([]);
       }
 
@@ -187,7 +222,30 @@ export default function AdminProjectDetail() {
         setDeletedApiImages([]);
       }
 
+      // Update sort_order for reordered images
+      if (originalImages.length > 0) {
+        const changedImages = images.filter(img => {
+          const original = originalImages.find(o => o.id === img.id);
+          return !original || original.sort_order !== img.sort_order;
+        });
+        
+        if (changedImages.length > 0) {
+          await Promise.all(changedImages.map(img => 
+            fetch(`/api/attachments/${img.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sort_order: img.sort_order || 0 })
+            })
+          ));
+        }
+      }
+
       setToast({ message: 'Lưu dự án thành công!', type: 'success' });
+      
+      // Redirect after showing toast
+      setTimeout(() => {
+        router.push('/admin/du-an');
+      }, 1000);
     } catch (error: unknown) {
       console.error('Lỗi khi lưu dự án:', error);
       const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi lưu dự án!';
@@ -235,11 +293,8 @@ export default function AdminProjectDetail() {
                 <input value={projectPrice} onChange={formatCurrencyOnChange} className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white placeholder-slate-400" id="projectPrice" placeholder="Ví dụ: 2,500,000,000" type="text" />
               </div>
               <div className="col-span-1">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="projectArea">Diện tích (m2)</label>
-                <div className="flex flex-row gap-1">
-                  <input value={projectAreaMin} onChange={(e) => setProjectAreaMin(e.target.value)} className="inline-block min-w-10 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white placeholder-slate-400" id="projectAreaMin" placeholder="Từ" type="number" />
-                  <input value={projectAreaMax} onChange={(e) => setProjectAreaMax(e.target.value)} className="inline-block min-w-10 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white placeholder-slate-400" id="projectAreaMax" placeholder="Đến" type="number" />
-                </div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="projectArea">Diện tích (m²)</label>
+                <input value={projectArea} onChange={(e) => setProjectArea(e.target.value)} className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white placeholder-slate-400" id="projectArea" placeholder="Ví dụ: 500" type="number" />
               </div>
               <LocationSelector
                 selectedProvince={selectedProvince}
@@ -270,13 +325,23 @@ export default function AdminProjectDetail() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     {images
                       .filter(img => !deletedApiImages.includes(img.id))
-                      .map((img) => (
-                        <div key={img.id} className="relative group rounded-sm overflow-hidden border border-slate-200 dark:border-slate-700">
+                      .map((img, index) => (
+                        <div 
+                          key={img.id} 
+                          className="relative group rounded-sm overflow-hidden border-2 border-slate-200 dark:border-slate-700 cursor-move draggable"
+                          draggable
+                          onDragStart={() => handleDragStart(index)}
+                          onDragOver={handleDragOver}
+                          onDrop={() => handleDrop(index)}
+                        >
+                          {index === 0 && (
+                            <span className="absolute top-2 left-2 bg-emerald-500 text-white text-[10px] uppercase font-bold px-2 py-1 rounded z-10">Ảnh bìa</span>
+                          )}
                           <img src={img.secure_url || img.url} alt={img.original_name ?? 'Project Image'} className="w-full h-32 object-cover" />
                           <button
                             type="button"
                             onClick={() => handleRemoveApiImage(img.id)}
-                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center w-6 h-6"
+                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center w-6 h-6 z-10"
                           >
                             <span className="material-symbols-outlined text-[16px]">close</span>
                           </button>
