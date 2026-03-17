@@ -10,6 +10,9 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const search = searchParams.get('search');
     const slug = searchParams.get('slug');
+    const province = searchParams.get('province');
+    const ward = searchParams.get('ward');
+    const property_type_id = searchParams.get('property_type_id');
 
     const skip = (page - 1) * limit;
 
@@ -22,6 +25,18 @@ export async function GET(request: NextRequest) {
 
     if (slug) {
       where.slug = slug;
+    }
+
+    if (province) {
+      where.province = province;
+    }
+
+    if (property_type_id) {
+      where.property_type_id = property_type_id;
+    }
+
+    if (ward) {
+      where.ward = ward;
     }
 
     if (search) {
@@ -39,9 +54,6 @@ export async function GET(request: NextRequest) {
       where,
       skip,
       take: limit,
-      include: {
-        property_types: true
-      },
       orderBy: [
         { created_at: 'desc' },
         { name: 'asc' }

@@ -43,7 +43,7 @@ export const deleteProject = async (id: string) => {
     return response.json();
 };
 
-export const getProjects = async (params?: { page?: number; limit?: number; status?: string; search?: string; slug?: string }) => {
+export const getProjects = async (params?: { page?: number; limit?: number; status?: string; search?: string; slug?: string; province?: string; ward?: string; property_type_id?: string }) => {
     let urlStr = '/api/projects';
     if (typeof window !== 'undefined') {
         urlStr = new URL('/api/projects', window.location.origin).toString();
@@ -55,6 +55,9 @@ export const getProjects = async (params?: { page?: number; limit?: number; stat
     if (params?.status) url.searchParams.append('status', params.status);
     if (params?.search) url.searchParams.append('search', params.search);
     if (params?.slug) url.searchParams.append('slug', params.slug);
+    if (params?.province) url.searchParams.append('province', params.province);
+    if (params?.ward) url.searchParams.append('ward', params.ward);
+    if (params?.property_type_id) url.searchParams.append('property_type_id', params.property_type_id);
 
     const response = await fetch(url.toString(), {
         method: 'GET',
