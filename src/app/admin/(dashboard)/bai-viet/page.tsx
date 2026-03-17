@@ -186,13 +186,23 @@ export default function AdminArticleList() {
               {TRANSACTION_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
             </select>
           </div>
-          <button
-            onClick={() => setIsHashtagModalOpen(true)}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-sm text-sm font-medium flex items-center gap-2"
-          >
-            <span className="material-symbols-outlined text-sm">tag</span>
-            Quản lý Hashtag
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => loadListings()}
+              disabled={loading}
+              className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-3 py-2 rounded-sm text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+              title="Làm mới dữ liệu"
+            >
+              <span className={`material-symbols-outlined text-lg ${loading ? 'animate-spin' : ''}`}>refresh</span>
+            </button>
+            <button
+              onClick={() => setIsHashtagModalOpen(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-sm text-sm font-medium flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-sm">tag</span>
+              Quản lý Hashtag
+            </button>
+          </div>
         </div>
 
         <div className="bg-white dark:bg-slate-800 rounded-sm border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
