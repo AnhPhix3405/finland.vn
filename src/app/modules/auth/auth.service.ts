@@ -4,6 +4,7 @@
  */
 import { useAuthStore } from "@/src/store/authStore";
 import { useUserStore } from "@/src/store/userStore";
+import { useAdminStore } from "@/src/store/adminStore";
 
 export const registerBroker = async (data: Record<string, unknown>) => {
     try {
@@ -96,8 +97,7 @@ export const loginAdmin = async (email: string, password: string) => {
 
         if (result.success) {
             const { access_token, ...userData } = result.data;
-            useAuthStore.getState().setAuth(access_token);
-            useUserStore.getState().setUser(userData);
+            useAdminStore.getState().setAuth(access_token);
         }
 
         return result;
@@ -125,8 +125,7 @@ export const initFirstAdmin = async (data: { email: string; name: string; passwo
 };
 
 export const logoutAdmin = () => {
-    useAuthStore.getState().clearAuth();
-    useUserStore.getState().clearUser();
+    useAdminStore.getState().clearAuth();
     // Clear admin-specific cookie
     document.cookie = 'admin-refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 };
@@ -142,7 +141,7 @@ export const refreshAdminToken = async () => {
         const result = await response.json();
 
         if (result.success && result.data?.access_token) {
-            useAuthStore.getState().updateAccessToken(result.data.access_token);
+            useAdminStore.getState().updateAccessToken(result.data.access_token);
         }
 
         return result;

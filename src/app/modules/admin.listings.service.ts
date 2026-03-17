@@ -1,3 +1,5 @@
+import { useAdminStore } from "@/src/store/adminStore";
+
 export type ListingStatus = 
   | 'Đang hiển thị' 
   | 'Đang chờ duyệt' 
@@ -86,9 +88,34 @@ export interface UpdateListingStatusResponse {
 /**
  * Get all listings with pagination (admin endpoint - shows all statuses)
  */
-export async function getListings(page: number = 1, limit: number = 50): Promise<ListingListResponse> {
+export async function getListings(
+  page: number = 1, 
+  limit: number = 50,
+  filters?: {
+    status?: string;
+    transaction_type?: string;
+    province?: string;
+    ward?: string;
+    search?: string;
+  }
+): Promise<ListingListResponse> {
   try {
-    const response = await fetch(`/api/admin/listings?page=${page}&limit=${limit}`);
+    const adminToken = useAdminStore.getState().accessToken;
+    const params = new URLSearchParams();
+    params.set('page', page.toString());
+    params.set('limit', limit.toString());
+
+    if (filters?.status) params.set('status', filters.status);
+    if (filters?.transaction_type) params.set('transaction_type', filters.transaction_type);
+    if (filters?.province) params.set('province', filters.province);
+    if (filters?.ward) params.set('ward', filters.ward);
+    if (filters?.search) params.set('search', filters.search);
+
+    const response = await fetch(`/api/admin/listings?${params.toString()}`, {
+      headers: {
+        'Authorization': `Bearer ${adminToken}`
+      }
+    });
     const result = await response.json();
     return result;
   } catch (error) {
@@ -108,10 +135,12 @@ export async function updateListingStatus(
   status: ListingStatus
 ): Promise<UpdateListingStatusResponse> {
   try {
+    const adminToken = useAdminStore.getState().accessToken;
     const response = await fetch(`/api/admin/listings`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${adminToken}`
       },
       body: JSON.stringify({ id: listingId, status }),
     });
@@ -131,8 +160,12 @@ export async function updateListingStatus(
  */
 export async function deleteListing(listingId: string): Promise<UpdateListingStatusResponse> {
   try {
+    const adminToken = useAdminStore.getState().accessToken;
     const response = await fetch(`/api/admin/listings?id=${listingId}`, {
       method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${adminToken}`
+      }
     });
 
     return await response.json();

@@ -1,5 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/lib/prisma';
+import { verifyToken } from '@/src/app/modules/auth/jwt';
+
+// Helper to verify admin token
+async function verifyAdminAuth(request: NextRequest) {
+  const authHeader = request.headers.get('authorization');
+  const token = authHeader?.replace('Bearer ', '');
+
+  if (!token) {
+    return { valid: false, error: 'Token không tồn tại' };
+  }
+
+  const payload = await verifyToken(token);
+  if (!payload || payload.role !== 'admin') {
+    return { valid: false, error: 'Token không hợp lệ hoặc không phải admin' };
+  }
+
+  return { valid: true, payload };
+}
 
 // Helper function to handle BigInt serialization
 function serializeData(data: Record<string, unknown> | unknown[]) {
@@ -12,6 +30,15 @@ function serializeData(data: Record<string, unknown> | unknown[]) {
 
 export async function GET(request: NextRequest) {
   try {
+    // Verify admin authentication
+    const authCheck = await verifyAdminAuth(request);
+    if (!authCheck.valid) {
+      return NextResponse.json(
+        { success: false, error: authCheck.error },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');

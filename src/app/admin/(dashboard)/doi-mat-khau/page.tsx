@@ -2,11 +2,11 @@
 
 import { Lock, Eye, EyeOff, ShieldCheck, Loader2 } from "lucide-react";
 import { useState } from "react";
-import { useAuthStore } from "@/src/store/authStore";
+import { useAdminStore } from "@/src/store/adminStore";
 import { useRouter } from "next/navigation";
 
 export default function AdminChangePasswordPage() {
-  const { accessToken } = useAuthStore();
+  const { accessToken } = useAdminStore();
   const router = useRouter();
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);

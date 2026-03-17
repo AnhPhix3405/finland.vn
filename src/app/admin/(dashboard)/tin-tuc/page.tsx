@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useAuthStore } from "@/src/store/authStore";
+import { useAdminStore } from "@/src/store/adminStore";
 import { useNotificationStore } from "@/src/store/notificationStore";
 
 interface NewsArticle {
@@ -16,7 +16,7 @@ interface NewsArticle {
 }
 
 export default function AdminNewsListPage() {
-  const adminToken = useAuthStore((state) => state.accessToken);
+  const adminToken = useAdminStore((state) => state.accessToken);
   const addToast = useNotificationStore((state) => state.addToast);
   const [news, setNews] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);

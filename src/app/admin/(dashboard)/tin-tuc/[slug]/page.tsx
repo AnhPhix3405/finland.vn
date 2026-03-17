@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { useAuthStore } from "@/src/store/authStore";
+import { useAdminStore } from "@/src/store/adminStore";
 import { useNotificationStore } from "@/src/store/notificationStore";
 import { uploadNewsThumbnail } from "@/src/app/modules/upload.service";
 import RichTextEditor from '@/src/components/ui/RichTextEditor';
@@ -18,7 +18,7 @@ export default function AdminEditNewsPage() {
   const router = useRouter();
   const params = useParams();
   const slug = params.slug as string;
-  const adminToken = useAuthStore((state) => state.accessToken);
+  const adminToken = useAdminStore((state) => state.accessToken);
   const addToast = useNotificationStore((state) => state.addToast);
 
   const [title, setTitle] = useState('');

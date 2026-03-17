@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from "@/src/store/authStore";
+import { useAdminStore } from "@/src/store/adminStore";
 import { useNotificationStore } from "@/src/store/notificationStore";
 import { uploadNewsThumbnail } from "@/src/app/modules/upload.service";
 import RichTextEditor from '@/src/components/ui/RichTextEditor';
@@ -16,7 +16,7 @@ interface Tag {
 
 export default function AdminAddNewsPage() {
   const router = useRouter();
-  const adminToken = useAuthStore((state) => state.accessToken);
+  const adminToken = useAdminStore((state) => state.accessToken);
   const addToast = useNotificationStore((state) => state.addToast);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');

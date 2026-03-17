@@ -1,9 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/lib/prisma';
+import { verifyToken } from '@/src/app/modules/auth/jwt';
+
+// Helper to verify admin token
+async function verifyAdminAuth(request: NextRequest) {
+  const authHeader = request.headers.get('authorization');
+  const token = authHeader?.replace('Bearer ', '');
+
+  if (!token) {
+    return { valid: false, error: 'Token không tồn tại' };
+  }
+
+  const payload = await verifyToken(token);
+  if (!payload || payload.role !== 'admin') {
+    return { valid: false, error: 'Token không hợp lệ hoặc không phải admin' };
+  }
+
+  return { valid: true, payload };
+}
 
 // POST /api/admin/tags - Create bulk tags (Admin Only)
 export async function POST(request: NextRequest) {
   try {
+    // Verify admin authentication
+    const authCheck = await verifyAdminAuth(request);
+    if (!authCheck.valid) {
+      return NextResponse.json(
+        { success: false, error: authCheck.error },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { names } = body; // Array of tag names
 
@@ -60,6 +87,15 @@ export async function POST(request: NextRequest) {
 // DELETE /api/admin/tags - Delete tag (Admin Only)
 export async function DELETE(request: NextRequest) {
   try {
+    // Verify admin authentication
+    const authCheck = await verifyAdminAuth(request);
+    if (!authCheck.valid) {
+      return NextResponse.json(
+        { success: false, error: authCheck.error },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

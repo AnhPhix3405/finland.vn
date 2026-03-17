@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import HashtagManagerModal from "@/src/components/admin/HashtagManagerModal.tsx";
 import LocationSelector from "@/src/components/feature/LocationSelector";
 import {
+  getListings,
   updateListingStatus,
   deleteListing,
   type Listing
@@ -56,18 +57,13 @@ export default function AdminArticleList() {
   const loadListings = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
-      params.set('page', '1');
-      params.set('limit', '50');
-
-      if (filters.status) params.set('status', filters.status);
-      if (filters.transaction) params.set('transaction_type', filters.transaction);
-      if (filters.province) params.set('province', filters.province);
-      if (filters.ward) params.set('ward', filters.ward);
-      if (searchTerm) params.set('search', searchTerm);
-
-      const response = await fetch(`/api/admin/listings?${params.toString()}`);
-      const result = await response.json();
+      const result = await getListings(1, 50, {
+        status: filters.status || undefined,
+        transaction_type: filters.transaction || undefined,
+        province: filters.province || undefined,
+        ward: filters.ward || undefined,
+        search: searchTerm || undefined,
+      });
 
       if (result.success && result.data) {
         setListings(result.data);

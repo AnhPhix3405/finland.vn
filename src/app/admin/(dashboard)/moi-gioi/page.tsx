@@ -1,7 +1,7 @@
 'use client';
 import Link from "next/link";
 import React, { useState, useEffect } from "react";
-import { useAuthStore } from "@/src/store/authStore";
+import { useAdminStore } from "@/src/store/adminStore";
 import { useNotificationStore } from "@/src/store/notificationStore";
 import LocationSelector from "@/src/components/feature/LocationSelector";
 
@@ -19,7 +19,7 @@ interface Broker {
 }
 
 export default function AdminBrokerList() {
-  const adminToken = useAuthStore((state) => state.accessToken);
+  const adminToken = useAdminStore((state) => state.accessToken);
   const addToast = useNotificationStore((state) => state.addToast);
   const [brokers, setBrokers] = useState<Broker[]>([]);
   const [loadingBrokers, setLoadingBrokers] = useState(false);
