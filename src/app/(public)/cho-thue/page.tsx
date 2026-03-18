@@ -8,6 +8,7 @@ import { getListingsByHashtags } from "../../modules/listings.service";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/src/store/authStore";
 import Link from "next/link";
+import { Search, X } from "lucide-react";
 
 export default function ChoThuePage() {
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function ChoThuePage() {
   });
   const isHydrated = useAuthStore((state) => state.isHydrated);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const buildHashtags = (filters: FilterState) => {
     const hashtags = ['cho-thue']; // Always include base hashtag
@@ -71,6 +73,7 @@ export default function ChoThuePage() {
         priceMax: filters.priceMax,
         sortBy: filters.sortBy,
         token: accessToken || undefined,
+        search: searchQuery || undefined,
       });
       
       // Handle empty or invalid response data - only return early for null/undefined, not for empty array
@@ -172,6 +175,15 @@ export default function ChoThuePage() {
     loadListings(currentFilters, page);
   };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    loadListings(currentFilters, 1);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery("");
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
       {/* Page Title */}
@@ -201,6 +213,29 @@ export default function ChoThuePage() {
           </Link>
         </div>
       </div>
+
+      {/* Search Bar */}
+      <form onSubmit={handleSearch} className="mb-6">
+        <div className="relative max-w-xl">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Tìm kiếm theo tiêu đề hoặc mã tin..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-10 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={clearSearch}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+            >
+              <X className="size-5" />
+            </button>
+          )}
+        </div>
+      </form>
 
       <PropertyFilter onFilterChange={handleFilterChange} />
 

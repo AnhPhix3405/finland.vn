@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAdminStore } from "@/src/store/adminStore";
 import { useNotificationStore } from "@/src/store/notificationStore";
+import { fetchWithRetry } from "@/src/lib/api/fetch-with-retry";
 import { TrendingUp, TrendingDown } from "lucide-react";
 
 interface Stats {
@@ -34,10 +35,12 @@ export default function AdminDashboardPage() {
       if (!accessToken) return;
       
       try {
-        const res = await fetch("/api/admin/stats", {
+        const res = await fetchWithRetry("/api/admin/stats", {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
+          token: accessToken,
+          isAdmin: true
         });
         const data = await res.json();
         if (data.success) {

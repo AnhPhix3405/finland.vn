@@ -404,7 +404,7 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
         const uploadResults = [];
         for (let i = 0; i < selectedFiles.length; i++) {
           console.log("Upload file index:", i);
-          const result = await uploadListingAttachments(selectedFiles[i], listingResult.id, i);
+          const result = await uploadListingAttachments(selectedFiles[i], listingResult.id, accessToken ?? undefined, i);
           uploadResults.push(result);
         }
         console.log("Upload results:", uploadResults);

@@ -61,6 +61,7 @@ export async function GET(request: NextRequest) {
     const priceMin = searchParams.get('priceMin');
     const priceMax = searchParams.get('priceMax');
     const sortBy = searchParams.get('sortBy') || 'newest';
+    const search = searchParams.get('search');
 
     let currentBrokerId: string | null = null;
     const authHeader = request.headers.get('authorization');
@@ -145,6 +146,15 @@ export async function GET(request: NextRequest) {
       if (tags.length > 0) {
         andConditions.push({ tags: { some: { id: { in: tags.map(t => t.id) } } } });
       }
+    }
+
+    if (search) {
+      andConditions.push({
+        OR: [
+          { title: { contains: search, mode: 'insensitive' } },
+          { listing_code: { contains: search, mode: 'insensitive' } }
+        ]
+      });
     }
 
     let whereClause: Record<string, unknown>;

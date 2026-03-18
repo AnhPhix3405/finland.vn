@@ -8,6 +8,7 @@ import { getListingsByHashtags } from "../../modules/listings.service";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/src/store/authStore";
 import Link from "next/link";
+import { Search, X } from "lucide-react";
 
 export default function MuaBanPage() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export default function MuaBanPage() {
   });
   const accessToken = useAuthStore((state) => state.accessToken);
   const isHydrated = useAuthStore((state) => state.isHydrated);
+  const [searchQuery, setSearchQuery] = useState("");
   
   const componentStartTime = useRef<number>(0);
   const apiStartTime = useRef<number>(0);
@@ -94,6 +96,7 @@ export default function MuaBanPage() {
         priceMax: filters.priceMax,
         sortBy: filters.sortBy,
         token: accessToken || undefined,
+        search: searchQuery || undefined,
       });
 
       // Track API latency
@@ -186,6 +189,15 @@ export default function MuaBanPage() {
     loadListings(currentFilters, page);
   };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    loadListings(currentFilters, 1);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery("");
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Page Title */}
@@ -215,6 +227,29 @@ export default function MuaBanPage() {
           </Link>
         </div>
       </div>
+
+      {/* Search Bar */}
+      <form onSubmit={handleSearch} className="mb-6">
+        <div className="relative max-w-xl">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Tìm kiếm theo tiêu đề hoặc mã tin..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-10 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={clearSearch}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+            >
+              <X className="size-5" />
+            </button>
+          )}
+        </div>
+      </form>
 
       <PropertyFilter onFilterChange={handleFilterChange} />
 

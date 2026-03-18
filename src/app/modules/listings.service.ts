@@ -112,9 +112,10 @@ export async function getListings(params?: {
   priceMax?: string;
   sortBy?: string;
   token?: string;
+  search?: string;
 }): Promise<{data: Record<string, unknown>[], pagination: Record<string, unknown>}> {
   try {
-    const { page = 1, limit = 10, hashtags, province, ward, priceMin, priceMax, sortBy, token } = params || {};
+    const { page = 1, limit = 10, hashtags, province, ward, priceMin, priceMax, sortBy, token, search } = params || {};
     
     // Build URL with query parameters
     const searchParams = new URLSearchParams({
@@ -144,6 +145,10 @@ export async function getListings(params?: {
 
     if (sortBy) {
       searchParams.set('sortBy', sortBy);
+    }
+
+    if (search) {
+      searchParams.set('search', search);
     }
     
     // Build fetch options with Authorization header if token is provided
@@ -187,6 +192,7 @@ export async function getListingsByHashtags(hashtags: string[], params?: {
   priceMax?: string;
   sortBy?: string;
   token?: string;
+  search?: string;
 }): Promise<{data: Record<string, unknown>[], pagination: Record<string, unknown>}> {
   return getListings({
     ...params,
