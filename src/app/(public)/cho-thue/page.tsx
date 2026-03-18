@@ -64,6 +64,12 @@ export default function ChoThuePage() {
     try {
       setLoading(true);
       const hashtags = buildHashtags(filters);
+      
+      console.log('📤 loadListings - Sending request with:', {
+        hashtags,
+        searchQuery
+      });
+
       const result = await getListingsByHashtags(hashtags, {
         page,
         limit: 12,
@@ -76,20 +82,14 @@ export default function ChoThuePage() {
         search: searchQuery || undefined,
       });
       
-      // Handle empty or invalid response data - only return early for null/undefined, not for empty array
-      if (!result) {
-        console.error('Invalid API response:', result);
-        setProperties([]);
-        setPagination({ page: 1, limit: 12, total: 0, totalPages: 0 });
-        setLoading(false);
-        return;
-      }
-      
-      console.log('📥 Frontend received API response (cho-thue):', {
-        resultKeys: Object.keys(result),
-        dataLength: result.data?.length,
-        pagination: result.pagination,
-        firstItem: result.data?.[0]
+      console.log('📥 loadListings - Response:', {
+        dataLength: result.data.length,
+        searchQuery,
+        firstItem: result.data[0] ? {
+          id: result.data[0].id,
+          title: result.data[0].title,
+          broker: result.data[0].brokers,
+        } : null
       });
       
       // Map API data to component expected format with fetching images
@@ -220,7 +220,7 @@ export default function ChoThuePage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
           <input
             type="text"
-            placeholder="Tìm kiếm theo tiêu đề hoặc mã tin..."
+            placeholder="Tìm kiếm theo tiêu đề hoặc tên tác giả..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-10 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"

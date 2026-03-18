@@ -84,7 +84,8 @@ export default function MuaBanPage() {
       console.log('📤 loadListings - Sending request with:', {
         hashtags,
         accessToken: accessToken ? `${accessToken.substring(0, 20)}...` : 'NO TOKEN',
-        filters
+        filters,
+        searchQuery
       });
 
       const result = await getListingsByHashtags(hashtags, {
@@ -97,6 +98,16 @@ export default function MuaBanPage() {
         sortBy: filters.sortBy,
         token: accessToken || undefined,
         search: searchQuery || undefined,
+      });
+
+      console.log('📥 loadListings - Response:', {
+        dataLength: result.data.length,
+        searchQuery,
+        firstItem: result.data[0] ? {
+          id: result.data[0].id,
+          title: result.data[0].title,
+          broker: result.data[0].brokers,
+        } : null
       });
 
       // Track API latency
@@ -234,7 +245,7 @@ export default function MuaBanPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
           <input
             type="text"
-            placeholder="Tìm kiếm theo tiêu đề hoặc mã tin..."
+            placeholder="Tìm kiếm theo tiêu đề hoặc tên tác giả..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-10 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"

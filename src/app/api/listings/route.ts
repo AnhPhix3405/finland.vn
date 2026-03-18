@@ -149,10 +149,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
+      console.log('🔍 [SEARCH] Search query:', search);
       andConditions.push({
         OR: [
-          { title: { contains: search, mode: 'insensitive' } },
-          { listing_code: { contains: search, mode: 'insensitive' } }
+          { title: { startsWith: search, mode: 'insensitive' } },
+          { brokers: { full_name: { startsWith: search, mode: 'insensitive' } } }
         ]
       });
     }
@@ -164,6 +165,8 @@ export async function GET(request: NextRequest) {
       whereClause = { AND: andConditions };
     }
 
+    console.log('🔍 [SEARCH] Where clause:', JSON.stringify(whereClause, null, 2));
+
     let orderBy: Record<string, unknown> = { created_at: 'desc' };
     if (sortBy === 'price_asc') orderBy = { price: 'asc' };
     else if (sortBy === 'price_desc') orderBy = { price: 'desc' };
@@ -174,13 +177,22 @@ export async function GET(request: NextRequest) {
       skip,
       take: limit,
       include: {
-        brokers: { select: { id: true, full_name: true, phone: true, email: true, avatar_url: true } },
+        brokers: true,
         tags: { select: { id: true, name: true, slug: true } },
         property_types: { select: { id: true, name: true, hashtag: true } },
         transaction_types: { select: { id: true, name: true, hashtag: true } }
       },
       orderBy
     });
+
+    console.log('🔍 [SEARCH] Found listings:', listings.length);
+    if (listings.length > 0) {
+      console.log('🔍 [SEARCH] Sample listing:', {
+        id: listings[0].id,
+        title: listings[0].title,
+        brokerName: listings[0].brokers?.full_name
+      });
+    }
 
     const listingIds = listings.map(l => l.id);
     const attachments = await prisma.attachments.findMany({
@@ -220,6 +232,11 @@ export async function GET(request: NextRequest) {
         thumbnail_url: imageUrl
       };
     });
+
+    console.log('🔍 [SEARCH] Returning response with', listingsWithBookmarks.length, 'listings');
+    if (search && listingsWithBookmarks.length > 0) {
+      console.log('🔍 [SEARCH] First result broker:', listingsWithBookmarks[0].brokers?.full_name);
+    }
 
     return NextResponse.json(serializeData({
       success: true,
