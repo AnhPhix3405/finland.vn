@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
     }
 
     const project_code = `${prefix}${sequence.toString().padStart(6, '0')}`; // e.g., "FIN26000001"
-    const sequenceStr = `${currentYear}${sequence.toString().padStart(6, '0')}`; // e.g., "26000002"
+    const sequenceStr = `P${currentYear}${sequence.toString().padStart(6, '0')}`; // e.g., "P26000002"
 
     // Generate slug: normalized-name-sequence
     const normalizedName = name
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
       .replace(/-+/g, '-')
       .trim();
 
-    const slug = `${normalizedName}-${sequenceStr}`; // e.g., "anh-la-phi-26000002"
+    const slug = `${normalizedName}-${sequenceStr}`; // e.g., "anh-la-phi-P26000002"
 
     // Kiểm tra slug đã tồn tại chưa
     const existingProject = await prisma.projects.findFirst({
@@ -345,6 +345,24 @@ export async function PATCH(request: NextRequest) {
           { status: 400 }
         );
       }
+    }
+
+    // If name is updated, regenerate slug while keeping the sequence suffix (with P prefix)
+    if (updateData.name !== undefined && existingProject.slug) {
+      const normalizedName = updateData.name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim();
+
+      // Extract the sequence suffix from existing slug (last part like "P26000001")
+      const existingSlugParts = existingProject.slug.split('-');
+      const sequenceSuffix = existingSlugParts[existingSlugParts.length - 1];
+      
+      updateData.slug = `${normalizedName}-${sequenceSuffix}`;
     }
 
     // Cập nhật dự án

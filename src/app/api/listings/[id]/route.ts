@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/lib/prisma';
 import { verifyToken } from '@/src/app/modules/auth/jwt';
+import { removeVietnameseTones } from '@/src/lib/slug-utils';
 
 // Helper function to handle BigInt serialization
 function serializeData(data: Record<string, unknown> | unknown[]) {
@@ -347,6 +348,18 @@ export async function PATCH(
 
     // Prepare update data
     const updateData: Record<string, unknown> = { ...otherData };
+    
+    // If title is updated, regenerate slug while keeping the sequence suffix
+    if (updateData.title !== undefined && existingListing.slug) {
+      const titleSlug = removeVietnameseTones(updateData.title as string);
+      
+      // Extract the sequence suffix from existing slug (last part like "26000001")
+      const existingSlugParts = existingListing.slug.split('-');
+      const sequenceSuffix = existingSlugParts[existingSlugParts.length - 1];
+      
+      updateData.slug = `${titleSlug}-${sequenceSuffix}`;
+    }
+
     if (price !== undefined) {
       if (price === null || price === "") {
         updateData.price = null;
