@@ -3,6 +3,8 @@
  * Handles communication with Broker APIs and updates user store
  */
 import { useUserStore } from "@/src/store/userStore";
+import { useAuthStore } from "@/src/store/authStore";
+import { fetchWithRetry } from "@/src/lib/api/fetch-with-retry";
 
 export interface UpdateBrokerData {
   full_name?: string;
@@ -16,7 +18,13 @@ export interface UpdateBrokerData {
 
 export const updateBroker = async (phone: string, data: UpdateBrokerData, brokerId?: string) => {
   try {
-    const response = await fetch('/api/brokers', {
+    const accessToken = useAuthStore.getState().accessToken;
+    
+    if (!accessToken) {
+      return { success: false, error: 'Bạn cần đăng nhập' };
+    }
+
+    const response = await fetchWithRetry('/api/brokers', {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -26,6 +34,8 @@ export const updateBroker = async (phone: string, data: UpdateBrokerData, broker
         phone,
         ...data,
       }),
+      token: accessToken,
+      isAdmin: false,
     });
     
     const result = await response.json();

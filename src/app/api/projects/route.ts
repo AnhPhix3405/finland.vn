@@ -1,6 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { verifyToken } from '@/src/app/modules/auth/jwt';
+
+async function verifyAuth(request: NextRequest) {
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    
+    if (!token) {
+        return { valid: false, error: 'Vui lòng đăng nhập', status: 401 };
+    }
+    
+    try {
+        const payload = await verifyToken(token);
+        if (!payload || !(payload as Record<string, unknown>).id) {
+            return { valid: false, error: 'Token không hợp lệ', status: 401 };
+        }
+        return { valid: true };
+    } catch {
+        return { valid: false, error: 'Token không hợp lệ', status: 401 };
+    }
+}
 // GET - Lấy danh sách tất cả dự án
 export async function GET(request: NextRequest) {
   try {
@@ -170,6 +190,11 @@ function validateProjectData(data: Record<string, unknown>): string[] {
 // POST - Tạo mới dự án
 export async function POST(request: NextRequest) {
   try {
+    const auth = await verifyAuth(request);
+    if (!auth.valid) {
+      return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
+    }
+
     const body = await request.json();
     const { name, slug, province, ward, area, price, property_type_id, content, developer } = body;
 
@@ -256,6 +281,11 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
+    const auth = await verifyAuth(request);
+    if (!auth.valid) {
+      return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
+    }
+
     const body = await request.json();
     const { id, name, slug, province, ward, area, price, property_type_id, content, developer, status, thumbnail_url } = body;
 
@@ -365,9 +395,13 @@ export async function PATCH(request: NextRequest) {
 // DELETE - Xóa dự án
 export async function DELETE(request: NextRequest) {
   try {
+    const auth = await verifyAuth(request);
+    if (!auth.valid) {
+      return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    console.log('DELETE project request, id:', id);
 
     if (!id) {
       return NextResponse.json(
@@ -382,21 +416,16 @@ export async function DELETE(request: NextRequest) {
     });
 
     if (!existingProject) {
-      console.log('Project not found:', id);
       return NextResponse.json(
         { success: false, error: 'Không tìm thấy dự án' },
         { status: 404 }
       );
     }
 
-    console.log('Deleting project:', existingProject.id);
-
     // Xóa dự án (attachments sẽ tự động xóa theo cascade nếu đã cấu hình)
     await prisma.projects.delete({
       where: { id }
     });
-
-    console.log('Project deleted successfully');
 
     return NextResponse.json({
       success: true,

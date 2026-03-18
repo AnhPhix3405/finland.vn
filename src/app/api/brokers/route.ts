@@ -1,7 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/lib/prisma';
 import { Prisma } from '@prisma/client';
-import { jwtVerify } from 'jose';
+import { verifyToken } from '@/src/app/modules/auth/jwt';
+
+async function verifyAuth(request: NextRequest) {
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    
+    if (!token) {
+        return { valid: false, error: 'Vui lòng đăng nhập', status: 401 };
+    }
+    
+    try {
+        const payload = await verifyToken(token);
+        if (!payload || !(payload as Record<string, unknown>).id) {
+            return { valid: false, error: 'Token không hợp lệ', status: 401 };
+        }
+        return { valid: true };
+    } catch {
+        return { valid: false, error: 'Token không hợp lệ', status: 401 };
+    }
+}
 
 // GET - Lấy danh sách tất cả môi giới
 export async function GET(request: NextRequest) {
@@ -78,30 +97,29 @@ export async function GET(request: NextRequest) {
 
 // PATCH - Cập nhật thông tin broker (avatar_url, etc.)
 export async function PATCH(request: NextRequest) {
-  console.log('🔹 [API BROKERS PATCH] Received request');
   try {
-    const body = await request.json();
-    console.log('🔹 [API BROKERS PATCH] Request body:', body);
+    const auth = await verifyAuth(request);
+    if (!auth.valid) {
+      return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
+    }
 
+    const body = await request.json();
     const { id, phone, avatar_url, full_name, email, province, ward, address, bio } = body;
 
     // Use id if provided, otherwise find broker by phone
     let brokerId = id;
 
     if (!brokerId && phone) {
-      console.log('🔹 [API BROKERS PATCH] No id, looking up by phone:', phone);
       const broker = await prisma.brokers.findFirst({
         where: { phone },
         select: { id: true }
       });
       if (broker) {
         brokerId = broker.id;
-        console.log('🔹 [API BROKERS PATCH] Found broker id:', brokerId);
       }
     }
 
     if (!brokerId) {
-      console.log('🔹 [API BROKERS PATCH] No brokerId found!');
       return NextResponse.json(
         { success: false, error: 'ID broker hoặc số điện thoại là bắt buộc' },
         { status: 400 }
@@ -109,7 +127,6 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Update broker by id
-    console.log('🔹 [API BROKERS PATCH] Updating broker id:', brokerId);
     const updatedBroker = await prisma.brokers.update({
       where: { id: brokerId },
       data: {
@@ -122,7 +139,6 @@ export async function PATCH(request: NextRequest) {
         ...(bio !== undefined && { bio }),
       }
     });
-    console.log('🔹 [API BROKERS PATCH] Updated broker:', updatedBroker);
 
     const { password_hash, ...safeBroker } = updatedBroker;
 
@@ -133,7 +149,7 @@ export async function PATCH(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('🔹 [API BROKERS PATCH] Error:', error);
+    console.error('Error updating broker:', error);
     return NextResponse.json(
       { success: false, error: 'Lỗi khi cập nhật thông tin broker' },
       { status: 500 }

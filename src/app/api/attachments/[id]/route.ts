@@ -1,8 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/lib/prisma';
 import cloudinary from '@/src/lib/cloudinary';
+import { verifyToken } from '@/src/app/modules/auth/jwt';
 
-// GET /api/attachments/[id] (Lấy attachment theo target_id)
+async function verifyAuth(request: NextRequest) {
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    
+    if (!token) {
+        return { valid: false, error: 'Vui lòng đăng nhập', status: 401 };
+    }
+    
+    try {
+        const payload = await verifyToken(token);
+        if (!payload || !(payload as Record<string, unknown>).id) {
+            return { valid: false, error: 'Token không hợp lệ', status: 401 };
+        }
+        return { valid: true, brokerId: (payload as Record<string, unknown>).id as string };
+    } catch {
+        return { valid: false, error: 'Token không hợp lệ', status: 401 };
+    }
+}
+
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
@@ -13,14 +32,11 @@ export async function GET(
         const target_type = searchParams.get('target_type') || 'project';
 
         let target_id = id;
-
-        // Nếu id không phải UUID (ví dụ nó là slug từ page truyền xuống)
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        
         if (!uuidRegex.test(id)) {
             if (target_type === 'project') {
-                const project = await prisma.projects.findUnique({
-                    where: { slug: id }
-                });
+                const project = await prisma.projects.findUnique({ where: { slug: id } });
                 if (project) {
                     target_id = project.id;
                 } else {
@@ -30,23 +46,20 @@ export async function GET(
         }
 
         const attachments = await prisma.attachments.findMany({
-            where: {
-                target_id,
-                target_type
-            },
+            where: { target_id, target_type },
             orderBy: { created_at: 'desc' }
         });
 
-        // Prisma trả về BigInt, cần parse sang string
         const serializedAttachments = attachments.map(item => ({
             ...item,
-            size_bytes: item.size_bytes ? item.size_bytes.toString() : null
+            size_bytes: item.size_bytes?.toString() || null
         }));
 
         return NextResponse.json({
             success: true,
             data: serializedAttachments
         });
+
     } catch (error) {
         console.error('Error fetching attachments by target:', error);
         return NextResponse.json(
@@ -56,18 +69,19 @@ export async function GET(
     }
 }
 
-// DELETE /api/attachments/[id]
 export async function DELETE(
-    _request: NextRequest,
+    request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const auth = await verifyAuth(request);
+        if (!auth.valid) {
+            return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
+        }
+
         const { id } = await params;
 
-        // Tìm attachment trong DB để lấy public_id
-        const attachment = await prisma.attachments.findUnique({
-            where: { id }
-        });
+        const attachment = await prisma.attachments.findUnique({ where: { id } });
 
         if (!attachment) {
             return NextResponse.json(
@@ -76,12 +90,10 @@ export async function DELETE(
             );
         }
 
-        // Xóa trên Cloudinary nếu có public_id
         if (attachment.public_id) {
             await cloudinary.uploader.destroy(attachment.public_id);
         }
 
-        // Xóa record trong DB
         await prisma.attachments.delete({ where: { id } });
 
         return NextResponse.json({ success: true, message: 'Đã xóa attachment' });
@@ -95,21 +107,21 @@ export async function DELETE(
     }
 }
 
-// PATCH /api/attachments/[id] - Cập nhật attachment (ví dụ: sort_order)
 export async function PATCH(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const auth = await verifyAuth(request);
+        if (!auth.valid) {
+            return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
+        }
+
         const { id } = await params;
         const body = await request.json();
-
         const { sort_order } = body;
 
-        // Tìm attachment trong DB
-        const attachment = await prisma.attachments.findUnique({
-            where: { id }
-        });
+        const attachment = await prisma.attachments.findUnique({ where: { id } });
 
         if (!attachment) {
             return NextResponse.json(
@@ -118,17 +130,11 @@ export async function PATCH(
             );
         }
 
-        console.log('Found attachment:', attachment.id, 'target_type:', attachment.target_type, 'target_id:', attachment.target_id);
-
-        // Cập nhật attachment
         const updatedAttachment = await prisma.attachments.update({
             where: { id },
-            data: {
-                ...(sort_order !== undefined && { sort_order })
-            }
+            data: { ...(sort_order !== undefined && { sort_order }) }
         });
 
-        // Nếu cập nhật sort_order và target_type là 'listing', cập nhật thumbnail_url cho listing
         if (sort_order !== undefined && attachment.target_type === 'listing' && attachment.target_id) {
             if (sort_order === 0) {
                 await prisma.listings.update({
@@ -137,11 +143,7 @@ export async function PATCH(
                 });
             } else {
                 const primaryAttachment = await prisma.attachments.findFirst({
-                    where: {
-                        target_id: attachment.target_id,
-                        target_type: 'listing',
-                        sort_order: 0
-                    }
+                    where: { target_id: attachment.target_id, target_type: 'listing', sort_order: 0 }
                 });
                 if (primaryAttachment) {
                     await prisma.listings.update({
@@ -152,45 +154,31 @@ export async function PATCH(
             }
         }
 
-        // Nếu cập nhật sort_order và target_type là 'project', cập nhật thumbnail_url cho project
-        console.log('Attachment target_type:', attachment.target_type, 'sort_order:', sort_order);
         if (sort_order !== undefined && attachment.target_type === 'project' && attachment.target_id) {
-            console.log('Updating project thumbnail_url for target_id:', attachment.target_id);
             if (sort_order === 0) {
                 await prisma.projects.update({
                     where: { id: attachment.target_id },
                     data: { thumbnail_url: updatedAttachment.secure_url || updatedAttachment.url }
                 });
-                console.log('Updated thumbnail_url to first image');
             } else {
                 const primaryAttachment = await prisma.attachments.findFirst({
-                    where: {
-                        target_id: attachment.target_id,
-                        target_type: 'project',
-                        sort_order: 0
-                    }
+                    where: { target_id: attachment.target_id, target_type: 'project', sort_order: 0 }
                 });
                 if (primaryAttachment) {
                     await prisma.projects.update({
                         where: { id: attachment.target_id },
                         data: { thumbnail_url: primaryAttachment.secure_url || primaryAttachment.url }
                     });
-                    console.log('Updated thumbnail_url to primary attachment');
-                } else {
-                    console.log('No primary attachment found with sort_order=0');
                 }
             }
         }
 
-        // Parse BigInt sang string
-        const serializedAttachment = {
-            ...updatedAttachment,
-            size_bytes: updatedAttachment.size_bytes ? updatedAttachment.size_bytes.toString() : null
-        };
-
         return NextResponse.json({
             success: true,
-            data: serializedAttachment,
+            data: {
+                ...updatedAttachment,
+                size_bytes: updatedAttachment.size_bytes?.toString() || null
+            },
             message: 'Cập nhật attachment thành công'
         });
 

@@ -1,7 +1,21 @@
 
+import { useAuthStore } from "@/src/store/authStore";
+import { fetchWithRetry } from "@/src/lib/api/fetch-with-retry";
+
 export const deleteAttachmentsByTarget = async (targetId: string, targetType: string) => {
-    const response = await fetch(`/api/attachments?target_id=${targetId}&target_type=${targetType}`, {
+    const accessToken = useAuthStore.getState().accessToken;
+    
+    if (!accessToken) {
+      return { success: false, error: 'Bạn cần đăng nhập' };
+    }
+
+    const response = await fetchWithRetry(`/api/attachments?target_id=${targetId}&target_type=${targetType}`, {
         method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        token: accessToken,
+        isAdmin: false,
     });
     return response.json();
 };

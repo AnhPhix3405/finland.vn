@@ -1,21 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/lib/prisma';
 import cloudinary from '@/src/lib/cloudinary';
+import { verifyToken } from '@/src/app/modules/auth/jwt';
 
-// GET - Lấy danh sách tất cả attachments
+function serializeAttachments(attachments: Array<Record<string, unknown>>) {
+    return attachments.map(item => ({
+        ...item,
+        size_bytes: (item.size_bytes as bigint)?.toString() || null
+    }));
+}
+
+async function verifyAuth(request: NextRequest) {
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    
+    if (!token) {
+        return { valid: false, error: 'Vui lòng đăng nhập', status: 401 };
+    }
+    
+    try {
+        const payload = await verifyToken(token);
+        if (!payload || !(payload as Record<string, unknown>).id) {
+            return { valid: false, error: 'Token không hợp lệ', status: 401 };
+        }
+        return { valid: true, brokerId: (payload as Record<string, unknown>).id as string };
+    } catch {
+        return { valid: false, error: 'Token không hợp lệ', status: 401 };
+    }
+}
+
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
         const page = parseInt(searchParams.get('page') || '1');
         const limit = parseInt(searchParams.get('limit') || '10');
-        const search = searchParams.get('search');
         const target_id = searchParams.get('target_id');
         const target_type = searchParams.get('target_type');
         const slug = searchParams.get('slug');
 
-        const skip = (page - 1) * limit;
-
-        // Tạo điều kiện where
         const where: Record<string, unknown> = {};
 
         if (target_id) {
@@ -27,44 +49,27 @@ export async function GET(request: NextRequest) {
         }
 
         if (slug) {
-            const project = await prisma.projects.findUnique({
-                where: { slug }
-            });
+            const project = await prisma.projects.findUnique({ where: { slug } });
             if (project) {
                 where.target_id = project.id;
-                // Giả định target_type cho resource project là 'project'
                 where.target_type = 'project';
             } else {
-                // Nếu không tìm thấy project bằng slug, set một uuid không tồn tại để trả về danh sách trống
                 where.target_id = '00000000-0000-0000-0000-000000000000';
             }
         }
 
-        if (search) {
-            where.original_name = { contains: search, mode: 'insensitive' };
-        }
-
-        // Lấy tổng số bản ghi
         const totalCount = await prisma.attachments.count({ where });
 
-        // Lấy danh sách attachments
         const attachments = await prisma.attachments.findMany({
             where,
-            skip,
+            skip: (page - 1) * limit,
             take: limit,
             orderBy: { created_at: 'desc' }
         });
 
-        // Prisma trả về BigInt cho trường size_bytes, Nextjs JSON() không parse được BigInt trực tiếp.
-        // Xử lý parse size_bytes sang string
-        const serializedAttachments = attachments.map(item => ({
-            ...item,
-            size_bytes: item.size_bytes ? item.size_bytes.toString() : null
-        }));
-
         return NextResponse.json({
             success: true,
-            data: serializedAttachments,
+            data: serializeAttachments(attachments as unknown as Array<Record<string, unknown>>),
             pagination: {
                 page,
                 limit,
@@ -82,29 +87,23 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// POST - Tạo attachment mới
 export async function POST(request: NextRequest) {
     try {
+        const auth = await verifyAuth(request);
+        if (!auth.valid) {
+            return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
+        }
+
         const body = await request.json();
+        const { url, secure_url, size_bytes, original_name, public_id, target_id, target_type, sort_order } = body;
 
-        const {
-            url,
-            secure_url,
-            size_bytes,
-            original_name,
-            public_id,
-            target_id,
-            target_type,
-            sort_order
-        } = body;
-
-        // Validation
         if (!url || !secure_url || !target_type) {
             return NextResponse.json(
                 { success: false, error: 'url, secure_url và target_type là bắt buộc' },
                 { status: 400 }
             );
         }
+        
         if (target_type !== 'admin' && !target_id) {
             return NextResponse.json(
                 { success: false, error: 'target_id là bắt buộc' },
@@ -112,7 +111,6 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Tạo attachment mới
         const newAttachment = await prisma.attachments.create({
             data: {
                 url,
@@ -126,15 +124,12 @@ export async function POST(request: NextRequest) {
             }
         });
 
-        // Chuyển BigInt sang string để trả về JSON
-        const serializedAttachment = {
-            ...newAttachment,
-            size_bytes: newAttachment.size_bytes ? newAttachment.size_bytes.toString() : null
-        };
-
         return NextResponse.json({
             success: true,
-            data: serializedAttachment,
+            data: {
+                ...newAttachment,
+                size_bytes: newAttachment.size_bytes?.toString() || null
+            },
             message: 'Tạo attachment thành công'
         }, { status: 201 });
 
@@ -147,9 +142,13 @@ export async function POST(request: NextRequest) {
     }
 }
 
-// DELETE - Xóa nhiều attachments theo target_id và target_type
 export async function DELETE(request: NextRequest) {
     try {
+        const auth = await verifyAuth(request);
+        if (!auth.valid) {
+            return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
+        }
+
         const { searchParams } = new URL(request.url);
         const target_id = searchParams.get('target_id');
         const target_type = searchParams.get('target_type');
@@ -161,38 +160,25 @@ export async function DELETE(request: NextRequest) {
             );
         }
 
-        // 1. Lấy danh sách attachments để có public_id xóa trên Cloudinary
         const attachments = await prisma.attachments.findMany({
-            where: {
-                target_id,
-                target_type
-            }
+            where: { target_id, target_type }
         });
 
         if (attachments.length > 0) {
-            // 2. Xóa trên Cloudinary
             const publicIds = attachments
                 .filter(img => img.public_id)
                 .map(img => img.public_id as string);
 
             if (publicIds.length > 0) {
-                await Promise.all(
-                    publicIds.map(pid => cloudinary.uploader.destroy(pid))
-                );
+                await Promise.all(publicIds.map(pid => cloudinary.uploader.destroy(pid)));
             }
 
-            // 3. Xóa records trong database
-            await prisma.attachments.deleteMany({
-                where: {
-                    target_id,
-                    target_type
-                }
-            });
+            await prisma.attachments.deleteMany({ where: { target_id, target_type } });
         }
 
         return NextResponse.json({
             success: true,
-            message: `Đã xóa ${attachments.length} attachments liên quan.`
+            message: `Đã xóa ${attachments.length} attachments`
         });
 
     } catch (error) {

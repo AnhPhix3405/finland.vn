@@ -68,10 +68,24 @@ export async function fetchWithRetry(
           headers: retryHeaders
         });
       } else {
-        console.error('❌ Token refresh failed');
+        console.error('❌ Token refresh failed, redirecting to login...');
+        if (typeof window !== 'undefined') {
+          if (isAdmin) {
+            window.location.href = '/admin/login';
+          } else {
+            window.location.href = '/dang-nhap';
+          }
+        }
       }
     } catch (error) {
       console.error('Error refreshing token:', error);
+      if (typeof window !== 'undefined') {
+        if (isAdmin) {
+          window.location.href = '/admin/login';
+        } else {
+          window.location.href = '/dang-nhap';
+        }
+      }
     }
   }
 
