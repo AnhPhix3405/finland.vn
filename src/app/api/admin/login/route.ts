@@ -48,21 +48,11 @@ export async function POST(request: NextRequest) {
             message: 'Đăng nhập admin thành công'
         });
 
-        // response.cookies.delete('admin-refresh-token');
-
-        // response.cookies.set({
-        //     name: 'admin-refresh-token',
-        //     value: refreshToken,
-        //     httpOnly: true,
-        //     maxAge: 30 * 24 * 60 * 60, // 30 days
-        //     sameSite: 'strict',
-        //     path: '/',
-        // });
         response.cookies.set({
             name: 'admin-refresh-token',
             value: refreshToken,
             httpOnly: true,
-            maxAge: 60, // 60 seconds
+            maxAge: 30 * 24 * 60 * 60, // 30 days
             sameSite: 'strict',
             path: '/',
         });
