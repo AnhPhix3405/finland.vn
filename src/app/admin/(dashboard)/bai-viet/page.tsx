@@ -44,6 +44,13 @@ export default function AdminArticleList() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  });
+
   // Confirmation modal state
   const [confirmModal, setConfirmModal] = useState<{
     open: boolean;
@@ -63,10 +70,10 @@ export default function AdminArticleList() {
     loadListings();
   }, []);
 
-  const loadListings = async () => {
+  const loadListings = async (page = 1) => {
     try {
       setLoading(true);
-      const result = await getListings(1, 50, {
+      const result = await getListings(page, pagination.limit, {
         status: filters.status || undefined,
         transaction_type: filters.transaction || undefined,
         province: filters.province || undefined,
@@ -75,7 +82,6 @@ export default function AdminArticleList() {
       });
 
       if (result.statusCode === 401) {
-        console.log('❌ Admin token invalid, redirecting to login');
         clearAuth();
         addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
         router.push('/admin/login');
@@ -84,12 +90,26 @@ export default function AdminArticleList() {
 
       if (result.success && result.data) {
         setListings(result.data);
+        if (result.pagination) {
+          setPagination(result.pagination);
+        }
       }
     } catch (error) {
       console.error('Error loading listings:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = () => {
+    setPagination(prev => ({ ...prev, page: 1 }));
+    loadListings(1);
+  };
+
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > pagination.totalPages) return;
+    setPagination(prev => ({ ...prev, page }));
+    loadListings(page);
   };
 
   const handleApprove = (listingId: string) => {
@@ -330,6 +350,53 @@ export default function AdminArticleList() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+
+        <div className="flex justify-between items-center mt-4">
+          <div className="text-sm text-slate-500">
+            Hiển thị {(pagination.page - 1) * pagination.limit + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} của {pagination.total} bài viết
+          </div>
+          <div className="flex justify-end items-center gap-1">
+            <button
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={pagination.page <= 1 || loading}
+              className="px-3 py-1.5 rounded-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Trước
+            </button>
+            {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+              let pageNum;
+              if (pagination.totalPages <= 5) {
+                pageNum = i + 1;
+              } else if (pagination.page <= 3) {
+                pageNum = i + 1;
+              } else if (pagination.page >= pagination.totalPages - 2) {
+                pageNum = pagination.totalPages - 4 + i;
+              } else {
+                pageNum = pagination.page - 2 + i;
+              }
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => handlePageChange(pageNum)}
+                  className={`px-3 py-1.5 min-w-[32px] rounded-sm text-sm font-medium flex items-center justify-center transition-colors ${
+                    pagination.page === pageNum
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={pagination.page >= pagination.totalPages || loading}
+              className="px-3 py-1.5 rounded-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Tiếp
+            </button>
           </div>
         </div>
 

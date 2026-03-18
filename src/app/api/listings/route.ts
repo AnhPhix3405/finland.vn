@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/lib/prisma';
 import { processTagsForListing } from '@/src/app/modules/tags.service.server';
 import { verifyToken } from '@/src/app/modules/auth/jwt';
-import { customAlphabet } from 'nanoid';
 import { removeVietnameseTones } from '@/src/lib/slug-utils';
 
 // Helper function to handle BigInt serialization
@@ -554,6 +553,12 @@ export async function POST(request: NextRequest) {
     const sequenceStr = nextSequenceNumber.toString().padStart(6, '0');
     const finalListingCode = `${prefix}${sequenceStr}`;
 
+    // Generate slug from title with sequence number (same pattern as projects)
+    // Slug includes year: titleSlug-26000001
+    const slugSequenceStr = `${currentYearStr}${sequenceStr}`;
+    const titleSlug = removeVietnameseTones(title);
+    const slug = `${titleSlug}-${slugSequenceStr}`;
+
     // Convert price to BigInt if provided and not empty
     let priceBigInt: bigint | null = null;
     if (price !== undefined && price !== null && price !== "") {
@@ -563,35 +568,6 @@ export async function POST(request: NextRequest) {
         console.error("Error converting price to BigInt:", e);
       }
     }
-
-    // Generate slug from title with nanoid random suffix
-    const titleSlug = removeVietnameseTones(title);
-    console.log('[POST] Title slug:', titleSlug);
-    
-    const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 10);
-    const randomSuffix = nanoid();
-    console.log('[POST] Random suffix:', randomSuffix);
-    
-    let finalSlug = `${titleSlug}-${randomSuffix}`;
-    console.log('[POST] Initial slug:', finalSlug);
-
-    // Ensure uniqueness
-    let attempts = 0;
-    while (attempts < 5) {
-      const existingListing = await prisma.listings.findFirst({
-        where: { slug: finalSlug }
-      });
-      if (!existingListing) {
-        break;
-      }
-      console.log('[POST] Slug conflict, regenerating...');
-      const newRandom = nanoid();
-      console.log('[POST] New random suffix:', newRandom);
-      finalSlug = `${titleSlug}-${newRandom}`;
-      attempts++;
-    }
-
-    console.log('[POST] Final generated slug:', finalSlug);
 
     // Resolve contact info: use provided value or fall back to broker data
     let finalContactName: string | null = null;
@@ -639,7 +615,7 @@ export async function POST(request: NextRequest) {
         price_per_m2: price_per_m2 ? parseFloat(price_per_m2) : null,
         price_per_frontage_meter: price_per_frontage_meter ? parseFloat(price_per_frontage_meter) : null,
         direction,
-        slug: finalSlug,
+        slug: slug,
         status: 'Đang chờ duyệt',
         contact_name: finalContactName,
         contact_phone: finalContactPhone,

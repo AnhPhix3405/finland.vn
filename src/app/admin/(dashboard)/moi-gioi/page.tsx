@@ -45,20 +45,42 @@ export default function AdminBrokerList() {
     province: "",
     ward: ""
   });
+  
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  });
 
-  const fetchBrokers = async () => {
+  const fetchBrokers = async (page = 1) => {
     setLoadingBrokers(true);
     try {
       const params = new URLSearchParams();
-      params.set('limit', '100');
+      params.set('page', page.toString());
+      params.set('limit', pagination.limit.toString());
       if (filters.province) params.set('province', filters.province);
       if (filters.ward) params.set('ward', filters.ward);
       if (searchTerm) params.set('search', searchTerm);
       
-      const res = await fetch(`/api/brokers?${params.toString()}`);
+      const res = await fetchWithRetry(`/api/admin/brokers?${params.toString()}`, {
+        token: adminToken || undefined,
+        isAdmin: true,
+      });
+      
+      if (res.status === 401) {
+        useAdminStore.getState().clearAuth();
+        addToast('Phiên đăng nhập hết hạn', 'error');
+        router.push('/admin/login');
+        return;
+      }
+      
       const json = await res.json();
       if (json.success) {
         setBrokers(json.data);
+        if (json.pagination) {
+          setPagination(json.pagination);
+        }
       }
     } catch (err) {
       console.error('Lỗi khi tải danh sách môi giới:', err);
@@ -71,6 +93,17 @@ export default function AdminBrokerList() {
   useEffect(() => {
     fetchBrokers();
   }, []);
+
+  const handleSearch = () => {
+    setPagination(prev => ({ ...prev, page: 1 }));
+    fetchBrokers(1);
+  };
+
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > pagination.totalPages) return;
+    setPagination(prev => ({ ...prev, page }));
+    fetchBrokers(page);
+  };
 
   const handleToggleLock = (broker: Broker) => {
     if (!adminToken) {
@@ -325,12 +358,51 @@ export default function AdminBrokerList() {
           </div>
         </div>
 
-        <div className="flex justify-end items-center gap-2 mt-4">
-          <button className="px-3 py-1.5 min-w-[32px] rounded-sm bg-emerald-600 text-white text-sm font-medium flex items-center justify-center">1</button>
-          <button className="px-3 py-1.5 min-w-[32px] rounded-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium transition-colors flex items-center justify-center">2</button>
-          <button className="px-3 py-1.5 min-w-[32px] rounded-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium transition-colors flex items-center justify-center">3</button>
-          <span className="text-slate-400 dark:text-slate-500 mx-1">...</span>
-          <button className="px-3 py-1.5 rounded-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium transition-colors flex items-center justify-center">Tiếp</button>
+        <div className="flex justify-between items-center mt-4">
+          <div className="text-sm text-slate-500">
+            Hiển thị {(pagination.page - 1) * pagination.limit + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} của {pagination.total} môi giới
+          </div>
+          <div className="flex justify-end items-center gap-1">
+            <button
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={pagination.page <= 1 || loadingBrokers}
+              className="px-3 py-1.5 rounded-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Trước
+            </button>
+            {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+              let pageNum;
+              if (pagination.totalPages <= 5) {
+                pageNum = i + 1;
+              } else if (pagination.page <= 3) {
+                pageNum = i + 1;
+              } else if (pagination.page >= pagination.totalPages - 2) {
+                pageNum = pagination.totalPages - 4 + i;
+              } else {
+                pageNum = pagination.page - 2 + i;
+              }
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => handlePageChange(pageNum)}
+                  className={`px-3 py-1.5 min-w-[32px] rounded-sm text-sm font-medium flex items-center justify-center transition-colors ${
+                    pagination.page === pageNum
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={pagination.page >= pagination.totalPages || loadingBrokers}
+              className="px-3 py-1.5 rounded-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Tiếp
+            </button>
+          </div>
         </div>
 
         {/* Confirmation Modal */}

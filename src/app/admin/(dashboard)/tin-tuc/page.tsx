@@ -38,17 +38,27 @@ export default function AdminNewsListPage() {
     message: string;
     onConfirm: () => void;
   } | null>(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  });
 
   // Mark as mounted to avoid hydration mismatch
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const fetchNews = async () => {
+  const fetchNews = async (page = 1) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchWithRetry('/api/admin/news', {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(pagination.limit),
+      });
+      const res = await fetchWithRetry(`/api/admin/news?${params}`, {
         token: adminToken || undefined,
         isAdmin: true
       });
@@ -64,6 +74,9 @@ export default function AdminNewsListPage() {
 
       if (result.success) {
         setNews(result.data);
+        if (result.pagination) {
+          setPagination(result.pagination);
+        }
         setError(null);
       } else {
         setError(result.error || 'Không thể tải tin tức');
@@ -80,6 +93,12 @@ export default function AdminNewsListPage() {
     if (!mounted) return;
     fetchNews();
   }, [adminToken, mounted]);
+
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > pagination.totalPages) return;
+    setPagination(prev => ({ ...prev, page }));
+    fetchNews(page);
+  };
 
   const handleDeleteNews = async (newsItem: NewsArticle) => {
     if (!adminToken) {
@@ -238,7 +257,53 @@ export default function AdminNewsListPage() {
           </div>
         </div>
 
-        
+        <div className="flex justify-between items-center mt-4">
+          <div className="text-sm text-slate-500">
+            Hiển thị {(pagination.page - 1) * pagination.limit + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} của {pagination.total} tin tức
+          </div>
+          <div className="flex justify-end items-center gap-1">
+            <button
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={pagination.page <= 1 || loading}
+              className="px-3 py-1.5 rounded-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Trước
+            </button>
+            {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+              let pageNum;
+              if (pagination.totalPages <= 5) {
+                pageNum = i + 1;
+              } else if (pagination.page <= 3) {
+                pageNum = i + 1;
+              } else if (pagination.page >= pagination.totalPages - 2) {
+                pageNum = pagination.totalPages - 4 + i;
+              } else {
+                pageNum = pagination.page - 2 + i;
+              }
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => handlePageChange(pageNum)}
+                  className={`px-3 py-1.5 min-w-[32px] rounded-sm text-sm font-medium flex items-center justify-center transition-colors ${
+                    pagination.page === pageNum
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={pagination.page >= pagination.totalPages || loading}
+              className="px-3 py-1.5 rounded-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Tiếp
+            </button>
+          </div>
+        </div>
+
         {/* Confirmation Modal */}
         {confirmModal?.open && (
           <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">

@@ -27,9 +27,16 @@ export default function AdminCreateProject() {
     const [selectedPropertyTypeId, setSelectedPropertyTypeId] = useState<string>('');
     const [propertyTypes, setPropertyTypes] = useState<PropertyType[]>([]);
     const [loadingPropertyTypes, setLoadingPropertyTypes] = useState(false);
+    const [projectStatus, setProjectStatus] = useState<string>('');
 
     const [selectedProvince, setSelectedProvince] = useState<string>('');
     const [selectedDistrict, setSelectedDistrict] = useState<string>('');
+
+    const PROJECT_STATUS_OPTIONS = [
+        { value: 'sắp mở bán', label: 'Sắp mở bán' },
+        { value: 'đang mở bán', label: 'Đang mở bán' },
+        { value: 'hàng thứ cấp', label: 'Hàng thứ cấp' },
+    ];
 
     const [newFiles, setNewFiles] = useState<File[]>([]);
 
@@ -158,9 +165,10 @@ export default function AdminCreateProject() {
                 price: projectPrice ? Number(projectPrice.replace(/,/g, '')) : undefined,
                 property_type_id: selectedPropertyTypeId || undefined,
                 content: description,
+                status: projectStatus || undefined,
             });
 
-            if (createRes.status === 401) {
+            if (createRes.statusCode === 401) {
                 useAdminStore.getState().clearAuth();
                 addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
                 router.push('/admin/login');
@@ -169,22 +177,17 @@ export default function AdminCreateProject() {
 
             if (!createRes.success) {
                 const errorMsg = createRes.error || 'Tạo dự án thất bại';
+                addToast(errorMsg, 'error');
                 
-                if (errorMsg.toLowerCase().includes('thiếu') || errorMsg.toLowerCase().includes('bắt buộc') || errorMsg.toLowerCase().includes('required')) {
-                    const fieldIds = ['projectName', 'propertyType', 'projectCity'];
-                    for (const fieldId of fieldIds) {
-                        const element = document.getElementById(fieldId);
-                        if (element) {
-                            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            setTimeout(() => {
-                                (element as HTMLInputElement).focus();
-                            }, 100);
-                            break;
-                        }
+                // Scroll to first required field on validation error
+                if (errorMsg.includes('bắt buộc') || errorMsg.includes('Tên dự án')) {
+                    const element = document.getElementById('projectName');
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        setTimeout(() => (element as HTMLInputElement).focus(), 300);
                     }
                 }
-                
-                throw new Error(errorMsg);
+                return;
             }
 
             const newId = createRes.data?.id;
@@ -259,6 +262,23 @@ export default function AdminCreateProject() {
                             </div>
 
                             <div className="col-span-1">
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="projectStatus">Trạng thái</label>
+                                <select 
+                                    value={projectStatus} 
+                                    onChange={(e) => setProjectStatus(e.target.value)} 
+                                    className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white text-slate-700"
+                                    id="projectStatus"
+                                >
+                                    <option value="">Chọn trạng thái</option>
+                                    {PROJECT_STATUS_OPTIONS.map((opt) => (
+                                        <option key={opt.value} value={opt.value}>
+                                            {opt.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="col-span-1">
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="projectPrice">Giá (VND) <span className="text-red-500">*</span></label>
                                 <input 
                                     value={projectPrice} 
@@ -290,6 +310,7 @@ export default function AdminCreateProject() {
                                     onProvinceChange={(val) => { setSelectedProvince(val); clearError('province'); }}
                                     selectedWard={selectedDistrict}
                                     onWardChange={setSelectedDistrict}
+                                    requiredProvince={true}
                                 />
                                 {errors.province && <p className="text-red-500 text-xs mt-1">{errors.province}</p>}
                             </div>

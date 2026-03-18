@@ -29,12 +29,12 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
   const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [description, setDescription] = useState("");
-  
+
   // Options loaded from API
   const [propertyTypes, setPropertyTypes] = useState<SelectOption[]>([]);
   const [transactionTypes, setTransactionTypes] = useState<SelectOption[]>([]);
   const [optionsLoading, setOptionsLoading] = useState(true);
-  
+
   // Load options on component mount - Optimized with parallel calls
   useEffect(() => {
     const loadOptions = async () => {
@@ -81,7 +81,7 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
   // Derive property type for conditional rendering
   const selectedPropertyType = propertyTypes.find(pt => pt.id === propertyTypeId);
   const selectedTransactionType = transactionTypes.find(tt => tt.id === transactionTypeId);
-  
+
   const isApartment = selectedPropertyType?.hashtag === "chung-cu";
   const isLand = selectedPropertyType?.hashtag === "dat-nen";
   const isHouse = ["nha-pho", "biet-thu", "shophouse", "nha-tro"].includes(selectedPropertyType?.hashtag || "");
@@ -107,23 +107,23 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
   const handleTagInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setTagInput(value);
-    
+
     // Filter and fetch suggestions based on input
     if (value.trim().length > 0) {
       try {
         // First show local filtered suggestions immediately 
-        const localFiltered = tagSuggestions.filter(tag => 
-          tag.toLowerCase().includes(value.toLowerCase()) && 
+        const localFiltered = tagSuggestions.filter(tag =>
+          tag.toLowerCase().includes(value.toLowerCase()) &&
           !selectedHashTags.includes(tag)
         );
-        
+
         // Then fetch fresh suggestions from API if the input is meaningful
         if (value.trim().length > 1) {
           const freshSuggestions = await getAllTagNamesAPI(value.trim());
-          const filteredFresh = freshSuggestions.filter(tag => 
+          const filteredFresh = freshSuggestions.filter(tag =>
             !selectedHashTags.includes(tag)
           );
-          
+
           // Merge and deduplicate 
           const combined = [...new Set([...localFiltered, ...filteredFresh])];
           setTagSuggestions(prev => {
@@ -131,13 +131,13 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
             return newSuggestions;
           });
         }
-        
+
         setShowSuggestions(true);
       } catch (error) {
         console.error('Error fetching tag suggestions:', error);
         // Fallback to local filtering
-        const filtered = tagSuggestions.filter(tag => 
-          tag.toLowerCase().includes(value.toLowerCase()) && 
+        const filtered = tagSuggestions.filter(tag =>
+          tag.toLowerCase().includes(value.toLowerCase()) &&
           !selectedHashTags.includes(tag)
         );
         setShowSuggestions(filtered.length > 0);
@@ -288,7 +288,7 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
 
   const scrollToError = (firstErrorKey: string | null) => {
     if (!firstErrorKey) return;
-    
+
     const idMap: Record<string, string> = {
       transactionType: 'transactionType',
       propertyType: 'propertyType',
@@ -355,14 +355,14 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
 
       if (!listingResult.success) {
         const errorMsg = listingResult.error || "Có lỗi xảy ra";
-        
+
         if (errorMsg === "Phiên đăng nhập hết hạn") {
           useAuthStore.getState().clearAuth();
           addToast("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại", "error");
           router.push('/dang-nhap');
           return;
         }
-        
+
         // Check if it's a validation error (missing required fields)
         if (errorMsg.toLowerCase().includes("thiếu") || errorMsg.toLowerCase().includes("bắt buộc") || errorMsg.toLowerCase().includes("required") || errorMsg.toLowerCase().includes("missing")) {
           // Try to find and scroll to the first missing field
@@ -382,13 +382,13 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
             }
             return false;
           };
-          
+
           // Try immediately, if not found wait for DOM
           if (!scrollAndFocus()) {
             setTimeout(scrollAndFocus, 100);
           }
         }
-        
+
         addToast(errorMsg, "error");
         return;
       }
@@ -414,7 +414,7 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
           try {
             const response = await fetch(`/api/listings/${listingResult.id}`, {
               method: 'PATCH',
-              headers: { 
+              headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${accessToken}`
               },
@@ -428,7 +428,7 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
       }
 
       const successMessage = "Đăng bài thành công!";
-      
+
       addToast(successMessage, "success");
       onSuccess?.();
 
@@ -520,6 +520,8 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
             onProvinceChange={(val) => { setProvince(val); setErrors(prev => ({ ...prev, province: '' })); }}
             selectedWard={ward}
             onWardChange={(val) => { setWard(val); setErrors(prev => ({ ...prev, ward: '' })); }}
+            requiredProvince={true}
+            requiredWard={true}
           />
           {(errors.province || errors.ward) && (
             <div className="md:col-span-2">
@@ -558,7 +560,7 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
           />
           {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
         </div>
-        
+
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="space-y-2">
             <label htmlFor="area" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Diện tích (m²) <span className="text-red-500">*</span></label>
@@ -617,11 +619,11 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
           {showFloors && (
             <div className="space-y-2">
               <label htmlFor="floorCount" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Số tầng</label>
-              <input 
+              <input
                 id="floorCount"
-                type="number" 
-                value={floorCount} 
-                onChange={(e) => { setFloorCount(e.target.value); setErrors(prev => ({ ...prev, floorCount: '' })); }} 
+                type="number"
+                value={floorCount}
+                onChange={(e) => { setFloorCount(e.target.value); setErrors(prev => ({ ...prev, floorCount: '' })); }}
                 className={`w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white ${errors.floorCount ? 'border-red-500 ring-2 ring-red-500' : ''}`}
               />
               {errors.floorCount && <p className="text-red-500 text-xs mt-1">{errors.floorCount}</p>}
@@ -631,11 +633,11 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
           {showBedrooms && (
             <div className="space-y-2">
               <label htmlFor="bedroomCount" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Số phòng ngủ</label>
-              <input 
+              <input
                 id="bedroomCount"
-                type="number" 
-                value={bedroomCount} 
-                onChange={(e) => { setBedroomCount(e.target.value); setErrors(prev => ({ ...prev, bedroomCount: '' })); }} 
+                type="number"
+                value={bedroomCount}
+                onChange={(e) => { setBedroomCount(e.target.value); setErrors(prev => ({ ...prev, bedroomCount: '' })); }}
                 className={`w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white ${errors.bedroomCount ? 'border-red-500 ring-2 ring-red-500' : ''}`}
               />
               {errors.bedroomCount && <p className="text-red-500 text-xs mt-1">{errors.bedroomCount}</p>}
@@ -694,13 +696,13 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
                 placeholder="Ví dụ: chính-chủ, mặt-tiền..."
                 className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2 px-7 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
               />
-              
+
               {/* Tag Suggestions Dropdown */}
               {showSuggestions && tagInput && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-40 overflow-y-auto z-10">
                   {tagSuggestions
-                    .filter(tag => 
-                      tag.toLowerCase().includes(tagInput.toLowerCase()) && 
+                    .filter(tag =>
+                      tag.toLowerCase().includes(tagInput.toLowerCase()) &&
                       !selectedHashTags.includes(tag)
                     )
                     .slice(0, 5) // Limit to 5 suggestions

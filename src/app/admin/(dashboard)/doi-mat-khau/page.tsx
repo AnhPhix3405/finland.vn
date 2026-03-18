@@ -13,7 +13,7 @@ export default function AdminChangePasswordPage() {
   const { accessToken } = useAdminStore();
   const addToast = useNotificationStore((state) => state.addToast);
   
-  useAdminAuth(() => {
+  const { isLoading } = useAdminAuth(() => {
     router.push('/admin/login');
   });
   const [showCurrent, setShowCurrent] = useState(false);
@@ -25,6 +25,14 @@ export default function AdminChangePasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-slate-500">Đang tải...</div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

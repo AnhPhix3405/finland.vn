@@ -1,8 +1,9 @@
 'use client';
 import Link from "next/link";
 import React, { useState, useRef, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { uploadBrokerAvatar } from "@/src/app/modules/upload.service";
+import { useAdminAuth } from "@/src/hooks/useAdminAuth";
 
 interface Broker {
   id: string;
@@ -17,7 +18,12 @@ interface Broker {
 
 export default function AdminBrokerDetail() {
   const params = useParams();
+  const router = useRouter();
   const phone = params?.id as string;
+
+  const { isLoading } = useAdminAuth(() => {
+    router.push('/admin/login');
+  });
 
   const [broker, setBroker] = useState<Broker | null>(null);
   const [loading, setLoading] = useState(false);
@@ -26,6 +32,14 @@ export default function AdminBrokerDetail() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-slate-500">Đang tải...</div>
+      </div>
+    );
+  }
 
   // Fetch broker theo phone
   useEffect(() => {

@@ -28,7 +28,8 @@ export const createAdminProject = async (data: ProjectData) => {
         token: adminToken || undefined,
         isAdmin: true,
     });
-    return response.json();
+    const json = await response.json();
+    return { ...json, statusCode: response.status };
 };
 
 export const updateAdminProject = async (data: ProjectData) => {
@@ -42,7 +43,8 @@ export const updateAdminProject = async (data: ProjectData) => {
         token: adminToken || undefined,
         isAdmin: true,
     });
-    return response.json();
+    const json = await response.json();
+    return { ...json, statusCode: response.status };
 };
 
 export const deleteAdminProject = async (id: string) => {
@@ -52,7 +54,8 @@ export const deleteAdminProject = async (id: string) => {
         token: adminToken || undefined,
         isAdmin: true,
     });
-    return response.json();
+    const json = await response.json();
+    return { ...json, statusCode: response.status };
 };
 
 export const getAdminProjects = async (params?: { page?: number; limit?: number; status?: string; search?: string; slug?: string; province?: string; ward?: string; property_type_id?: string; propertyType?: string; priceMin?: string; priceMax?: string; sortBy?: string }) => {
@@ -81,5 +84,6 @@ export const getAdminProjects = async (params?: { page?: number; limit?: number;
         token: adminToken || undefined,
         isAdmin: true,
     });
-    return response.json();
+    const json = await response.json();
+    return { ...json, statusCode: response.status };
 };

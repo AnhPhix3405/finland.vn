@@ -104,24 +104,108 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     const {
-      project_code,
       name,
-      slug,
       content,
-      status = 'sắp mở bán',
+      status,
       price,
+      area,
       property_type_id,
       province,
       ward
     } = body;
 
-    // Validation
-    if (!name || !slug) {
+    // Validation - các field bắt buộc
+    if (!name || name.trim() === '') {
       return NextResponse.json(
-        { success: false, error: 'Tên dự án và slug là bắt buộc' },
+        { success: false, error: 'Tên dự án là bắt buộc' },
         { status: 400 }
       );
     }
+
+    if (!province || province.trim() === '') {
+      return NextResponse.json(
+        { success: false, error: 'Tỉnh/Thành phố là bắt buộc' },
+        { status: 400 }
+      );
+    }
+
+    if (!property_type_id || property_type_id.trim() === '') {
+      return NextResponse.json(
+        { success: false, error: 'Loại hình bất động sản là bắt buộc' },
+        { status: 400 }
+      );
+    }
+
+    if (price === undefined || price === null || price === '') {
+      return NextResponse.json(
+        { success: false, error: 'Giá là bắt buộc' },
+        { status: 400 }
+      );
+    }
+
+    if (area === undefined || area === null || area === '') {
+      return NextResponse.json(
+        { success: false, error: 'Diện tích là bắt buộc' },
+        { status: 400 }
+      );
+    }
+
+    // Validate price and area are valid numbers
+    const priceNum = parseFloat(price.toString());
+    if (isNaN(priceNum) || priceNum < 0) {
+      return NextResponse.json(
+        { success: false, error: 'Giá không hợp lệ' },
+        { status: 400 }
+      );
+    }
+
+    const areaNum = parseFloat(area.toString());
+    if (isNaN(areaNum) || areaNum <= 0) {
+      return NextResponse.json(
+        { success: false, error: 'Diện tích phải là số dương' },
+        { status: 400 }
+      );
+    }
+
+    // Generate project_code: FIN + 2 digits year + 6 digit sequence
+    const currentYear = new Date().getFullYear().toString().slice(-2); // e.g., "26"
+    const prefix = `FIN${currentYear}`; // e.g., "FIN26"
+
+    // Get the highest sequence number for this year
+    const lastProject = await prisma.projects.findFirst({
+      where: {
+        project_code: {
+          startsWith: prefix
+        }
+      },
+      orderBy: {
+        project_code: 'desc'
+      },
+      select: {
+        project_code: true
+      }
+    });
+
+    let sequence = 1;
+    if (lastProject?.project_code) {
+      const lastSeq = parseInt(lastProject.project_code.replace(prefix, ''));
+      sequence = lastSeq + 1;
+    }
+
+    const project_code = `${prefix}${sequence.toString().padStart(6, '0')}`; // e.g., "FIN26000001"
+    const sequenceStr = `${currentYear}${sequence.toString().padStart(6, '0')}`; // e.g., "26000002"
+
+    // Generate slug: normalized-name-sequence
+    const normalizedName = name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim();
+
+    const slug = `${normalizedName}-${sequenceStr}`; // e.g., "anh-la-phi-26000002"
 
     // Kiểm tra slug đã tồn tại chưa
     const existingProject = await prisma.projects.findFirst({
@@ -135,7 +219,7 @@ export async function POST(request: NextRequest) {
 
     if (existingProject) {
       return NextResponse.json(
-        { success: false, error: 'Slug hoặc mã dự án đã tồn tại' },
+        { success: false, error: 'Dự án này đã tồn tại' },
         { status: 400 }
       );
     }
@@ -144,12 +228,13 @@ export async function POST(request: NextRequest) {
     const newProject = await prisma.projects.create({
       data: {
         project_code,
-        name,
+        name: name.trim(),
         slug,
         content,
         status: status || 'sắp mở bán',
-        price: price ? parseFloat(price.toString()) : 0,
-        property_type_id: property_type_id || null,
+        price: priceNum,
+        area: areaNum,
+        property_type_id,
         province,
         ward
       }
@@ -228,10 +313,39 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    // Xử lý area_min, area_max
-    if (updateData.area_min) updateData.area_min = parseInt(updateData.area_min.toString());
-    if (updateData.area_max) updateData.area_max = parseInt(updateData.area_max.toString());
-    if (updateData.price !== undefined) updateData.price = parseFloat(updateData.price.toString());
+    // Xử lý area, price validation
+    if (updateData.area !== undefined) {
+      const areaNum = parseFloat(updateData.area.toString());
+      if (isNaN(areaNum) || areaNum <= 0) {
+        return NextResponse.json(
+          { success: false, error: 'Diện tích phải là số dương' },
+          { status: 400 }
+        );
+      }
+      updateData.area = areaNum;
+    }
+
+    if (updateData.price !== undefined) {
+      const priceNum = parseFloat(updateData.price.toString());
+      if (isNaN(priceNum) || priceNum < 0) {
+        return NextResponse.json(
+          { success: false, error: 'Giá không hợp lệ' },
+          { status: 400 }
+        );
+      }
+      updateData.price = priceNum;
+    }
+
+    // Validate status if provided
+    if (updateData.status !== undefined) {
+      const validStatuses = ['sắp mở bán', 'đang mở bán', 'hàng thứ cấp'];
+      if (updateData.status && !validStatuses.includes(updateData.status)) {
+        return NextResponse.json(
+          { success: false, error: 'Trạng thái không hợp lệ' },
+          { status: 400 }
+        );
+      }
+    }
 
     // Cập nhật dự án
     const updatedProject = await prisma.projects.update({

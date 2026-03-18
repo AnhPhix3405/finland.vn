@@ -43,63 +43,21 @@ export default function AdminProjectList() {
   const [propertyTypes, setPropertyTypes] = useState<PropertyType[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [loading, setLoading] = useState(false);
+  
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  });
 
-  useEffect(() => {
-    const fetchPropertyTypes = async () => {
-      try {
-        const result = await getPropertyTypes({ limit: 100 });
-        if (result.success) {
-          setPropertyTypes(result.data || []);
-        }
-      } catch (error) {
-        console.error('Error fetching property types:', error);
-      }
-    };
-
-    const fetchProjects = async () => {
-      setLoading(true);
-      try {
-        const params: Record<string, string> = {};
-        if (searchTerm) params.search = searchTerm;
-        if (filterProvince) params.province = filterProvince;
-        if (filterWard) params.ward = filterWard;
-        if (filterPropertyType) params.property_type_id = filterPropertyType;
-        
-        const json = await getAdminProjects(params);
-        
-        if (json.statusCode === 401) {
-          useAdminStore.getState().clearAuth();
-          addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
-          router.push('/admin/login');
-          return;
-        }
-        
-        if (json.success && Array.isArray(json.data)) {
-          setProjects(json.data);
-        }
-      } catch (error) {
-        console.error('Error fetching projects:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPropertyTypes();
-    fetchProjects();
-  }, []);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-slate-500">Đang tải...</div>
-      </div>
-    );
-  }
-
-  const handleSearch = async () => {
+  const fetchProjects = async (page = 1) => {
     setLoading(true);
     try {
-      const params: Record<string, string> = {};
+      const params: Record<string, string | number> = {
+        page,
+        limit: pagination.limit,
+      };
       if (searchTerm) params.search = searchTerm;
       if (filterProvince) params.province = filterProvince;
       if (filterWard) params.ward = filterWard;
@@ -116,12 +74,50 @@ export default function AdminProjectList() {
       
       if (json.success && Array.isArray(json.data)) {
         setProjects(json.data);
+        if (json.pagination) {
+          setPagination(json.pagination);
+        }
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    const fetchPropertyTypes = async () => {
+      try {
+        const result = await getPropertyTypes({ limit: 100 });
+        if (result.success) {
+          setPropertyTypes(result.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching property types:', error);
+      }
+    };
+
+    fetchPropertyTypes();
+    fetchProjects();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-slate-500">Đang tải...</div>
+      </div>
+    );
+  }
+
+  const handleSearch = () => {
+    setPagination(prev => ({ ...prev, page: 1 }));
+    fetchProjects(1);
+  };
+
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > pagination.totalPages) return;
+    setPagination(prev => ({ ...prev, page }));
+    fetchProjects(page);
   };
 
   const handleDelete = async () => {
@@ -284,12 +280,51 @@ export default function AdminProjectList() {
           </div>
         </div>
 
-        <div className="flex justify-end items-center gap-2 mt-4">
-          <button className="px-3 py-1.5 min-w-[32px] rounded-sm bg-emerald-600 text-white text-sm font-medium flex items-center justify-center">1</button>
-          <button className="px-3 py-1.5 min-w-[32px] rounded-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium transition-colors flex items-center justify-center">2</button>
-          <button className="px-3 py-1.5 min-w-[32px] rounded-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium transition-colors flex items-center justify-center">3</button>
-          <span className="text-slate-400 dark:text-slate-500 mx-1">...</span>
-          <button className="px-3 py-1.5 rounded-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium transition-colors flex items-center justify-center">Tiếp</button>
+        <div className="flex justify-between items-center mt-4">
+          <div className="text-sm text-slate-500">
+            Hiển thị {(pagination.page - 1) * pagination.limit + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} của {pagination.total} dự án
+          </div>
+          <div className="flex justify-end items-center gap-1">
+            <button
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={pagination.page <= 1 || loading}
+              className="px-3 py-1.5 rounded-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Trước
+            </button>
+            {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+              let pageNum;
+              if (pagination.totalPages <= 5) {
+                pageNum = i + 1;
+              } else if (pagination.page <= 3) {
+                pageNum = i + 1;
+              } else if (pagination.page >= pagination.totalPages - 2) {
+                pageNum = pagination.totalPages - 4 + i;
+              } else {
+                pageNum = pagination.page - 2 + i;
+              }
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => handlePageChange(pageNum)}
+                  className={`px-3 py-1.5 min-w-[32px] rounded-sm text-sm font-medium flex items-center justify-center transition-colors ${
+                    pagination.page === pageNum
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={pagination.page >= pagination.totalPages || loading}
+              className="px-3 py-1.5 rounded-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Tiếp
+            </button>
+          </div>
         </div>
       </div>
 

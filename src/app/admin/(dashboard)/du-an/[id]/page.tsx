@@ -40,7 +40,6 @@ export default function AdminProjectDetail() {
   const [description, setDescription] = useState<string>('');
 
   const [projectName, setProjectName] = useState<string>('');
-  const [projectCode, setProjectCode] = useState<string>('');
   const [projectArea, setProjectArea] = useState<string>('');
   const [projectPrice, setProjectPrice] = useState<string>('');
   const [selectedPropertyTypeId, setSelectedPropertyTypeId] = useState<string>('');
@@ -49,6 +48,13 @@ export default function AdminProjectDetail() {
 
   const [selectedProvince, setSelectedProvince] = useState<string>('');
   const [selectedDistrict, setSelectedDistrict] = useState<string>('');
+  const [projectStatus, setProjectStatus] = useState<string>('');
+
+  const PROJECT_STATUS_OPTIONS = [
+      { value: 'sắp mở bán', label: 'Sắp mở bán' },
+      { value: 'đang mở bán', label: 'Đang mở bán' },
+      { value: 'hàng thứ cấp', label: 'Hàng thứ cấp' },
+  ];
 
   useEffect(() => {
     const fetchPropertyTypes = async () => {
@@ -91,13 +97,13 @@ export default function AdminProjectDetail() {
           const p = res.data[0];
           if (p.id) setProjectId(p.id);
           setProjectName(p.name || '');
-          setProjectCode(p.project_code || '');
           setProjectArea(p.area?.toString() || '');
           setProjectPrice(p.price ? Number(p.price).toLocaleString('en-US') : '');
           setSelectedPropertyTypeId(p.property_type_id || '');
           setSelectedProvince(p.province || '');
           setSelectedDistrict(p.ward || '');
           setDescription(p.content || '');
+          setProjectStatus(p.status || '');
         }
       } catch (err) {
         console.error('Lỗi lấy thông tin project:', err);
@@ -230,6 +236,7 @@ export default function AdminProjectDetail() {
         price: Number(projectPrice.replace(/,/g, '')),
         property_type_id: selectedPropertyTypeId || undefined,
         content: description,
+        status: projectStatus || undefined,
       });
 
       if (updateRes.statusCode === 401) {
@@ -318,11 +325,7 @@ export default function AdminProjectDetail() {
                 <input value={projectName} onChange={(e) => setProjectName(e.target.value)} className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white placeholder-slate-400" id="projectName" placeholder="Nhập tên dự án..." type="text" />
               </div>
               <div className="col-span-1">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Mã dự án</label>
-                <input value={projectCode} disabled className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-sm text-sm text-slate-500 dark:text-slate-400" placeholder="Mã tự sinh" type="text" />
-              </div>
-              <div className="col-span-1">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="propertyType">Loại hình <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Loại hình <span className="text-red-500">*</span></label>
                 <select 
                   value={selectedPropertyTypeId} 
                   onChange={(e) => setSelectedPropertyTypeId(e.target.value)} 
@@ -354,6 +357,7 @@ export default function AdminProjectDetail() {
                 onProvinceChange={setSelectedProvince}
                 selectedWard={selectedDistrict}
                 onWardChange={setSelectedDistrict}
+                requiredProvince={true}
               />
 
               <div className="col-span-1 md:col-span-2">
@@ -470,15 +474,21 @@ export default function AdminProjectDetail() {
                 )}
               </div>
 
-              <div className="col-span-1 md:col-span-2 flex items-center justify-between py-3 border-t border-slate-200 dark:border-slate-700 mt-2">
-                <div>
-                  <h3 className="text-sm font-medium text-slate-900 dark:text-white">Trạng thái hiển thị</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Hiển thị dự án này trên website công khai.</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" value="" className="sr-only peer" defaultChecked />
-                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 dark:peer-focus:ring-emerald-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-emerald-600"></div>
-                </label>
+              <div className="col-span-1 md:col-span-2 py-3 border-t border-slate-200 dark:border-slate-700 mt-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="projectStatus">Trạng thái dự án</label>
+                <select 
+                  value={projectStatus} 
+                  onChange={(e) => setProjectStatus(e.target.value)} 
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white text-slate-700"
+                  id="projectStatus"
+                >
+                  <option value="">Chọn trạng thái</option>
+                  {PROJECT_STATUS_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 

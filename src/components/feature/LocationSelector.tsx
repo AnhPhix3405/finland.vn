@@ -14,23 +14,81 @@ interface LocationSelectorProps {
     selectedWard: string;
     onWardChange: (value: string) => void;
     showLabels?: boolean;
+    requiredProvince?: boolean;
+    requiredWard?: boolean;
 }
+
+const danhSachDonViHanhChinhKhanhHoa: string[] = [
+    // Danh sách các xã mới sau sắp xếp
+    "Xã Nam Cam Ranh",
+    "Xã Bắc Ninh Hòa",
+    "Xã Tân Định",
+    "Xã Nam Ninh Hòa",
+    "Xã Tây Ninh Hòa",
+    "Xã Hòa Trí",
+    "Xã Đại Lãnh",
+    "Xã Tu Bông",
+    "Xã Vạn Thắng",
+    "Xã Vạn Ninh",
+    "Xã Vạn Hưng",
+    "Xã Diên Khánh",
+    "Xã Diên Lạc",
+    "Xã Diên Điền",
+    "Xã Diên Lâm",
+    "Xã Diên Thọ",
+    "Xã Suối Hiệp",
+    "Xã Cam Lâm",
+    "Xã Suối Dầu",
+    "Xã Cam Hiệp",
+    "Xã Cam An",
+    "Xã Bắc Khánh Vĩnh",
+    "Xã Trung Khánh Vĩnh",
+    "Xã Tây Khánh Vĩnh",
+    "Xã Nam Khánh Vĩnh",
+    "Xã Khánh Vĩnh",
+    "Xã Khánh Sơn",
+    "Xã Tây Khánh Sơn",
+    "Xã Đông Khánh Sơn",
+
+    // Danh sách các phường mới sau sắp xếp
+    "Phường Nha Trang",
+    "Phường Bắc Nha Trang",
+    "Phường Tây Nha Trang",
+    "Phường Nam Nha Trang",
+    "Phường Bắc Cam Ranh",
+    "Phường Cam Ranh",
+    "Phường Cam Linh",
+    "Phường Ba Ngòi",
+    "Phường Ninh Hòa",
+    "Phường Đông Ninh Hòa",
+    "Phường Hòa Thắng",
+
+    // Đặc khu hành chính
+    "Đặc khu Trường Sa"
+];
 
 export default function LocationSelector({
     selectedProvince,
     onProvinceChange,
     selectedWard,
     onWardChange,
-    showLabels = true
+    showLabels = true,
+    requiredProvince = false,
+    requiredWard = false
 }: LocationSelectorProps) {
     const [wardsList, setWardsList] = useState<{ name: string }[]>([]);
 
     useEffect(() => {
         if (!selectedProvince) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             setWardsList([]);
             return;
         }
+
+        if (selectedProvince === "Khánh Hoà") {
+            setWardsList(danhSachDonViHanhChinhKhanhHoa.map(name => ({ name })));
+            return;
+        }
+
         const fetchWards = async () => {
             try {
                 const url = `https://vietnamlabs.com/api/vietnamprovince?province=${encodeURIComponent(selectedProvince)}`;
@@ -53,7 +111,7 @@ export default function LocationSelector({
             <div className={showLabels ? "space-y-2" : ""}>
                 {showLabels && (
                     <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="projectCity">
-                        Tỉnh / Thành phố
+                        Tỉnh / Thành phố {requiredProvince && <span className="text-red-500">*</span>}
                     </label>
                 )}
                 <select
@@ -76,7 +134,7 @@ export default function LocationSelector({
             <div className={showLabels ? "space-y-2" : ""}>
                 {showLabels && (
                     <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="projectDistrict">
-                        Phường / Xã
+                        Phường / Xã {requiredWard && <span className="text-red-500">*</span>}
                     </label>
                 )}
                 <select
