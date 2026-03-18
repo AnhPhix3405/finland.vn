@@ -22,7 +22,6 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Check if admin still exists
         const admin = await prisma.admins.findUnique({
             where: { id: payload.id as string }
         });
@@ -36,7 +35,6 @@ export async function POST(request: NextRequest) {
 
         const { password_hash, ...safeAdmin } = admin;
 
-        // Generate new access token
         const accessToken = await signAdminAccessToken(safeAdmin);
         return NextResponse.json({
             success: true,

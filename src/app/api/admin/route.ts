@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/lib/prisma';
 import { verifyToken } from '@/src/app/modules/auth/jwt';
 
-// GET /api/admin - Get current admin info (Admin Only)
 export async function GET(request: NextRequest) {
     try {
         const authHeader = request.headers.get('authorization');
