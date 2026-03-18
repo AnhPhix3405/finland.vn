@@ -32,6 +32,7 @@ export default function AdminNewsListPage() {
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [confirmModal, setConfirmModal] = useState<{
     open: boolean;
     title: string;
@@ -58,6 +59,9 @@ export default function AdminNewsListPage() {
         page: String(page),
         limit: String(pagination.limit),
       });
+      if (searchQuery) {
+        params.set('search', searchQuery);
+      }
       const res = await fetchWithRetry(`/api/admin/news?${params}`, {
         token: adminToken || undefined,
         isAdmin: true
@@ -93,6 +97,11 @@ export default function AdminNewsListPage() {
     if (!mounted) return;
     fetchNews();
   }, [adminToken, mounted]);
+
+  const handleSearch = () => {
+    setPagination(prev => ({ ...prev, page: 1 }));
+    fetchNews(1);
+  };
 
   const handlePageChange = (page: number) => {
     if (page < 1 || page > pagination.totalPages) return;
@@ -169,18 +178,39 @@ export default function AdminNewsListPage() {
         )}
 
         {/* Header */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Quản lý Tin tức</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Quản lý các bài viết blog, tin tức thị trường và kiến thức BĐS</p>
           </div>
-          <Link
-            href="/admin/tin-tuc/them"
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-sm text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 flex items-center gap-2"
-          >
-            <span className="material-symbols-outlined text-[20px]" aria-hidden="true">add</span>
-            Viết tin mới
-          </Link>
+          <div className="flex gap-3">
+            {/* Search Bar */}
+            <div className="relative">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+              <input
+                className="pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white w-64 placeholder-slate-400"
+                placeholder="Tìm kiếm theo tiêu đề..."
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              />
+            </div>
+            <button
+              onClick={handleSearch}
+              disabled={loading}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-sm text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-lg">search</span>
+            </button>
+            <Link
+              href="/admin/tin-tuc/them"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-sm text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[20px]" aria-hidden="true">add</span>
+              Viết tin mới
+            </Link>
+          </div>
         </div>
 
         {/* Table */}

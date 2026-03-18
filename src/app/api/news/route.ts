@@ -8,10 +8,17 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const page = parseInt(searchParams.get('page') || '1');
     const skip = (page - 1) * limit;
+    const search = searchParams.get('search');
+
+    const whereClause: Record<string, unknown> = {};
+    if (search) {
+      whereClause.title = { startsWith: search, mode: 'insensitive' };
+    }
 
     // Get all news with tags
     const [news, total] = await Promise.all([
       prisma.news.findMany({
+        where: whereClause,
         include: {
           news_tags: {
             include: {
@@ -31,7 +38,7 @@ export async function GET(request: NextRequest) {
         take: limit,
         skip: skip
       }),
-      prisma.news.count()
+      prisma.news.count({ where: whereClause })
     ]);
 
     // Format response

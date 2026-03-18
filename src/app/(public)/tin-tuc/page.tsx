@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Calendar, ArrowRight } from 'lucide-react';
+import { Calendar, ArrowRight, Search, X } from 'lucide-react';
 import { Pagination } from '@/src/components/shared/Pagination';
 
 interface Tag {
@@ -32,6 +32,7 @@ export default function NewsListPage() {
   const [news, setNews] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [pagination, setPagination] = useState<PaginationState>({
     page: 1,
     limit: 9,
@@ -43,7 +44,14 @@ export default function NewsListPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`/api/news?limit=${pagination.limit}&page=${page}`);
+      const params = new URLSearchParams({
+        limit: String(pagination.limit),
+        page: String(page),
+      });
+      if (searchQuery) {
+        params.set('search', searchQuery);
+      }
+      const response = await fetch(`/api/news?${params}`);
       const data = await response.json();
       if (data.success) {
         setNews(data.data || []);
@@ -70,6 +78,15 @@ export default function NewsListPage() {
     fetchNews(1);
   }, []);
 
+  const handleSearch = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    fetchNews(1);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery("");
+  };
+
   const handlePageChange = (page: number) => {
     if (page < 1 || page > pagination.totalPages) return;
     fetchNews(page);
@@ -90,6 +107,35 @@ export default function NewsListPage() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
+        {/* Search Bar */}
+        <form onSubmit={handleSearch} className="mb-8 flex justify-start gap-2">
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Tìm kiếm theo tiêu đề..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-8 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+              >
+                <X className="size-4" />
+              </button>
+            )}
+          </div>
+          <button
+            type="submit"
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm rounded-lg transition-colors"
+          >
+            Tìm
+          </button>
+        </form>
+
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {Array.from({ length: 6 }).map((_, i) => (
