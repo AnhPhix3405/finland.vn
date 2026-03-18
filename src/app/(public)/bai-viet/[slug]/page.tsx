@@ -83,7 +83,7 @@ export default function EditListingPage() {
   const showFloors = isHouse || isOffice;
   const showDimensions = !isApartment;
 
-// INITIAL LOAD - Optimized with parallel calls
+  // INITIAL LOAD - Optimized with parallel calls
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -93,18 +93,18 @@ export default function EditListingPage() {
           getAllTagNamesAPI(),
           slug ? fetch(`/api/listings/${slug}`) : Promise.resolve(null)
         ]);
-        
+
         setPropertyTypes(options.propertyTypes);
         setTransactionTypes(options.transactionTypes);
         setTagSuggestions(tags);
 
         if (!slug || !listingRes) return;
-        
+
         const result = await listingRes.json();
-        
+
         if (result.success && result.data) {
           const l = result.data;
-          
+
           // Restriction: No editing for pending or hidden listings
           if (l.status === 'Đang chờ duyệt' || l.status === 'Đã Ẩn') {
             addToast(`Tin đăng đang ở trạng thái "${l.status}", không thể chỉnh sửa.`, "error");
@@ -133,7 +133,7 @@ export default function EditListingPage() {
           if (l.tags) {
             setSelectedHashTags(l.tags.map((t: { slug?: string; name: string }) => t.slug || t.name));
           }
-          
+
           // Fetch images in parallel with listing data
           const imgRes = await fetch(`/api/attachments/${l.id}?target_type=listing`);
           const imgJson = await imgRes.json();
@@ -182,7 +182,7 @@ export default function EditListingPage() {
   const handleTagInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setTagInput(value);
-    
+
     if (value.trim().length > 0) {
       try {
         if (value.trim().length > 1) {
@@ -209,7 +209,7 @@ export default function EditListingPage() {
     const validFiles = files.filter(file => file.type.startsWith('image/') || file.type.startsWith('video/'));
     const totalRemainingAPI = initialImages.length - deletedApiImages.length;
     const newTotal = totalRemainingAPI + selectedFiles.length + validFiles.length;
-    
+
     if (newTotal > 20) {
       addToast(`Bạn chỉ được giữ tối đa 20 file. Vui lòng xóa bớt.`, "error");
     } else {
@@ -240,13 +240,13 @@ export default function EditListingPage() {
     const draggedImage = newImages[draggedItem];
     newImages.splice(draggedItem, 1);
     newImages.splice(dropIndex, 0, draggedImage);
-    
+
     // Update sort_order based on new position
     const updatedImages = newImages.map((img, idx) => ({
       ...img,
       sort_order: idx
     }));
-    
+
     setInitialImages(updatedImages);
     setDraggedItem(null);
   };
@@ -293,16 +293,16 @@ export default function EditListingPage() {
       };
 
       const res = await fetch(`/api/listings/${listingId}`, {
-         method: 'PATCH', // Cần viết method PATCH bên kia hỗ trợ nhận full object update
-         headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-         },
-         body: JSON.stringify(updateData)
+        method: 'PATCH', // Cần viết method PATCH bên kia hỗ trợ nhận full object update
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify(updateData)
       });
       const dataJson = await res.json();
       if (!dataJson.success) {
-         throw new Error(dataJson.error || "Update database failed");
+        throw new Error(dataJson.error || "Update database failed");
       }
 
       // 2. TAGS: Client Side Update (We simply re-send the tags using the tag service client side helper if backend lacks it)
@@ -316,9 +316,9 @@ export default function EditListingPage() {
           const original = originalImages.find(o => o.id === img.id);
           return !original || original.sort_order !== img.sort_order;
         });
-        
+
         if (changedImages.length > 0) {
-          await Promise.all(changedImages.map(img => 
+          await Promise.all(changedImages.map(img =>
             updateAttachmentSortOrder(img.id, img.sort_order || 0, accessToken)
           ));
         }
@@ -326,18 +326,18 @@ export default function EditListingPage() {
 
       // 3. FILE UPLOAD 
       if (selectedFiles.length > 0) {
-         await Promise.all(selectedFiles.map((file) => 
-           uploadListingAttachments(file, listingId)
-         ));
-         setSelectedFiles([]);
+        await Promise.all(selectedFiles.map((file) =>
+          uploadListingAttachments(file, listingId)
+        ));
+        setSelectedFiles([]);
       }
 
       // 4. FIRE AND FORGET DELETIONS
       if (deletedApiImages.length > 0) {
-         deletedApiImages.forEach(public_id => {
-            deleteAttachment(public_id).catch(() => {});
-         });
-         setDeletedApiImages([]);
+        deletedApiImages.forEach(public_id => {
+          deleteAttachment(public_id).catch(() => { });
+        });
+        setDeletedApiImages([]);
       }
 
       addToast("Cập nhật bài đăng thành công!", "success");
@@ -353,14 +353,14 @@ export default function EditListingPage() {
   };
 
   if (loading) {
-     return <div className="min-h-screen flex text-center justify-center items-center py-20 text-slate-500 font-bold uppercase tracking-wider animate-pulse">Đang tải biểu mẫu...</div>;
+    return <div className="min-h-screen flex text-center justify-center items-center py-20 text-slate-500 font-bold uppercase tracking-wider animate-pulse">Đang tải biểu mẫu...</div>;
   }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-8 md:py-12">
       <div className="max-w-4xl mx-auto px-4 sm:px-6">
         <div className="mb-8 flex flex-col gap-4">
-          <button 
+          <button
             onClick={() => router.back()}
             className="inline-flex items-center gap-2 text-slate-500 hover:text-emerald-600 transition-colors text-sm font-semibold w-fit"
           >
@@ -420,7 +420,7 @@ export default function EditListingPage() {
                 Vị trí
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <LocationSelector selectedProvince={province} onProvinceChange={setProvince} selectedWard={ward} onWardChange={setWard} />
+                <LocationSelector selectedProvince={province} onProvinceChange={setProvince} selectedWard={ward} onWardChange={setWard} requiredProvince={true} requiredWard={true} />
                 <div className="md:col-span-2 space-y-2">
                   <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Địa chỉ cụ thể</label>
                   <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500" />
@@ -497,9 +497,9 @@ export default function EditListingPage() {
                     <input type="text" value={tagInput} onChange={handleTagInputChange} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())} placeholder="Ví dụ: chính-chủ..." className="w-full bg-slate-50 border py-2 px-4 rounded-lg text-sm" />
                     {showSuggestions && (
                       <div className="absolute top-12 w-full bg-white border shadow shadow-xl rounded-lg overflow-hidden z-20">
-                         {tagSuggestions.filter(t => !selectedHashTags.includes(t)).slice(0, 5).map(t => (
-                           <button type="button" key={t} onClick={() => addTag(t)} className="w-full text-left p-3 hover:bg-slate-100">#{t}</button>
-                         ))}
+                        {tagSuggestions.filter(t => !selectedHashTags.includes(t)).slice(0, 5).map(t => (
+                          <button type="button" key={t} onClick={() => addTag(t)} className="w-full text-left p-3 hover:bg-slate-100">#{t}</button>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -559,7 +559,7 @@ export default function EditListingPage() {
                   <button type="button" onClick={() => fileInputRef.current?.click()} className="px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg text-sm font-bold hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors">+ Thêm ảnh/video</button>
                   <input ref={fileInputRef} type="file" multiple accept="image/*,video/*" onChange={handleFileSelect} className="hidden" />
                 </div>
-                
+
                 <div className="space-y-4">
                   {/* Cũ (API) - Kéo để sắp xếp */}
                   {initialImages.filter(img => !deletedApiImages.includes(img.id)).length > 0 && (
@@ -567,15 +567,14 @@ export default function EditListingPage() {
                       <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3">Ảnh hiện tại (kéo để sắp xếp)</p>
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         {initialImages.filter(img => !deletedApiImages.includes(img.id)).map((img, idx) => (
-                          <div 
-                            key={img.id} 
+                          <div
+                            key={img.id}
                             draggable
                             onDragStart={() => handleDragStart(idx)}
                             onDragOver={handleDragOver}
                             onDrop={() => handleDrop(idx)}
-                            className={`relative aspect-square rounded-xl overflow-hidden border-2 cursor-move transition-all ${
-                              draggedItem === idx ? 'opacity-50 border-emerald-500' : 'border-slate-200 dark:border-slate-700'
-                            }`}
+                            className={`relative aspect-square rounded-xl overflow-hidden border-2 cursor-move transition-all ${draggedItem === idx ? 'opacity-50 border-emerald-500' : 'border-slate-200 dark:border-slate-700'
+                              }`}
                           >
                             <img src={img.secure_url || img.url} alt="Listing File" className="w-full h-full object-cover" />
                             {img.sort_order === 0 && (
@@ -590,15 +589,15 @@ export default function EditListingPage() {
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Mới (Local File) */}
                   {selectedFiles.length > 0 && (
                     <div>
                       <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3">Ảnh mới thêm</p>
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         {selectedFiles.map((file, idx) => (
-                          <div 
-                            key={idx} 
+                          <div
+                            key={idx}
                             className="relative aspect-square rounded-xl overflow-hidden border-2 border-dashed border-emerald-400"
                           >
                             <img src={URL.createObjectURL(file)} alt="New file" className="w-full h-full object-cover" />
