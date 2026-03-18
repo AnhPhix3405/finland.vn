@@ -70,7 +70,27 @@ export async function GET(request: NextRequest) {
       try {
         const payload = await verifyToken(token);
         if (payload && (payload as Record<string, unknown>).id) {
-          currentBrokerId = (payload as Record<string, unknown>).id as string;
+          if ((payload as Record<string, unknown>).role !== 'admin') {
+            const broker = await prisma.brokers.findUnique({
+              where: { id: (payload as Record<string, unknown>).id as string },
+              select: { is_active: true }
+            });
+            if (!broker) {
+              return NextResponse.json(
+                { success: false, error: 'Tài khoản đã bị khóa' },
+                { status: 403 }
+              );
+            }
+            if (!broker.is_active) {
+              return NextResponse.json(
+                { success: false, error: 'Tài khoản đã bị khóa' },
+                { status: 403 }
+              );
+            }
+            currentBrokerId = (payload as Record<string, unknown>).id as string;
+          } else {
+            currentBrokerId = (payload as Record<string, unknown>).id as string;
+          }
         }
       } catch (err) {
         // Token invalid, continue without broker context

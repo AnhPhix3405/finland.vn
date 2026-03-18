@@ -9,6 +9,7 @@ import { loadAllFormOptions, SelectOption } from "@/src/app/modules/form-options
 import { uploadListingAttachments, deleteAttachment } from "@/src/app/modules/upload.service";
 import { getAllTagNamesAPI, processTagsForListingClient } from "@/src/app/modules/tags.service.client";
 import { updateAttachmentSortOrder } from "@/src/app/modules/attachments.service";
+import { fetchWithRetry } from "@/src/lib/api/fetch-with-retry";
 import { useAuthStore } from "@/src/store/authStore";
 import { useNotificationStore } from "@/src/store/notificationStore";
 
@@ -91,7 +92,7 @@ export default function EditListingPage() {
         const [options, tags, listingRes] = await Promise.all([
           loadAllFormOptions(),
           getAllTagNamesAPI(),
-          slug ? fetch(`/api/listings/${slug}`) : Promise.resolve(null)
+          slug && accessToken ? fetchWithRetry(`/api/listings/${slug}`, { token: accessToken || undefined, isAdmin: false }) : Promise.resolve(null)
         ]);
 
         setPropertyTypes(options.propertyTypes);
@@ -135,7 +136,10 @@ export default function EditListingPage() {
           }
 
           // Fetch images in parallel with listing data
-          const imgRes = await fetch(`/api/attachments/${l.id}?target_type=listing`);
+          const imgRes = await fetchWithRetry(`/api/attachments/${l.id}?target_type=listing`, {
+            token: accessToken || undefined,
+            isAdmin: false
+          });
           const imgJson = await imgRes.json();
           if (imgJson.success) {
             const images = (imgJson.data || []).sort((a: Attachment, b: Attachment) => (a.sort_order || 0) - (b.sort_order || 0));
@@ -292,12 +296,13 @@ export default function EditListingPage() {
         bedroom_count: bedroomCount ? parseInt(bedroomCount) : null,
       };
 
-      const res = await fetch(`/api/listings/${listingId}`, {
-        method: 'PATCH', // Cần viết method PATCH bên kia hỗ trợ nhận full object update
+      const res = await fetchWithRetry(`/api/listings/${listingId}`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
         },
+        token: accessToken || undefined,
+        isAdmin: false,
         body: JSON.stringify(updateData)
       });
       const dataJson = await res.json();
@@ -345,8 +350,10 @@ export default function EditListingPage() {
 
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Có lỗi xảy ra khi cập nhật";
-      console.error(error);
-      addToast(message, "error");
+      const silentTokenErrors = ["Token không hợp lệ", "Token không tồn tại", "Vui lòng đăng nhập"];
+      if (!silentTokenErrors.includes(message)) {
+        addToast(message, "error");
+      }
     } finally {
       setIsUploading(false);
     }

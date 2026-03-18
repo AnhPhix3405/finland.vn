@@ -74,6 +74,20 @@ export async function GET(
         const payload = await verifyToken(token);
         if (payload && (payload as Record<string, unknown>).id) {
           currentBrokerId = (payload as Record<string, unknown>).id as string;
+          if ((payload as Record<string, unknown>).role !== 'admin') {
+            const broker = await prisma.brokers.findUnique({
+              where: { id: currentBrokerId },
+              select: { is_active: true }
+            });
+            if (!broker) {
+              currentBrokerId = null;
+            } else if (!broker.is_active) {
+              return NextResponse.json(
+                { success: false, error: 'Tài khoản đã bị khóa' },
+                { status: 403 }
+              );
+            }
+          }
         }
       } catch (err) {
         // Token invalid or expired, continue without broker context
