@@ -53,8 +53,8 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       where.OR = [
-        { name: { startsWith: search, mode: 'insensitive' } },
-        { project_code: { startsWith: search, mode: 'insensitive' } },
+        { name: { contains: search, mode: 'insensitive' } },
+        { project_code: { contains: search, mode: 'insensitive' } },
       ];
     }
 
@@ -361,7 +361,7 @@ export async function PATCH(request: NextRequest) {
       // Extract the sequence suffix from existing slug (last part like "P26000001")
       const existingSlugParts = existingProject.slug.split('-');
       const sequenceSuffix = existingSlugParts[existingSlugParts.length - 1];
-      
+
       updateData.slug = `${normalizedName}-${sequenceSuffix}`;
     }
 

@@ -26,7 +26,7 @@ async function verifyAuth(request: NextRequest) {
   }
 
   const role = (payload as Record<string, unknown>).role as string;
-  
+
   if (role === 'admin') {
     return { valid: true, brokerId: (payload as Record<string, unknown>).id as string, isAdmin: true };
   }
@@ -152,8 +152,8 @@ export async function GET(request: NextRequest) {
       console.log('🔍 [SEARCH] Search query:', search);
       andConditions.push({
         OR: [
-          { title: { startsWith: search, mode: 'insensitive' } },
-          { brokers: { full_name: { startsWith: search, mode: 'insensitive' } } }
+          { title: { contains: search, mode: 'insensitive' } },
+          { brokers: { full_name: { contains: search, mode: 'insensitive' } } }
         ]
       });
     }

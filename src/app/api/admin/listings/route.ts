@@ -82,9 +82,9 @@ export async function GET(request: NextRequest) {
     // Add search filter (title, broker name, listing code)
     if (search) {
       whereClause.OR = [
-        { title: { startsWith: search, mode: 'insensitive' } },
-        { brokers: { full_name: { startsWith: search, mode: 'insensitive' } } },
-        { listing_code: { startsWith: search, mode: 'insensitive' } }
+        { title: { contains: search, mode: 'insensitive' } },
+        { brokers: { full_name: { contains: search, mode: 'insensitive' } } },
+        { listing_code: { contains: search, mode: 'insensitive' } }
       ];
     }
 
@@ -124,13 +124,13 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-orderBy: {
+      orderBy: {
         created_at: 'desc'
       }
     });
 
     const total = await prisma.listings.count({ where: whereClause });
-    
+
     console.log(`Admin found ${listings.length} total listings with filters:`, { transactionType, status });
 
     return NextResponse.json(serializeData({
