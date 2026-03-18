@@ -3,30 +3,46 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useProjectContext } from "@/src/context/ProjectContext";
-import { getProjects, deleteProject } from "@/src/app/modules/projects.service";
+import { getAdminProjects, deleteAdminProject } from "@/src/app/modules/admin.projects.service";
 import { getPropertyTypes, PropertyType } from "@/src/app/modules/property.service";
 import { deleteAttachmentsByTarget } from "@/src/app/modules/attachments.service";
+import { useAdminStore } from "@/src/store/adminStore";
+import { useNotificationStore } from "@/src/store/notificationStore";
+import { useAdminAuth } from "@/src/hooks/useAdminAuth";
 import LocationSelector from "@/src/components/feature/LocationSelector";
 
+interface Project {
+  id: string;
+  name: string;
+  project_code: string;
+  slug: string;
+  province: string;
+  ward: string;
+  area: number;
+  price: number;
+  thumbnail_url: string | null;
+  status: string;
+  created_at?: Date | string;
+  views_count?: number;
+}
+
 export default function AdminProjectList() {
-  const [projects, setProjects] = useState<Record<string, unknown>[]>([]);
+  const router = useRouter();
+  const addToast = useNotificationStore((state) => state.addToast);
+  
+  useAdminAuth(() => {
+    router.push('/admin/login');
+  });
+  
+  const [projects, setProjects] = useState<Project[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterProvince, setFilterProvince] = useState('');
   const [filterWard, setFilterWard] = useState('');
   const [filterPropertyType, setFilterPropertyType] = useState('');
   const [propertyTypes, setPropertyTypes] = useState<PropertyType[]>([]);
-  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const { setActiveProjectId } = useProjectContext();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (toast) {
-      const t = setTimeout(() => setToast(null), 3000);
-      return () => clearTimeout(t);
-    }
-  }, [toast]);
 
   useEffect(() => {
     const fetchPropertyTypes = async () => {
@@ -51,7 +67,15 @@ export default function AdminProjectList() {
       if (filterWard) params.ward = filterWard;
       if (filterPropertyType) params.property_type_id = filterPropertyType;
       
-      const json = await getProjects(params);
+      const json = await getAdminProjects(params);
+      
+      if (json.statusCode === 401) {
+        useAdminStore.getState().clearAuth();
+        addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+        router.push('/admin/login');
+        return;
+      }
+      
       if (json.success && Array.isArray(json.data)) {
         setProjects(json.data);
       }
@@ -70,17 +94,25 @@ export default function AdminProjectList() {
     if (!deleteConfirm) return;
 
     try {
-      const res = await deleteProject(deleteConfirm.id);
+      const res = await deleteAdminProject(deleteConfirm.id);
+      
+      if (res.statusCode === 401) {
+        useAdminStore.getState().clearAuth();
+        addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+        router.push('/admin/login');
+        return;
+      }
+      
       if (res.success) {
         await deleteAttachmentsByTarget(deleteConfirm.id, 'project');
         setProjects(prev => prev.filter(p => p.id !== deleteConfirm.id));
-        setToast({ message: 'Xóa dự án thành công!', type: 'success' });
+        addToast('Xóa dự án thành công!', 'success');
       } else {
-        setToast({ message: 'Xóa thất bại: ' + (res.error || 'Lỗi không xác định'), type: 'error' });
+        addToast('Xóa thất bại: ' + (res.error || 'Lỗi không xác định'), 'error');
       }
     } catch (error) {
       console.error('Error deleting project:', error);
-      setToast({ message: 'Có lỗi xảy ra khi xóa dự án', type: 'error' });
+      addToast('Có lỗi xảy ra khi xóa dự án', 'error');
     } finally {
       setDeleteConfirm(null);
     }
@@ -169,13 +201,13 @@ export default function AdminProjectList() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                {projects.map((project: any) => (
-                  <tr key={String(project.id)} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                {projects.map((project) => (
+                  <tr key={project.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                     <td className="px-6 py-3">
                       {project.thumbnail_url ? (
                         <img
-                          src={String(project.thumbnail_url)}
-                          alt={String(project.name)}
+                          src={project.thumbnail_url}
+                          alt={project.name}
                           className="w-12 h-10 rounded-sm object-cover border border-slate-300 dark:border-slate-600"
                         />
                       ) : (
@@ -257,18 +289,6 @@ export default function AdminProjectList() {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {toast && (
-        <div className={`fixed bottom-4 right-4 px-4 py-3 rounded-md shadow-lg flex items-center gap-2 transform transition-transform duration-300 translate-y-0 text-sm font-medium z-50 ${toast.type === 'success'
-            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-900/50 dark:text-emerald-300 dark:border-emerald-800'
-            : 'bg-red-100 text-red-800 border border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-800'
-            }`}>
-            <span className="material-symbols-outlined text-[18px]">
-                {toast.type === 'success' ? 'check_circle' : 'error'}
-            </span>
-            {toast.message}
         </div>
       )}
     </div>

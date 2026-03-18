@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
         // Generate new access token
         const accessToken = await signAdminAccessToken(safeAdmin);
-
+        console.log('Da refresh token')
         return NextResponse.json({
             success: true,
             data: {

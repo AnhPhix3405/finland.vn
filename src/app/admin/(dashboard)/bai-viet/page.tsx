@@ -12,6 +12,7 @@ import {
   type Listing
 } from '@/src/app/modules/admin.listings.service';
 import { useNotificationStore } from "@/src/store/notificationStore";
+import { useAdminAuth } from "@/src/hooks/useAdminAuth";
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Tất cả trạng thái' },
@@ -33,6 +34,10 @@ export default function AdminArticleList() {
   const router = useRouter();
   const { clearAuth } = useAdminStore();
   const addToast = useNotificationStore((state) => state.addToast);
+  
+  useAdminAuth(() => {
+    router.push('/admin/login');
+  });
 
   const [isHashtagModalOpen, setIsHashtagModalOpen] = useState(false);
   const [listings, setListings] = useState<Listing[]>([]);
@@ -69,7 +74,6 @@ export default function AdminArticleList() {
         search: searchTerm || undefined,
       });
 
-      // Check for 401 status code
       if (result.statusCode === 401) {
         console.log('❌ Admin token invalid, redirecting to login');
         clearAuth();

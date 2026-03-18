@@ -27,9 +27,9 @@ export async function fetchWithRetry(
   // First attempt
   let response = await fetch(url, fetchOptions);
 
-  // If 401, attempt refresh and retry
-  if (response.status === 401 && token) {
-    console.log('🔄 Token expired, attempting refresh...');
+  // If 401, attempt refresh and retry (regardless of whether token exists)
+  if (response.status === 401) {
+    console.log('🔄 Token expired or missing, attempting refresh...');
     
     try {
       // Wait 1-2 seconds before retrying to avoid jittery behavior

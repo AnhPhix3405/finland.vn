@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/lib/prisma';
 import { verifyToken } from '@/src/app/modules/auth/jwt';
+import { Prisma } from '@prisma/client';
 
 // Helper to verify admin token
 async function verifyAdminAuth(request: NextRequest) {
@@ -17,6 +18,75 @@ async function verifyAdminAuth(request: NextRequest) {
   }
 
   return { valid: true, payload };
+}
+
+// GET - Lấy danh sách dự án (Admin Only)
+export async function GET(request: NextRequest) {
+  try {
+    const authCheck = await verifyAdminAuth(request);
+    if (!authCheck.valid) {
+      return NextResponse.json(
+        { success: false, error: authCheck.error },
+        { status: 401 }
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const status = searchParams.get('status');
+    const search = searchParams.get('search');
+    const slug = searchParams.get('slug');
+    const province = searchParams.get('province');
+    const ward = searchParams.get('ward');
+    const property_type_id = searchParams.get('property_type_id');
+
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.projectsWhereInput = {};
+
+    if (status) where.status = status;
+    if (slug) where.slug = slug;
+    if (province) where.province = province;
+    if (ward) where.ward = ward;
+    if (property_type_id) where.property_type_id = property_type_id;
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { project_code: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const totalCount = await prisma.projects.count({ where });
+
+    const projects = await prisma.projects.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: [{ created_at: 'desc' }, { name: 'asc' }],
+      include: {
+        property_types: true,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: projects,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching admin projects:', error);
+    return NextResponse.json(
+      { success: false, error: 'Lỗi khi lấy danh sách dự án' },
+      { status: 500 }
+    );
+  }
 }
 
 // POST - Tạo dự án mới (Admin Only)

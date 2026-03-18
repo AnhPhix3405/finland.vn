@@ -3,11 +3,19 @@
 import { Lock, Eye, EyeOff, ShieldCheck, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useAdminStore } from "@/src/store/adminStore";
+import { useNotificationStore } from "@/src/store/notificationStore";
 import { useRouter } from "next/navigation";
+import { fetchWithRetry } from "@/src/lib/api/fetch-with-retry";
+import { useAdminAuth } from "@/src/hooks/useAdminAuth";
 
 export default function AdminChangePasswordPage() {
-  const { accessToken } = useAdminStore();
   const router = useRouter();
+  const { accessToken } = useAdminStore();
+  const addToast = useNotificationStore((state) => state.addToast);
+  
+  useAdminAuth(() => {
+    router.push('/admin/login');
+  });
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -43,23 +51,31 @@ export default function AdminChangePasswordPage() {
     }
 
     if (!accessToken) {
-      setMessage({ type: 'error', text: 'Vui lòng đăng nhập để đổi mật khẩu' });
+      setMessage({ type: 'error', text: 'Cần đăng nhập admin để đổi mật khẩu' });
       return;
     }
 
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/password', {
+      const response = await fetchWithRetry('/api/admin/password', {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           currentPassword,
           newPassword
-        })
+        }),
+        token: accessToken,
+        isAdmin: true
       });
+
+      if (response.status === 401) {
+        useAdminStore.getState().clearAuth();
+        addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+        window.location.href = '/admin/login';
+        return;
+      }
 
       const result = await response.json();
 

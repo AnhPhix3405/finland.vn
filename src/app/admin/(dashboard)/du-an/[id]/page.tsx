@@ -3,9 +3,12 @@ import Link from "next/link";
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { uploadProjectFile, deleteAttachment } from "@/src/app/modules/upload.service";
-import { getProjects, updateProject } from "@/src/app/modules/projects.service";
+import { getAdminProjects, updateAdminProject } from "@/src/app/modules/admin.projects.service";
 import { getPropertyTypes, PropertyType } from "@/src/app/modules/property.service";
+import { useAdminStore } from "@/src/store/adminStore";
+import { useNotificationStore } from "@/src/store/notificationStore";
 import { useProjectContext } from "@/src/context/ProjectContext";
+import { useAdminAuth } from "@/src/hooks/useAdminAuth";
 import RichTextEditor from "@/src/components/ui/RichTextEditor";
 import LocationSelector from "@/src/components/feature/LocationSelector";
 
@@ -26,6 +29,11 @@ export default function AdminProjectDetail() {
   const slug = params?.id as string;
   const router = useRouter();
   const { activeProjectId } = useProjectContext();
+  const addToast = useNotificationStore((state) => state.addToast);
+  
+  useAdminAuth(() => {
+    router.push('/admin/login');
+  });
 
   const [deletedImages, setDeletedImages] = useState<string[]>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
@@ -42,8 +50,6 @@ export default function AdminProjectDetail() {
   const [selectedProvince, setSelectedProvince] = useState<string>('');
   const [selectedDistrict, setSelectedDistrict] = useState<string>('');
 
-  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
-  
   useEffect(() => {
     const fetchPropertyTypes = async () => {
       setLoadingPropertyTypes(true);
@@ -61,15 +67,6 @@ export default function AdminProjectDetail() {
     fetchPropertyTypes();
   }, []);
 
-  useEffect(() => {
-    if (toast) {
-      const t = setTimeout(() => setToast(null), 3000);
-      return () => clearTimeout(t);
-    }
-  }, [toast]);
-
-
-
   // Images fetched from API
   const [images, setImages] = useState<Attachment[]>([]);
   const [originalImages, setOriginalImages] = useState<Attachment[]>([]);
@@ -83,8 +80,14 @@ export default function AdminProjectDetail() {
     if (!slug) return;
     const fetchProjectDetails = async () => {
       try {
-        const res = await getProjects({ slug });
-        if (res.success && res.data.length > 0) {
+        const res = await getAdminProjects({ slug });
+        if (res.statusCode === 401) {
+          useAdminStore.getState().clearAuth();
+          addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+          router.push('/admin/login');
+          return;
+        }
+        if (res.success && res.data && res.data.length > 0) {
           const p = res.data[0];
           if (p.id) setProjectId(p.id);
           setProjectName(p.name || '');
@@ -104,7 +107,6 @@ export default function AdminProjectDetail() {
   }, [slug]);
 
   const formatCurrencyOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Chỉ giữ lại số
     const value = e.target.value.replace(/\D/g, '');
     if (!value) {
       setProjectPrice('');
@@ -182,44 +184,44 @@ export default function AdminProjectDetail() {
 
   const handleSave = async () => {
     if (!projectId) {
-      setToast({ message: 'Không tìm thấy project ID!', type: 'error' });
+      addToast('Không tìm thấy project ID!', 'error');
       return;
     }
 
     // Validate required fields
     if (!projectName.trim()) {
-      setToast({ message: 'Tên dự án là bắt buộc', type: 'error' });
+      addToast('Tên dự án là bắt buộc', 'error');
       scrollToError('projectName');
       return;
     }
 
     if (!selectedPropertyTypeId) {
-      setToast({ message: 'Loại hình bất động sản là bắt buộc', type: 'error' });
+      addToast('Loại hình bất động sản là bắt buộc', 'error');
       scrollToError('propertyType');
       return;
     }
 
     if (!selectedProvince) {
-      setToast({ message: 'Tỉnh/Thành phố là bắt buộc', type: 'error' });
+      addToast('Tỉnh/Thành phố là bắt buộc', 'error');
       scrollToError('projectCity');
       return;
     }
 
     if (!projectArea) {
-      setToast({ message: 'Diện tích là bắt buộc', type: 'error' });
+      addToast('Diện tích là bắt buộc', 'error');
       scrollToError('projectArea');
       return;
     }
 
     if (!projectPrice) {
-      setToast({ message: 'Giá là bắt buộc', type: 'error' });
+      addToast('Giá là bắt buộc', 'error');
       scrollToError('projectPrice');
       return;
     }
 
     setIsUploading(true);
     try {
-      const updateRes = await updateProject({
+      const updateRes = await updateAdminProject({
         id: projectId,
         name: projectName,
         province: selectedProvince,
@@ -229,6 +231,13 @@ export default function AdminProjectDetail() {
         property_type_id: selectedPropertyTypeId || undefined,
         content: description,
       });
+
+      if (updateRes.statusCode === 401) {
+        useAdminStore.getState().clearAuth();
+        addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+        router.push('/admin/login');
+        return;
+      }
 
       if (!updateRes.success) {
         throw new Error(updateRes.error || 'Cập nhật database thất bại');
@@ -243,7 +252,7 @@ export default function AdminProjectDetail() {
 
         // Update thumbnail_url with first image
         if (results.length > 0 && results[0]?.secure_url) {
-          await updateProject({
+          await updateAdminProject({
             id: projectId,
             thumbnail_url: results[0].secure_url
           });
@@ -280,7 +289,7 @@ export default function AdminProjectDetail() {
         }
       }
 
-      setToast({ message: 'Lưu dự án thành công!', type: 'success' });
+      addToast('Lưu dự án thành công!', 'success');
       
       // Redirect after showing toast
       setTimeout(() => {
@@ -289,7 +298,7 @@ export default function AdminProjectDetail() {
     } catch (error: unknown) {
       console.error('Lỗi khi lưu dự án:', error);
       const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi lưu dự án!';
-      setToast({ message: errorMessage, type: 'error' });
+      addToast(errorMessage, 'error');
     } finally {
       setIsUploading(false);
     }
@@ -489,18 +498,6 @@ export default function AdminProjectDetail() {
           </form>
         </div>
       </div>
-      {/* Toast Notification */}
-      {toast && (
-        <div className={`fixed bottom-4 right-4 px-4 py-3 rounded-md shadow-lg flex items-center gap-2 transform transition-transform duration-300 translate-y-0 text-sm font-medium z-50 ${toast.type === 'success'
-          ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-900/50 dark:text-emerald-300 dark:border-emerald-800'
-          : 'bg-red-100 text-red-800 border border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-800'
-          }`}>
-          <span className="material-symbols-outlined text-[18px]">
-            {toast.type === 'success' ? 'check_circle' : 'error'}
-          </span>
-          {toast.message}
-        </div>
-      )}
     </div>
   );
 }

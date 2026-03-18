@@ -48,6 +48,8 @@ export async function POST(request: NextRequest) {
             message: 'Đăng nhập admin thành công'
         });
 
+        // response.cookies.delete('admin-refresh-token');
+
         response.cookies.set({
             name: 'admin-refresh-token',
             value: refreshToken,

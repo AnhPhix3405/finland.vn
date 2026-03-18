@@ -3,14 +3,22 @@ import Link from "next/link";
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { uploadProjectFile } from "@/src/app/modules/upload.service";
-import { createProject } from "@/src/app/modules/projects.service";
+import { createAdminProject } from "@/src/app/modules/admin.projects.service";
 import { getPropertyTypes, PropertyType } from "@/src/app/modules/property.service";
+import { useAdminStore } from "@/src/store/adminStore";
+import { useNotificationStore } from "@/src/store/notificationStore";
+import { useAdminAuth } from "@/src/hooks/useAdminAuth";
 import LocationSelector from "@/src/components/feature/LocationSelector";
 import RichTextEditor from "@/src/components/ui/RichTextEditor";
 
 export default function AdminCreateProject() {
     const router = useRouter();
     const formRef = useRef<HTMLFormElement>(null);
+    const addToast = useNotificationStore((state) => state.addToast);
+    
+    useAdminAuth(() => {
+        router.push('/admin/login');
+    });
 
     const [projectName, setProjectName] = useState<string>('');
     const [description, setDescription] = useState<string>('');
@@ -26,7 +34,6 @@ export default function AdminCreateProject() {
     const [newFiles, setNewFiles] = useState<File[]>([]);
 
     const [isUploading, setIsUploading] = useState(false);
-    const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
 
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -46,13 +53,6 @@ export default function AdminCreateProject() {
         };
         fetchPropertyTypes();
     }, []);
-
-    useEffect(() => {
-        if (toast) {
-            const t = setTimeout(() => setToast(null), 3000);
-            return () => clearTimeout(t);
-        }
-    }, [toast]);
 
     const formatCurrencyOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value.replace(/\D/g, '');
@@ -150,7 +150,7 @@ export default function AdminCreateProject() {
 
         setIsUploading(true);
         try {
-            const createRes = await createProject({
+            const createRes = await createAdminProject({
                 name: projectName,
                 province: selectedProvince,
                 ward: selectedDistrict || undefined,
@@ -159,6 +159,13 @@ export default function AdminCreateProject() {
                 property_type_id: selectedPropertyTypeId || undefined,
                 content: description,
             });
+
+            if (createRes.status === 401) {
+                useAdminStore.getState().clearAuth();
+                addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+                router.push('/admin/login');
+                return;
+            }
 
             if (!createRes.success) {
                 const errorMsg = createRes.error || 'Tạo dự án thất bại';
@@ -180,7 +187,7 @@ export default function AdminCreateProject() {
                 throw new Error(errorMsg);
             }
 
-            const newId = createRes.data.id;
+            const newId = createRes.data?.id;
 
             if (newFiles.length > 0 && newId) {
                 await Promise.all(
@@ -188,7 +195,7 @@ export default function AdminCreateProject() {
                 );
             }
 
-            setToast({ message: 'Tạo dự án thành công!', type: 'success' });
+            addToast('Tạo dự án thành công!', 'success');
 
             setTimeout(() => {
                 router.push('/admin/du-an');
@@ -197,7 +204,7 @@ export default function AdminCreateProject() {
         } catch (error: unknown) {
             console.error('Lỗi khi tạo dự án:', error);
             const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi tạo dự án!';
-            setToast({ message: errorMessage, type: 'error' });
+            addToast(errorMessage, 'error');
         } finally {
             setIsUploading(false);
         }
@@ -358,17 +365,6 @@ export default function AdminCreateProject() {
                     </form>
                 </div>
             </div>
-            {toast && (
-                <div className={`fixed bottom-4 right-4 px-4 py-3 rounded-md shadow-lg flex items-center gap-2 transform transition-transform duration-300 translate-y-0 text-sm font-medium z-50 ${toast.type === 'success'
-                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-900/50 dark:text-emerald-300 dark:border-emerald-800'
-                    : 'bg-red-100 text-red-800 border border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-800'
-                    }`}>
-                    <span className="material-symbols-outlined text-[18px]">
-                        {toast.type === 'success' ? 'check_circle' : 'error'}
-                    </span>
-                    {toast.message}
-                </div>
-            )}
         </div>
     );
 }

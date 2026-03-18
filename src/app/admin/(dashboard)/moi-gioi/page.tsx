@@ -1,8 +1,11 @@
 'use client';
 import Link from "next/link";
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAdminStore } from "@/src/store/adminStore";
 import { useNotificationStore } from "@/src/store/notificationStore";
+import { fetchWithRetry } from "@/src/lib/api/fetch-with-retry";
+import { useAdminAuth } from "@/src/hooks/useAdminAuth";
 import LocationSelector from "@/src/components/feature/LocationSelector";
 
 interface Broker {
@@ -19,8 +22,14 @@ interface Broker {
 }
 
 export default function AdminBrokerList() {
+  const router = useRouter();
   const adminToken = useAdminStore((state) => state.accessToken);
   const addToast = useNotificationStore((state) => state.addToast);
+  
+  useAdminAuth(() => {
+    router.push('/admin/login');
+  });
+  
   const [brokers, setBrokers] = useState<Broker[]>([]);
   const [loadingBrokers, setLoadingBrokers] = useState(false);
   const [operatingId, setOperatingId] = useState<string | null>(null);
@@ -65,9 +74,7 @@ export default function AdminBrokerList() {
 
   const handleToggleLock = (broker: Broker) => {
     if (!adminToken) {
-      const msg = 'Cần đăng nhập admin để thực hiện hành động này';
-      setError(msg);
-      addToast(msg, 'error');
+      router.push('/admin/login');
       return;
     }
 
@@ -85,23 +92,24 @@ export default function AdminBrokerList() {
   };
 
   const performToggleLock = async (broker: Broker, action: string) => {
-    if (!adminToken) {
-      const msg = 'Cần đăng nhập admin để thực hiện hành động này';
-      setError(msg);
-      addToast(msg, 'error');
-      return;
-    }
-
     setOperatingId(broker.id);
     try {
-      const res = await fetch(`/api/admin/brokers/${broker.id}`, {
+      const res = await fetchWithRetry(`/api/admin/brokers/${broker.id}`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminToken}`
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ action })
+        body: JSON.stringify({ action }),
+        token: adminToken || undefined,
+        isAdmin: true
       });
+
+      if (res.status === 401) {
+        useAdminStore.getState().clearAuth();
+        addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+        router.push('/admin/login');
+        return;
+      }
 
       const result = await res.json();
 
@@ -129,9 +137,7 @@ export default function AdminBrokerList() {
 
   const handleDeleteBroker = (broker: Broker) => {
     if (!adminToken) {
-      const msg = 'Cần đăng nhập admin để thực hiện hành động này';
-      setError(msg);
-      addToast(msg, 'error');
+      router.push('/admin/login');
       return;
     }
 
@@ -146,21 +152,20 @@ export default function AdminBrokerList() {
   };
 
   const performDeleteBroker = async (broker: Broker) => {
-    if (!adminToken) {
-      const msg = 'Cần đăng nhập admin để thực hiện hành động này';
-      setError(msg);
-      addToast(msg, 'error');
-      return;
-    }
-
     setOperatingId(broker.id);
     try {
-      const res = await fetch(`/api/admin/brokers/${broker.id}`, {
+      const res = await fetchWithRetry(`/api/admin/brokers/${broker.id}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${adminToken}`
-        }
+        token: adminToken || undefined,
+        isAdmin: true
       });
+
+      if (res.status === 401) {
+        useAdminStore.getState().clearAuth();
+        addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+        router.push('/admin/login');
+        return;
+      }
 
       const result = await res.json();
 

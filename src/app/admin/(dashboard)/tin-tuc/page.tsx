@@ -2,8 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAdminStore } from "@/src/store/adminStore";
 import { useNotificationStore } from "@/src/store/notificationStore";
+import { fetchWithRetry } from "@/src/lib/api/fetch-with-retry";
+import { useAdminAuth } from "@/src/hooks/useAdminAuth";
 
 interface NewsArticle {
   id: string;
@@ -16,8 +19,14 @@ interface NewsArticle {
 }
 
 export default function AdminNewsListPage() {
+  const router = useRouter();
   const adminToken = useAdminStore((state) => state.accessToken);
   const addToast = useNotificationStore((state) => state.addToast);
+  
+  useAdminAuth(() => {
+    router.push('/admin/login');
+  });
+  
   const [news, setNews] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,20 +45,20 @@ export default function AdminNewsListPage() {
   }, []);
 
   const fetchNews = async () => {
-    if (!adminToken) {
-      setError('Cần đăng nhập admin để xem tin tức');
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/admin/news', {
-        headers: {
-          'Authorization': `Bearer ${adminToken}`
-        }
+      const res = await fetchWithRetry('/api/admin/news', {
+        token: adminToken || undefined,
+        isAdmin: true
       });
+
+      if (res.status === 401) {
+        useAdminStore.getState().clearAuth();
+        addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+        router.push('/admin/login');
+        return;
+      }
 
       const result = await res.json();
 
@@ -69,23 +78,12 @@ export default function AdminNewsListPage() {
 
   useEffect(() => {
     if (!mounted) return;
-    
-    // Only show error if adminToken is confirmed null after mounting
-    if (!adminToken) {
-      setError('Cần đăng nhập admin để xem tin tức');
-      setLoading(false);
-      return;
-    }
-
-    setError(null);
     fetchNews();
   }, [adminToken, mounted]);
 
   const handleDeleteNews = async (newsItem: NewsArticle) => {
     if (!adminToken) {
-      const msg = 'Cần đăng nhập admin để xóa tin tức';
-      setError(msg);
-      addToast(msg, 'error');
+      router.push('/admin/login');
       return;
     }
 

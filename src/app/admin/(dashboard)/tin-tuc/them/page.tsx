@@ -7,6 +7,7 @@ import { useAdminStore } from "@/src/store/adminStore";
 import { useNotificationStore } from "@/src/store/notificationStore";
 import { uploadNewsThumbnail } from "@/src/app/modules/upload.service";
 import { fetchWithRetry } from "@/src/lib/api/fetch-with-retry";
+import { useAdminAuth } from "@/src/hooks/useAdminAuth";
 import RichTextEditor from '@/src/components/ui/RichTextEditor';
 
 interface Tag {
@@ -19,6 +20,10 @@ export default function AdminAddNewsPage() {
   const router = useRouter();
   const adminToken = useAdminStore((state) => state.accessToken);
   const addToast = useNotificationStore((state) => state.addToast);
+  
+  useAdminAuth(() => {
+    router.push('/admin/login');
+  });
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [content, setContent] = useState('');
@@ -73,7 +78,7 @@ export default function AdminAddNewsPage() {
     e.preventDefault();
     
     if (!adminToken) {
-      setError('Cần đăng nhập admin để tạo tin tức');
+      router.push('/admin/login');
       return;
     }
 
