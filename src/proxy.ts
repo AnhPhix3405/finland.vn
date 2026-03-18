@@ -17,7 +17,7 @@ export function proxy(request: NextRequest) {
     }
   }
 
-  const userAuthRoutes = ['/tao-bai-dang', '/tai-khoan'];
+  const userAuthRoutes = ['/tao-bai-dang', '/tai-khoan', '/bai-viet'];
   const isUserAuthRoute = userAuthRoutes.some(route => pathname.startsWith(route));
 
   if (isUserAuthRoute) {
@@ -34,5 +34,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/admin', '/tao-bai-dang', '/tai-khoan']
+  matcher: ['/admin/:path*', '/admin', '/tao-bai-dang', '/tai-khoan', '/bai-viet/:path*']
 };
