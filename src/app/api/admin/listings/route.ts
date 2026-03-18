@@ -79,11 +79,12 @@ export async function GET(request: NextRequest) {
       whereClause.ward = { contains: ward, mode: 'insensitive' };
     }
 
-    // Add search filter (broker name or listing code)
+    // Add search filter (title, broker name, listing code)
     if (search) {
       whereClause.OR = [
-        { brokers: { full_name: { contains: search, mode: 'insensitive' } } },
-        { listing_code: { contains: search, mode: 'insensitive' } }
+        { title: { startsWith: search, mode: 'insensitive' } },
+        { brokers: { full_name: { startsWith: search, mode: 'insensitive' } } },
+        { listing_code: { startsWith: search, mode: 'insensitive' } }
       ];
     }
 

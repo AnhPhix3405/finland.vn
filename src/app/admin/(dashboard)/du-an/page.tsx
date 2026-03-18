@@ -30,7 +30,7 @@ export default function AdminProjectList() {
   const router = useRouter();
   const addToast = useNotificationStore((state) => state.addToast);
   const { setActiveProjectId } = useProjectContext();
-  
+
   const { isLoading } = useAdminAuth(() => {
     router.push('/admin/login');
   });
@@ -43,7 +43,7 @@ export default function AdminProjectList() {
   const [propertyTypes, setPropertyTypes] = useState<PropertyType[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [loading, setLoading] = useState(false);
-  
+
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -62,16 +62,16 @@ export default function AdminProjectList() {
       if (filterProvince) params.province = filterProvince;
       if (filterWard) params.ward = filterWard;
       if (filterPropertyType) params.property_type_id = filterPropertyType;
-      
+
       const json = await getAdminProjects(params);
-      
+
       if (json.statusCode === 401) {
         useAdminStore.getState().clearAuth();
         addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
         router.push('/admin/login');
         return;
       }
-      
+
       if (json.success && Array.isArray(json.data)) {
         setProjects(json.data);
         if (json.pagination) {
@@ -125,14 +125,14 @@ export default function AdminProjectList() {
 
     try {
       const res = await deleteAdminProject(deleteConfirm.id);
-      
+
       if (res.statusCode === 401) {
         useAdminStore.getState().clearAuth();
         addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
         router.push('/admin/login');
         return;
       }
-      
+
       if (res.success) {
         await deleteAttachmentsByTarget(deleteConfirm.id, 'project');
         setProjects(prev => prev.filter(p => p.id !== deleteConfirm.id));
@@ -156,8 +156,8 @@ export default function AdminProjectList() {
             <div className="relative">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
               <input
-                className="pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white w-full sm:w-48 placeholder-slate-400"
-                placeholder="Tìm kiếm..."
+                className="pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white w-full sm:w-64 placeholder-slate-400"
+                placeholder="Tìm theo tiêu đề, mã dự án..."
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -307,11 +307,10 @@ export default function AdminProjectList() {
                 <button
                   key={pageNum}
                   onClick={() => handlePageChange(pageNum)}
-                  className={`px-3 py-1.5 min-w-[32px] rounded-sm text-sm font-medium flex items-center justify-center transition-colors ${
-                    pagination.page === pageNum
+                  className={`px-3 py-1.5 min-w-[32px] rounded-sm text-sm font-medium flex items-center justify-center transition-colors ${pagination.page === pageNum
                       ? 'bg-emerald-600 text-white'
                       : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
-                  }`}
+                    }`}
                 >
                   {pageNum}
                 </button>
