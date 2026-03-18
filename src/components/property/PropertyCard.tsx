@@ -21,16 +21,26 @@ export interface PropertyCardProps {
   status?: string | null;
   isBookmarked?: boolean;
   onBookmarkToggle?: (isBookmarked: boolean) => void;
+  showBookmark?: boolean;
 }
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
-  "Đang hiển thị": { label: "Đang hiển thị", color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
-  "Đang chờ duyệt": { label: "Chờ duyệt", color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-900/20" },
+  "Đang hiển thị": { label: "Đang hiển thị", color: "text-emerald-700", bg: "bg-emerald-100 dark:bg-emerald-900/40" },
+  "Đang chờ duyệt": { label: "Chờ duyệt", color: "text-amber-700", bg: "bg-amber-100 dark:bg-amber-900/40" },
   "Đã ẩn": { label: "Đã ẩn", color: "text-slate-600", bg: "bg-slate-100 dark:bg-slate-800" },
-  "Hết hạn": { label: "Hết hạn", color: "text-orange-600", bg: "bg-orange-50 dark:bg-orange-900/20" },
-  "Đã bán": { label: "Đã bán", color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-900/20" },
-  "Đã xong": { label: "Đã xong", color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-900/20" },
-  "Bị từ chối": { label: "Từ chối", color: "text-red-600", bg: "bg-red-50 dark:bg-red-900/20" },
+  "Hết hạn": { label: "Hết hạn", color: "text-orange-700", bg: "bg-orange-100 dark:bg-orange-900/40" },
+  "Đã bán": { label: "Đã bán", color: "text-blue-700", bg: "bg-blue-100 dark:bg-blue-900/40" },
+  "Đã xong": { label: "Đã xong", color: "text-emerald-700", bg: "bg-emerald-100 dark:bg-emerald-900/40" },
+  "Bị từ chối": { label: "Từ chối", color: "text-red-700", bg: "bg-red-100 dark:bg-red-900/40" },
+};
+
+const getStatusStyle = (status: string) => {
+  const config = statusConfig[status];
+  if (config) {
+    return config;
+  }
+  // Default style for unknown statuses (like "sắp mở bán", "đang mở bán", etc.)
+  return { label: status, color: "text-emerald-700", bg: "bg-emerald-100 dark:bg-emerald-900/40" };
 };
 
 export function PropertyCard({
@@ -46,7 +56,8 @@ export function PropertyCard({
   type = "mua-ban",
   status = null,
   isBookmarked = false,
-  onBookmarkToggle
+  onBookmarkToggle,
+  showBookmark = true
 }: PropertyCardProps) {
   const [bookmarked, setBookmarked] = useState(isBookmarked);
   const [isLoading, setIsLoading] = useState(false);
@@ -93,24 +104,26 @@ export function PropertyCard({
           role="img"
           aria-label={title}
         />
-        <button
-          onClick={handleBookmarkClick}
-          disabled={isLoading}
-          className="absolute top-3 right-3 bg-white/80 dark:bg-slate-900/50 p-1.5 rounded-full hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-colors group disabled:opacity-50"
-          aria-label={bookmarked ? "Bỏ lưu tin bất động sản" : "Lưu tin bất động sản"}
-        >
-          <Heart 
-            className={`w-5 h-5 transition-all ${
-              bookmarked 
-                ? 'fill-red-500 text-red-500' 
-                : 'text-slate-400 group-hover:text-red-500'
-            }`} 
-            aria-hidden="true" 
-          />
-        </button>
+        {showBookmark && (
+          <button
+            onClick={handleBookmarkClick}
+            disabled={isLoading}
+            className="absolute top-3 right-3 bg-white/80 dark:bg-slate-900/50 p-1.5 rounded-full hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-colors group disabled:opacity-50"
+            aria-label={bookmarked ? "Bỏ lưu tin bất động sản" : "Lưu tin bất động sản"}
+          >
+            <Heart 
+              className={`w-5 h-5 transition-all ${
+                bookmarked 
+                  ? 'fill-red-500 text-red-500' 
+                  : 'text-slate-400 group-hover:text-red-500'
+              }`} 
+              aria-hidden="true" 
+            />
+          </button>
+        )}
         {status && status !== "Đang hiển thị" && (
-          <div className={`absolute top-2 left-2 text-[10px] px-2 py-1 rounded-sm font-bold ${statusConfig[status]?.bg || 'bg-slate-100'} ${statusConfig[status]?.color || 'text-slate-600'}`}>
-            {statusConfig[status]?.label || status}
+          <div className={`absolute top-2 left-2 text-xs px-3 py-1.5 rounded-sm font-bold ${getStatusStyle(status).bg} ${getStatusStyle(status).color}`}>
+            {getStatusStyle(status).label}
           </div>
         )}
         {isPriority && (

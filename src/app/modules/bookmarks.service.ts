@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/src/store/authStore';
+import { fetchWithRetry } from '@/src/lib/api/fetch-with-retry';
 
 export const getBookmarkedListings = async (page: number = 1, limit: number = 20) => {
   try {
@@ -13,21 +14,16 @@ export const getBookmarkedListings = async (page: number = 1, limit: number = 20
       };
     }
 
-    const response = await fetch(`/api/bookmarks?page=${page}&limit=${limit}`, {
+    const response = await fetchWithRetry(`/api/bookmarks?page=${page}&limit=${limit}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
-      }
+      },
+      token: accessToken,
+      isAdmin: false,
     });
 
     const result = await response.json();
-
-    console.log('getBookmarkedListings response:', {
-      status: response.status,
-      totalData: result.data?.length || 0,
-      pagination: result.pagination
-    });
 
     if (!response.ok) {
       return {
@@ -61,21 +57,17 @@ export const toggleBookmark = async (listing_id: string) => {
       };
     }
 
-    const response = await fetch('/api/bookmarks', {
+    const response = await fetchWithRetry('/api/bookmarks', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
       },
-      body: JSON.stringify({ listing_id })
+      body: JSON.stringify({ listing_id }),
+      token: accessToken,
+      isAdmin: false,
     });
 
     const result = await response.json();
-    
-    console.log('toggleBookmark response:', {
-      status: response.status,
-      result: result
-    });
 
     if (!response.ok) {
       return {

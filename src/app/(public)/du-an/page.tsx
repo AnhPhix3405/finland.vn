@@ -58,7 +58,7 @@ export default function ProjectList() {
           tags: [],
           slug: project.slug,
           type: "du-an",
-          status: project.status as string | undefined,
+          status: project.status ? (project.status as string).charAt(0).toUpperCase() + (project.status as string).slice(1) : undefined,
           property_type: project.property_types ? (project.property_types as Record<string, unknown>).name : undefined,
         }));
 
@@ -144,6 +144,7 @@ export default function ProjectList() {
                     slug={cardData.slug as string | undefined}
                     type="mua-ban"
                     status={cardData.status as string | undefined}
+                    showBookmark={false}
                   />
                 );
               })}
