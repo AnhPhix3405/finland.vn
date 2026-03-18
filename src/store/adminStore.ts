@@ -29,7 +29,8 @@ export const useAdminStore = create<AdminState>()(
                 }),
             updateAccessToken: (accessToken) =>
                 set({
-                    accessToken
+                    accessToken,
+                    isAuthenticated: true
                 }),
             setHydrated: (hydrated) =>
                 set({

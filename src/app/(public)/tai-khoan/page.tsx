@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/src/store/authStore";
 import { useUserStore } from "@/src/store/userStore";
@@ -10,27 +10,19 @@ import ProfileSection from "../../../components/account/ProfileSection";
 import MyListingsSection from "../../../components/account/MyListingsSection";
 import SavedListingsSection from "../../../components/account/SavedListingsSection";
 import ChangePasswordSection from "../../../components/account/ChangePasswordSection";
+import { useUserAuth } from "@/src/hooks/useUserAuth";
 
 export default function AccountPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
   const { user } = useUserStore();
-  const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<AccountTab>("profile");
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
+  const { isLoading, isAuthenticated: isAuthed } = useUserAuth(() => {
+    router.push('/dang-nhap');
+  });
 
-  useEffect(() => {
-    if (!mounted) return;
-    if (!isAuthenticated) {
-      router.push("/dang-nhap");
-    }
-  }, [mounted, isAuthenticated, router]);
-
-  if (!mounted || !isAuthenticated) {
+  if (isLoading || !isAuthed) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-slate-500">Đang tải...</div>

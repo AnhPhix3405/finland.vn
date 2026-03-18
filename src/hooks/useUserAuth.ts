@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { useAdminStore } from '@/src/store/adminStore';
+import { useAuthStore } from '@/src/store/authStore';
 
-export function useAdminAuth(onAuthFailed?: () => void) {
+export function useUserAuth(onAuthFailed?: () => void) {
   const initialized = useRef(false);
   const [isLoading, setIsLoading] = useState(true);
-  const adminToken = useAdminStore((state) => state.accessToken);
-  const updateAccessToken = useAdminStore((state) => state.updateAccessToken);
-  const clearAuth = useAdminStore((state) => state.clearAuth);
+  const userToken = useAuthStore((state) => state.accessToken);
+  const updateAccessToken = useAuthStore((state) => state.updateAccessToken);
+  const clearAuth = useAuthStore((state) => state.clearAuth);
 
   useEffect(() => {
     if (initialized.current) return;
@@ -15,13 +15,13 @@ export function useAdminAuth(onAuthFailed?: () => void) {
     const initAuth = async () => {
       setIsLoading(true);
       
-      if (adminToken) {
+      if (userToken) {
         setIsLoading(false);
         return;
       }
 
       try {
-        const refreshResponse = await fetch('/api/admin/refresh-token', {
+        const refreshResponse = await fetch('/api/auth/refresh-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
         });
@@ -29,7 +29,7 @@ export function useAdminAuth(onAuthFailed?: () => void) {
         const result = await refreshResponse.json();
         
         if (result.success && result.data?.access_token) {
-          console.log('✓ Auto-refreshed admin token on mount');
+          console.log('✓ Auto-refreshed user token on mount');
           updateAccessToken(result.data.access_token);
         } else {
           console.log('❌ Auto-refresh failed, redirecting to login');
@@ -37,7 +37,7 @@ export function useAdminAuth(onAuthFailed?: () => void) {
           onAuthFailed?.();
         }
       } catch (error) {
-        console.error('Error during admin auth init:', error);
+        console.error('Error during user auth init:', error);
         clearAuth();
         onAuthFailed?.();
       } finally {
@@ -46,7 +46,7 @@ export function useAdminAuth(onAuthFailed?: () => void) {
     };
 
     initAuth();
-  }, [adminToken, updateAccessToken, clearAuth, onAuthFailed]);
+  }, [userToken, updateAccessToken, clearAuth, onAuthFailed]);
 
-  return { adminToken, isAuthenticated: !!adminToken, isLoading };
+  return { userToken, isAuthenticated: !!userToken, isLoading };
 }

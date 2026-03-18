@@ -48,11 +48,19 @@ export async function POST(request: NextRequest) {
             message: 'Đăng nhập thành công'
         });
 
+        // response.cookies.set({
+        //     name: 'refresh-token',
+        //     value: refreshToken,
+        //     httpOnly: true,
+        //     maxAge: 30 * 24 * 60 * 60, // 30 days
+        //     sameSite: 'strict',
+        //     path: '/',
+        // });
         response.cookies.set({
             name: 'refresh-token',
             value: refreshToken,
             httpOnly: true,
-            maxAge: 30 * 24 * 60 * 60, // 30 days
+            maxAge: 60,
             sameSite: 'strict',
             path: '/',
         });

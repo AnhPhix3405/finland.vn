@@ -29,7 +29,8 @@ export const useAuthStore = create<AuthState>()(
                 }),
             updateAccessToken: (accessToken) =>
                 set({
-                    accessToken
+                    accessToken,
+                    isAuthenticated: true
                 }),
             setHydrated: (hydrated) =>
                 set({

@@ -4,9 +4,22 @@ import { ListingForm } from "../../../components/property/ListingForm";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { useUserAuth } from "@/src/hooks/useUserAuth";
 
 export default function TaoBaiDangPage() {
   const router = useRouter();
+
+  const { isLoading } = useUserAuth(() => {
+    router.push('/dang-nhap');
+  });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-slate-500">Đang tải...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-8 md:py-12">

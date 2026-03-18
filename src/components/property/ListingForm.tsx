@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import UserRichTextEditor from "../ui/UserRichTextEditor";
 import { Camera, Plus, X, Check, Video } from "lucide-react";
 import { createListing } from "@/src/app/modules/listings.service";
@@ -17,6 +18,7 @@ interface ListingFormProps {
 }
 
 export function ListingForm({ onSuccess }: ListingFormProps) {
+  const router = useRouter();
   const { user } = useUserStore();
   const accessToken = useAuthStore((state) => state.accessToken);
   const addToast = useNotificationStore((state) => state.addToast);
@@ -353,6 +355,13 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
 
       if (!listingResult.success) {
         const errorMsg = listingResult.error || "Có lỗi xảy ra";
+        
+        if (errorMsg === "Phiên đăng nhập hết hạn") {
+          useAuthStore.getState().clearAuth();
+          addToast("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại", "error");
+          router.push('/dang-nhap');
+          return;
+        }
         
         // Check if it's a validation error (missing required fields)
         if (errorMsg.toLowerCase().includes("thiếu") || errorMsg.toLowerCase().includes("bắt buộc") || errorMsg.toLowerCase().includes("required") || errorMsg.toLowerCase().includes("missing")) {

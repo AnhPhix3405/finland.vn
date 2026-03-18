@@ -1,14 +1,14 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Tag } from './tags.service.client';
 import { fetchWithRetry } from '@/src/lib/api/fetch-with-retry';
+import { useAuthStore } from '@/src/store/authStore';
 
 export interface CreateListingData {
   broker_id: string;
   title: string;
-  // slug is now generated on server side
   description: string;
-  transaction_type_id?: string; // Changed from transaction_type to transaction_type_id  
-  property_type_id?: string; // Changed from property_type to property_type_id
+  transaction_type_id?: string;
+  property_type_id?: string;
   province: string;
   ward: string;
   address?: string;
@@ -19,9 +19,9 @@ export interface CreateListingData {
   direction?: string;
   visibility?: boolean;
   status?: string;
-  tags?: string[]; // Array of tag names
-  contact_name?: string; // Override contact name, fallback to broker full_name
-  contact_phone?: string; // Override contact phone, fallback to broker phone
+  tags?: string[];
+  contact_name?: string;
+  contact_phone?: string;
   floor_count?: number;
   bedroom_count?: number;
 }
@@ -31,14 +31,12 @@ export interface ListingResponse {
   success: boolean;
   message?: string;
   error?: string;
-  tags?: Tag[]; // Include processed tags in response
+  tags?: Tag[];
 }
 
-// Temporary method to create listing with UUID (không call API thật)
 export function createListingLocal(data: Partial<CreateListingData>): ListingResponse {
   const listingId = uuidv4();
 
-  // Validate required fields if needed
   if (!data.title || !data.description) {
     return {
       id: "",
@@ -58,14 +56,26 @@ export function createListingLocal(data: Partial<CreateListingData>): ListingRes
 }
 
 export async function createListing(data: CreateListingData): Promise<ListingResponse> {
+  const userToken = useAuthStore.getState().accessToken;
+  
   try {
-    const response = await fetch('/api/listings', {
+    const response = await fetchWithRetry('/api/listings', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
+      token: userToken || undefined,
+      isAdmin: false,
     });
+
+    if (response.status === 401) {
+      return {
+        id: "",
+        success: false,
+        error: "Phiên đăng nhập hết hạn"
+      };
+    }
 
     const result = await response.json();
     if (result.success) {
@@ -73,7 +83,7 @@ export async function createListing(data: CreateListingData): Promise<ListingRes
         id: result.data.id,
         success: true,
         message: result.message,
-        tags: result.tags || [] // Include tags in response
+        tags: result.tags || []
       };
     } else {
       return {

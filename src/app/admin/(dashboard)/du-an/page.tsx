@@ -29,11 +29,12 @@ interface Project {
 export default function AdminProjectList() {
   const router = useRouter();
   const addToast = useNotificationStore((state) => state.addToast);
+  const { setActiveProjectId } = useProjectContext();
   
-  useAdminAuth(() => {
+  const { isLoading } = useAdminAuth(() => {
     router.push('/admin/login');
   });
-  
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterProvince, setFilterProvince] = useState('');
@@ -42,7 +43,6 @@ export default function AdminProjectList() {
   const [propertyTypes, setPropertyTypes] = useState<PropertyType[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [loading, setLoading] = useState(false);
-  const { setActiveProjectId } = useProjectContext();
 
   useEffect(() => {
     const fetchPropertyTypes = async () => {
@@ -55,10 +55,48 @@ export default function AdminProjectList() {
         console.error('Error fetching property types:', error);
       }
     };
+
+    const fetchProjects = async () => {
+      setLoading(true);
+      try {
+        const params: Record<string, string> = {};
+        if (searchTerm) params.search = searchTerm;
+        if (filterProvince) params.province = filterProvince;
+        if (filterWard) params.ward = filterWard;
+        if (filterPropertyType) params.property_type_id = filterPropertyType;
+        
+        const json = await getAdminProjects(params);
+        
+        if (json.statusCode === 401) {
+          useAdminStore.getState().clearAuth();
+          addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+          router.push('/admin/login');
+          return;
+        }
+        
+        if (json.success && Array.isArray(json.data)) {
+          setProjects(json.data);
+        }
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchPropertyTypes();
+    fetchProjects();
   }, []);
 
-  const fetchProjects = async () => {
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-slate-500">Đang tải...</div>
+      </div>
+    );
+  }
+
+  const handleSearch = async () => {
     setLoading(true);
     try {
       const params: Record<string, string> = {};
@@ -86,10 +124,6 @@ export default function AdminProjectList() {
     }
   };
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
   const handleDelete = async () => {
     if (!deleteConfirm) return;
 
@@ -116,10 +150,6 @@ export default function AdminProjectList() {
     } finally {
       setDeleteConfirm(null);
     }
-  };
-
-  const handleSearch = () => {
-    fetchProjects();
   };
 
   return (
@@ -168,7 +198,7 @@ export default function AdminProjectList() {
               Tìm
             </button>
             <button
-              onClick={() => fetchProjects()}
+              onClick={() => handleSearch()}
               disabled={loading}
               className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-sm text-sm font-medium flex items-center gap-1 transition-colors disabled:opacity-50"
               title="Làm mới"
