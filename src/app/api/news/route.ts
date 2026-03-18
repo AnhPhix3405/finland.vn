@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
     const whereClause: Record<string, unknown> = {};
     if (search) {
-      whereClause.title = { startsWith: search, mode: 'insensitive' };
+      whereClause.title = { contains: search, mode: 'insensitive' };
     }
 
     // Get all news with tags
