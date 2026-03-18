@@ -112,6 +112,14 @@ export default function BrokerList() {
             >
               Tìm
             </button>
+            <button
+              onClick={() => fetchBrokers(searchQuery, province, ward)}
+              disabled={loading}
+              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm rounded-sm transition-colors disabled:opacity-50"
+              title="Làm mới"
+            >
+              <span className={`material-symbols-outlined text-lg ${loading ? 'animate-spin' : ''}`}>refresh</span>
+            </button>
           </div>
 
           <div className="flex flex-row ml-auto">
