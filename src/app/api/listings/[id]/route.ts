@@ -53,6 +53,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const startTime = Date.now();
   try {
     const { id } = await params;
 
@@ -65,7 +66,6 @@ export async function GET(
 
     // Get current broker from token if logged in
     let currentBrokerId: string | null = null;
-    let currentRole: string | null = null;
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
 
@@ -74,9 +74,9 @@ export async function GET(
         const payload = await verifyToken(token);
         if (payload && (payload as Record<string, unknown>).id) {
           currentBrokerId = (payload as Record<string, unknown>).id as string;
-          currentRole = (payload as Record<string, unknown>).role as string;
         }
       } catch (err) {
+        // Token invalid or expired, continue without broker context
         console.error('Token verification failed:', err);
       }
     }
@@ -87,6 +87,7 @@ export async function GET(
     // Check if it's a UUID (ID) or slug
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
 
+    const dbStartTime = Date.now();
     if (isUUID) {
       // Find by ID
       listing = await prisma.listings.findUnique({
@@ -172,34 +173,28 @@ export async function GET(
       );
     }
 
-    console.log('current broker id', currentBrokerId)
-    console.log('current role', currentRole)
-    console.log('listing broker id', listing.broker_id)
-    // If user is logged in but NOT the owner → return 404
-    if (currentBrokerId) {
-      if (currentRole !== 'admin' && listing.broker_id !== currentBrokerId) {
-        return NextResponse.json(
-          { success: false, error: 'Bài đăng không tồn tại' },
-          { status: 404 }
-        );
-      }
+    // Increment views_count
+    try {
+      await prisma.listings.update({
+        where: { id: listing.id },
+        data: { views_count: { increment: 1 } }
+      });
+    } catch (err) {
+      console.error('Error incrementing views_count:', err);
     }
 
-    // Increment views_count (only for public listings)
+    // Only show approved listings for public access
     const publicStatuses = ['Đang hiển thị', 'Đã bán', 'Đã xong'];
-    if (publicStatuses.includes(listing.status || '')) {
-      try {
-        await prisma.listings.update({
-          where: { id: listing.id },
-          data: { views_count: { increment: 1 } }
-        });
-      } catch (err) {
-        console.error('Error incrementing views_count:', err);
-      }
+    if (!publicStatuses.includes(listing.status || '')) {
+      return NextResponse.json(
+        { success: false, error: 'Listing not available' },
+        { status: 404 }
+      );
     }
 
     // Check if current broker has bookmarked this listing
     let isBookmarked = false;
+    const bookmarkStartTime = Date.now();
     if (currentBrokerId) {
       const bookmark = await prisma.bookmarks.findFirst({
         where: {
@@ -208,7 +203,19 @@ export async function GET(
         }
       });
       isBookmarked = !!bookmark;
+
+      console.log('GET /api/listings/[id] - Checking bookmark:', {
+        brokerId: currentBrokerId,
+        listingId: listing.id,
+        isBookmarked: isBookmarked,
+        bookmarkQueryTime: Date.now() - bookmarkStartTime
+      });
+    } else {
+      console.log('GET /api/listings/[id] - No broker logged in, isBookmarked:', false);
     }
+
+    const totalTime = Date.now() - startTime;
+    console.log(`GET /api/listings/[id] - Total time: ${totalTime}ms (DB: ${Date.now() - dbStartTime}ms)`);
 
     return NextResponse.json(serializeData({
       success: true,
@@ -391,4 +398,3 @@ export async function PATCH(
     );
   }
 }
-
