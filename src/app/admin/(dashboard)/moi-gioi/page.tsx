@@ -316,14 +316,24 @@ export default function AdminBrokerList() {
               />
             </div>
           </div>
-          <button
-            onClick={() => fetchBrokers()}
-            disabled={loadingBrokers}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-sm text-sm font-medium flex items-center gap-2 disabled:opacity-50"
-          >
-            <span className="material-symbols-outlined text-lg">filter_list</span>
-            Lọc
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => fetchBrokers()}
+              disabled={loadingBrokers}
+              className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-3 py-2 rounded-sm text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+              title="Làm mới"
+            >
+              <span className={`material-symbols-outlined text-lg ${loadingBrokers ? 'animate-spin' : ''}`}>refresh</span>
+            </button>
+            <button
+              onClick={() => fetchBrokers()}
+              disabled={loadingBrokers}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-sm text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-lg">filter_list</span>
+              Lọc
+            </button>
+          </div>
 
         </div>
 
