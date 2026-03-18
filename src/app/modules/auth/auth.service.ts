@@ -81,6 +81,7 @@ export const refreshTokenBroker = async () => {
 export const logoutBroker = () => {
     useAuthStore.getState().clearAuth();
     useUserStore.getState().clearUser();
+    document.cookie = 'refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 };
 
 // Admin Authentication Functions

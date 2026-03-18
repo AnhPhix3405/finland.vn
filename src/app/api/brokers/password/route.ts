@@ -3,24 +3,48 @@ import { prisma } from '@/src/lib/prisma';
 import { verifyToken } from '@/src/app/modules/auth/jwt';
 import { comparePassword, hashPassword } from '@/src/app/modules/auth/passwordHasher';
 
+async function verifyAuth(request: NextRequest) {
+  const authHeader = request.headers.get('authorization');
+  const token = authHeader?.replace('Bearer ', '');
+
+  if (!token) {
+    return { valid: false, error: 'Token không tồn tại', status: 401 };
+  }
+
+  const payload = await verifyToken(token);
+  if (!payload || !payload.id) {
+    return { valid: false, error: 'Token không hợp lệ', status: 401 };
+  }
+
+  const role = (payload as Record<string, unknown>).role as string;
+  
+  if (role === 'admin') {
+    return { valid: true, brokerId: payload.id as string, isAdmin: true };
+  }
+
+  const brokerId = payload.id as string;
+
+  const broker = await prisma.brokers.findUnique({
+    where: { id: brokerId },
+    select: { is_active: true }
+  });
+
+  if (!broker) {
+    return { valid: false, error: 'Token không hợp lệ', status: 401 };
+  }
+
+  if (!broker.is_active) {
+    return { valid: false, error: 'Tài khoản của bạn đã bị khóa', status: 403 };
+  }
+
+  return { valid: true, brokerId };
+}
+
 export async function PATCH(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(
-        { success: false, error: 'Token không tồn tại' },
-        { status: 401 }
-      );
-    }
-
-    const payload = await verifyToken(token);
-    if (!payload || !payload.id) {
-      return NextResponse.json(
-        { success: false, error: 'Token không hợp lệ' },
-        { status: 401 }
-      );
+    const auth = await verifyAuth(request);
+    if (!auth.valid) {
+      return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
     }
 
     const body = await request.json();
@@ -40,9 +64,8 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Find broker
     const broker = await prisma.brokers.findUnique({
-      where: { id: payload.id as string }
+      where: { id: auth.brokerId }
     });
 
     if (!broker) {
@@ -52,7 +75,6 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // If broker has password, verify current password
     if (broker.password_hash) {
       const isMatch = await comparePassword(currentPassword, broker.password_hash);
       if (!isMatch) {
@@ -62,17 +84,15 @@ export async function PATCH(request: NextRequest) {
         );
       }
     } else {
-      // Broker registered via Google, no password set yet
       return NextResponse.json(
         { success: false, error: 'Tài khoản này đăng nhập bằng Google, vui lòng đặt mật khẩu trong cài đặt tài khoản' },
         { status: 400 }
       );
     }
 
-    // Hash new password and update
     const hashedPassword = await hashPassword(newPassword);
     await prisma.brokers.update({
-      where: { id: payload.id as string },
+      where: { id: auth.brokerId },
       data: { password_hash: hashedPassword }
     });
 

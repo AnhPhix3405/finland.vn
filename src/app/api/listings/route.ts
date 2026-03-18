@@ -12,6 +12,43 @@ function serializeData(data: Record<string, unknown> | unknown[]) {
   );
 }
 
+async function verifyAuth(request: NextRequest) {
+  const authHeader = request.headers.get('authorization');
+  const token = authHeader?.replace('Bearer ', '');
+
+  if (!token) {
+    return { valid: false, error: 'Vui lòng đăng nhập', status: 401 };
+  }
+
+  const payload = await verifyToken(token);
+  if (!payload || !(payload as Record<string, unknown>).id) {
+    return { valid: false, error: 'Token không hợp lệ', status: 401 };
+  }
+
+  const role = (payload as Record<string, unknown>).role as string;
+  
+  if (role === 'admin') {
+    return { valid: true, brokerId: (payload as Record<string, unknown>).id as string, isAdmin: true };
+  }
+
+  const brokerId = (payload as Record<string, unknown>).id as string;
+
+  const broker = await prisma.brokers.findUnique({
+    where: { id: brokerId },
+    select: { is_active: true }
+  });
+
+  if (!broker) {
+    return { valid: false, error: 'Token không hợp lệ', status: 401 };
+  }
+
+  if (!broker.is_active) {
+    return { valid: false, error: 'Tài khoản của bạn đã bị khóa', status: 403 };
+  }
+
+  return { valid: true, brokerId };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -171,25 +208,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(
-        { success: false, error: 'Vui lòng đăng nhập để tạo bài đăng' },
-        { status: 401 }
-      );
+    const auth = await verifyAuth(request);
+    if (!auth.valid) {
+      return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
     }
 
-    const payload = await verifyToken(token);
-    if (!payload || !(payload as Record<string, unknown>).id) {
-      return NextResponse.json(
-        { success: false, error: 'Token không hợp lệ' },
-        { status: 401 }
-      );
-    }
-
-    const brokerId = (payload as Record<string, unknown>).id as string;
+    const brokerId = auth.brokerId as string;
     const body = await request.json();
     const errors: Record<string, string> = {};
 

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/lib/prisma';
-import { jwtVerify } from 'jose';
+import { verifyToken } from '@/src/app/modules/auth/jwt';
 
-// Helper function to handle BigInt serialization
 function serializeData(data: Record<string, unknown> | unknown[]) {
   return JSON.parse(
     JSON.stringify(data, (key, value) =>
@@ -11,43 +10,51 @@ function serializeData(data: Record<string, unknown> | unknown[]) {
   );
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_DO_NOT_USE_IN_PROD';
-const secretKey = new TextEncoder().encode(JWT_SECRET);
+async function verifyAuth(request: NextRequest) {
+  const authHeader = request.headers.get('authorization');
+  const token = authHeader?.replace('Bearer ', '');
 
-// Verify current broker via token and fetch all their listings (regardless of status)
+  if (!token) {
+    return { valid: false, error: 'Token không tồn tại', status: 401 };
+  }
+
+  const payload = await verifyToken(token);
+  if (!payload || !(payload as Record<string, unknown>).id) {
+    return { valid: false, error: 'Token không hợp lệ', status: 401 };
+  }
+
+  const role = (payload as Record<string, unknown>).role as string;
+  
+  if (role === 'admin') {
+    return { valid: true, brokerId: (payload as Record<string, unknown>).id as string, isAdmin: true };
+  }
+
+  const brokerId = (payload as Record<string, unknown>).id as string;
+
+  const broker = await prisma.brokers.findUnique({
+    where: { id: brokerId },
+    select: { is_active: true }
+  });
+
+  if (!broker) {
+    return { valid: false, error: 'Token không hợp lệ', status: 401 };
+  }
+
+  if (!broker.is_active) {
+    return { valid: false, error: 'Tài khoản của bạn đã bị khóa', status: 403 };
+  }
+
+  return { valid: true, brokerId };
+}
+
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { success: false, error: 'Authorization header is missing or invalid' },
-        { status: 401 }
-      );
+    const auth = await verifyAuth(request);
+    if (!auth.valid) {
+      return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
     }
 
-    const token = authHeader.split(' ')[1];
-    
-    // Verify token & extract broker data
-    let payload;
-    try {
-      const { payload: jwtPayload } = await jwtVerify(token, secretKey);
-      payload = jwtPayload;
-    } catch (err) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid or expired token' },
-        { status: 401 }
-      );
-    }
-    
-    // Check if the user is a broker by ID structure or available info
-    const brokerId = payload.id as string;
-    if (!brokerId) {
-       return NextResponse.json(
-        { success: false, error: 'Not authorized as a broker' },
-        { status: 403 }
-      );
-    }
-    
+    const brokerId = auth.brokerId;
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
@@ -59,7 +66,6 @@ export async function GET(request: NextRequest) {
       broker_id: brokerId
     };
     
-    // Allow filtering by exact status text in dashboard if needed
     if (status && status !== 'all') {
        whereClause.status = status;
     }
@@ -80,7 +86,7 @@ export async function GET(request: NextRequest) {
         }
       },
       orderBy: {
-        id: 'desc' // Newest UUIDs generally sort first when ordered desc, but assuming it means newest creation.
+        id: 'desc'
       }
     });
 

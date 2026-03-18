@@ -3,13 +3,49 @@ import { prisma } from '@/src/lib/prisma';
 import { verifyToken } from '@/src/app/modules/auth/jwt';
 import { removeVietnameseTones } from '@/src/lib/slug-utils';
 
-// Helper function to handle BigInt serialization
 function serializeData(data: Record<string, unknown> | unknown[]) {
   return JSON.parse(
     JSON.stringify(data, (key, value) =>
       typeof value === 'bigint' ? value.toString() : value
     )
   );
+}
+
+async function verifyAuth(request: NextRequest) {
+  const authHeader = request.headers.get('authorization');
+  const token = authHeader?.replace('Bearer ', '');
+
+  if (!token) {
+    return { valid: false, error: 'Token không tồn tại', status: 401 };
+  }
+
+  const payload = await verifyToken(token);
+  if (!payload || !(payload as Record<string, unknown>).id) {
+    return { valid: false, error: 'Token không hợp lệ', status: 401 };
+  }
+
+  const role = (payload as Record<string, unknown>).role as string;
+  
+  if (role === 'admin') {
+    return { valid: true, brokerId: (payload as Record<string, unknown>).id as string, isAdmin: true };
+  }
+
+  const brokerId = (payload as Record<string, unknown>).id as string;
+
+  const broker = await prisma.brokers.findUnique({
+    where: { id: brokerId },
+    select: { is_active: true }
+  });
+
+  if (!broker) {
+    return { valid: false, error: 'Token không hợp lệ', status: 401 };
+  }
+
+  if (!broker.is_active) {
+    return { valid: false, error: 'Tài khoản của bạn đã bị khóa', status: 403 };
+  }
+
+  return { valid: true, brokerId };
 }
 
 // GET /api/listings/[id] - Get listing by ID or slug
@@ -198,25 +234,6 @@ export async function GET(
   }
 }
 
-// DELETE /api/listings/[id] - Delete a listing permanently
-import { jwtVerify } from 'jose';
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_DO_NOT_USE_IN_PROD';
-const secretKey = new TextEncoder().encode(JWT_SECRET);
-
-async function verifyBrokerAuth(request: NextRequest) {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return { error: 'Authorization header is missing or invalid', status: 401 };
-  }
-  const token = authHeader.split(' ')[1];
-  try {
-    const { payload } = await jwtVerify(token, secretKey);
-    return { payload, token };
-  } catch (err) {
-    return { error: 'Invalid or expired token', status: 401 };
-  }
-}
-
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -224,9 +241,8 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    // Authenticate broker
-    const auth = await verifyBrokerAuth(request);
-    if ('error' in auth) {
+    const auth = await verifyAuth(request);
+    if (!auth.valid) {
       return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
     }
 
@@ -237,7 +253,6 @@ export async function DELETE(
       );
     }
 
-    // Check if listing exists
     const existingListing = await prisma.listings.findUnique({
       where: { id }
     });
@@ -249,17 +264,12 @@ export async function DELETE(
       );
     }
 
-    // Permission check: ensure the broker owns this listing
-    if (existingListing.broker_id !== auth.payload?.id) {
+    if (existingListing.broker_id !== auth.brokerId) {
       return NextResponse.json({ success: false, error: 'Bạn không có quyền xóa bài đăng này' }, { status: 403 });
     }
 
-    // Delete associated tags first (if any)
-    await prisma.tags.deleteMany({
-      where: { listing_id: id }
-    });
+    await prisma.tags.deleteMany({ where: { listing_id: id } });
 
-    // Delete the listing
     await prisma.listings.delete({
       where: { id }
     });
@@ -278,7 +288,6 @@ export async function DELETE(
   }
 }
 
-// PATCH /api/listings/[id] - Update listing status
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -286,16 +295,14 @@ export async function PATCH(
   try {
     const { id } = await params;
 
-    // Authenticate broker
-    const auth = await verifyBrokerAuth(request);
-    if ('error' in auth) {
+    const auth = await verifyAuth(request);
+    if (!auth.valid) {
       return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
     }
 
     const body = await request.json();
     const { id: _ignoredId, price, ...otherData } = body;
 
-    // Check if listing exists
     const existingListing = await prisma.listings.findUnique({
       where: { id }
     });
@@ -304,8 +311,7 @@ export async function PATCH(
       return NextResponse.json({ success: false, error: 'Listing not found' }, { status: 404 });
     }
 
-    // Permission check
-    if (existingListing.broker_id !== auth.payload?.id) {
+    if (existingListing.broker_id !== auth.brokerId) {
       return NextResponse.json({ success: false, error: 'Bạn không có quyền sửa bài đăng này' }, { status: 403 });
     }
 

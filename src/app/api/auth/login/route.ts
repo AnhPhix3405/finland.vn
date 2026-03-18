@@ -33,6 +33,13 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        if (!broker.is_active) {
+            return NextResponse.json(
+                { success: false, error: 'Tài khoản của bạn đã bị khóa' },
+                { status: 403 }
+            );
+        }
+
         const { password_hash, ...safeBroker } = broker;
 
         const accessToken = await signAccessToken({ ...safeBroker, role: 'broker' });

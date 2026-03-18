@@ -16,6 +16,27 @@ async function verifyAuth(request: NextRequest) {
         if (!payload || !(payload as Record<string, unknown>).id) {
             return { valid: false, error: 'Token không hợp lệ', status: 401 };
         }
+        
+        const role = (payload as Record<string, unknown>).role as string;
+        
+        if (role === 'admin') {
+            return { valid: true };
+        }
+        
+        const brokerId = (payload as Record<string, unknown>).id as string;
+        const broker = await prisma.brokers.findUnique({
+            where: { id: brokerId },
+            select: { is_active: true }
+        });
+
+        if (!broker) {
+            return { valid: false, error: 'Token không hợp lệ', status: 401 };
+        }
+
+        if (!broker.is_active) {
+            return { valid: false, error: 'Tài khoản của bạn đã bị khóa', status: 403 };
+        }
+
         return { valid: true };
     } catch {
         return { valid: false, error: 'Token không hợp lệ', status: 401 };
