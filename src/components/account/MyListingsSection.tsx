@@ -17,7 +17,7 @@ type ListingStatus =
   | "Đã bán" 
   | "Đã xong" 
   | "Bị từ chối"
-  | "public" | "hidden" | "expired" | "sold" | "rejected" | "pending"; // Keep old ones just in case
+  | "public" | "hidden" | "expired" | "sold" | "rejected" | "pending";
 
 interface PropertyListing {
   id: string;
@@ -70,7 +70,6 @@ export default function MyListingsSection() {
   const [pagination, setPagination] = useState<PaginationState>({ page: 1, limit: 10, total: 0, totalPages: 0 });
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Confirmation modal state
   const [confirmModal, setConfirmModal] = useState<{
     open: boolean;
     title: string;
@@ -85,7 +84,6 @@ export default function MyListingsSection() {
         setLoading(true);
         const res = await getMyListings(accessToken, filter === "all" ? "all" : filter, currentPage);
         
-        // Check for 401 status code (token expired even after refresh)
         if (res.statusCode === 401) {
           console.log('❌ Token invalid, redirecting to login');
           clearAuth();
@@ -141,7 +139,6 @@ export default function MyListingsSection() {
       setLoading(true);
       const res = await updateListingStatus(id, newStatus, accessToken);
       
-      // Check for 401 status code
       if (res.statusCode === 401) {
         clearAuth();
         addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
@@ -155,7 +152,6 @@ export default function MyListingsSection() {
       } else {
         addToast(res.error || 'Cập nhật thất bại', 'error');
       }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (_e) {
       addToast('Lỗi kết nối', 'error');
     } finally {
@@ -174,7 +170,6 @@ export default function MyListingsSection() {
           setLoading(true);
           const res = await deleteListingLocal(id, accessToken!);
           
-          // Check for 401 status code
           if (res.statusCode === 401) {
             clearAuth();
             addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
@@ -188,7 +183,6 @@ export default function MyListingsSection() {
           } else {
             addToast(res.error || 'Xóa thất bại', 'error');
           }
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (_e) {
           addToast('Lỗi kết nối', 'error');
         } finally {
@@ -203,14 +197,12 @@ export default function MyListingsSection() {
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-visible relative">
-      {/* Synchronized Header */}
       <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4 rounded-t-xl z-20 relative bg-white dark:bg-slate-900">
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white">Tin đăng của tôi</h1>
           <p className="text-sm text-slate-500 mt-1">Quản lý các bất động sản bạn đã đăng tin.</p>
         </div>
 
-        {/* Ultra-compact Filter Button */}
         <div className="relative">
           <button
             onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -271,7 +263,6 @@ export default function MyListingsSection() {
         </div>
       </div>
 
-      {/* Listing Content */}
       <div className="p-4 md:p-6 overflow-visible relative z-10 min-h-96">
         {loading ? (
            <div className="flex justify-center items-center py-20">
@@ -286,16 +277,13 @@ export default function MyListingsSection() {
                 key={property.id}
                 className="group flex flex-col sm:flex-row gap-3 p-3 rounded-lg border border-slate-100 dark:border-slate-800 hover:border-emerald-200 dark:hover:border-emerald-900/30 hover:shadow-md transition-all"
               >
-                {/* Image */}
                 <div className="relative w-full sm:w-32 h-24 shrink-0 rounded-md overflow-hidden bg-slate-100">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={property.image} alt={property.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   <div className={`absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${statusConfig[property.status]?.bg || 'bg-slate-200'} ${statusConfig[property.status]?.color || 'text-slate-700'} backdrop-blur-md`}>
                     {statusConfig[property.status]?.label || property.status}
                   </div>
                 </div>
 
-                {/* Info */}
                 <div className="flex-1 min-w-0 flex flex-col justify-between">
                   <div className="flex items-start justify-between gap-1">
                     <div className="min-w-0">
@@ -312,19 +300,22 @@ export default function MyListingsSection() {
                     </div>
 
                     <div className="flex items-center gap-1">
-                      {property.status === "Đang chờ duyệt" ? (
-                        <>
-                          {/* Chờ duyệt - chỉ có thể xóa */}
-                          <button 
-                            onClick={() => handleDelete(property.id)}
-                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all" 
-                            title="Xóa">
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        </>
+                      {property.status === "Bị từ chối" ? (
+                        <button 
+                          onClick={() => handleDelete(property.id)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all" 
+                          title="Xóa">
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      ) : property.status === "Đang chờ duyệt" ? (
+                        <button 
+                          onClick={() => handleDelete(property.id)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all" 
+                          title="Xóa">
+                          <Trash2 className="size-3.5" />
+                        </button>
                       ) : property.status === "Đã ẩn" ? (
                         <>
-                          {/* Đã ẩn - có thể hiển thị lại hoặc xóa */}
                           <button 
                             onClick={() => handleUpdateStatus(property.id, "Đang hiển thị")}
                             className="p-1.5 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-md transition-all" 
@@ -340,7 +331,6 @@ export default function MyListingsSection() {
                         </>
                       ) : (
                         <>
-                          {/* Đang hiển thị hoặc Đã bán - đầy đủ chức năng */}
                           <Link 
                             href={`/bai-viet/${property.slug}`}
                             className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-md transition-all" 
@@ -385,7 +375,6 @@ export default function MyListingsSection() {
         </div>
         )}
 
-        {/* Pagination */}
         {pagination.totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
             <button
@@ -419,7 +408,6 @@ export default function MyListingsSection() {
         )}
       </div>
 
-      {/* Confirmation Modal */}
       {confirmModal?.open && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
           <div className="fixed inset-0 bg-black/50" onClick={() => setConfirmModal(null)}></div>

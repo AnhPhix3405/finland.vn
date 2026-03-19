@@ -129,6 +129,17 @@ export async function PATCH(
       );
     }
 
+    // Prevent non-admin users from updating status of rejected listings
+    if (existingListing.status === 'Bị từ chối' && !(auth as Record<string, unknown>).isAdmin) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: `Tin đăng đang ở trạng thái "${existingListing.status}", không thể thực hiện thao tác này.` 
+        },
+        { status: 400 }
+      );
+    }
+
     // If trying to hide a listing that's already hidden, allow it
     if (existingListing.status === 'Đã ẩn' && status === 'Đã ẩn') {
       return NextResponse.json(
