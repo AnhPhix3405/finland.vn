@@ -183,12 +183,12 @@ export default function AdminNewsListPage() {
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Quản lý Tin tức</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Quản lý các bài viết blog, tin tức thị trường và kiến thức BĐS</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
             {/* Search Bar */}
-            <div className="relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+            <div className="relative flex-1 sm:flex-none">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-base sm:text-lg">search</span>
               <input
-                className="pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white w-64 placeholder-slate-400"
+                className="pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm text-xs sm:text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white w-full sm:w-64 placeholder-slate-400"
                 placeholder="Tìm kiếm theo tiêu đề..."
                 type="text"
                 value={searchQuery}
@@ -196,28 +196,32 @@ export default function AdminNewsListPage() {
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
             </div>
-            <button
-              onClick={handleSearch}
-              disabled={loading}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-sm text-sm font-medium flex items-center gap-2 disabled:opacity-50"
-            >
-              <span className="material-symbols-outlined text-lg">search</span>
-            </button>
-            <button
-              onClick={() => fetchNews(1)}
-              disabled={loading}
-              className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-3 py-2 rounded-sm text-sm font-medium flex items-center gap-2 disabled:opacity-50"
-              title="Làm mới"
-            >
-              <span className={`material-symbols-outlined text-lg ${loading ? 'animate-spin' : ''}`}>refresh</span>
-            </button>
-            <Link
-              href="/admin/tin-tuc/them"
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-sm text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 flex items-center gap-2"
-            >
-              <span className="material-symbols-outlined text-[20px]" aria-hidden="true">add</span>
-              Viết tin mới
-            </Link>
+            <div className="flex gap-2 sm:gap-3">
+              <button
+                onClick={handleSearch}
+                disabled={loading}
+                className="h-8 sm:h-9 w-8 sm:w-auto sm:px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-sm text-xs sm:text-sm font-medium flex items-center justify-center sm:gap-2 disabled:opacity-50 transition-colors"
+                title="Tìm kiếm"
+              >
+                <span className="material-symbols-outlined text-base sm:text-lg">search</span>
+                <span className="hidden sm:inline">Tìm</span>
+              </button>
+              <button
+                onClick={() => fetchNews(1)}
+                disabled={loading}
+                className="h-8 sm:h-9 w-8 sm:w-auto sm:px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-sm text-xs sm:text-sm font-medium flex items-center justify-center sm:gap-2 disabled:opacity-50 transition-colors"
+                title="Làm mới"
+              >
+                <span className={`material-symbols-outlined text-base sm:text-lg ${loading ? 'animate-spin' : ''}`}>refresh</span>
+              </button>
+              <Link
+                href="/admin/tin-tuc/them"
+                className="h-8 sm:h-9 px-2.5 sm:px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-sm text-xs sm:text-sm font-semibold sm:font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 flex items-center justify-center gap-1 sm:gap-2 whitespace-nowrap"
+              >
+                <span className="material-symbols-outlined text-base sm:text-[20px]" aria-hidden="true">add</span>
+                <span>Viết tin mới</span>
+              </Link>
+            </div>
           </div>
         </div>
 
