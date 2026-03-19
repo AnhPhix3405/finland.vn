@@ -210,6 +210,31 @@ export default function AdminArticleList() {
     }
   };
 
+  const handleRestore = (listingId: string) => {
+    setConfirmModal({
+      open: true,
+      title: 'Khôi phục tin đăng',
+      message: 'Bạn có chắc chắn muốn khôi phục tin đăng này? Tin đăng sẽ được chuyển sang trạng thái "Đang hiển thị".',
+      onConfirm: async () => {
+        const result = await updateListingStatus(listingId, 'Đang hiển thị');
+        
+        if (result.statusCode === 401) {
+          clearAuth();
+          addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+          router.push('/admin/login');
+          return;
+        }
+        
+        if (result.success) {
+          setListings(prev => prev.map(l => l.id === listingId ? { ...l, status: 'Đang hiển thị' } : l));
+          addToast('Đã khôi phục tin đăng thành công!', 'success');
+        } else {
+          addToast('Lỗi: ' + (result.error || 'Không thể khôi phục tin đăng'), 'error');
+        }
+      }
+    });
+  };
+
   const getStatusBadge = (status?: string | null) => {
     const styles: Record<string, string> = {
       'Đang hiển thị': 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50',
@@ -328,6 +353,12 @@ export default function AdminArticleList() {
                       <td className="px-6 py-4 text-sm">{(listing.views_count || 0).toLocaleString('vi-VN')}</td>
                       <td className="px-6 py-4">{getStatusBadge(listing.status)}</td>
                       <td className="px-6 py-4 text-right whitespace-nowrap">
+                        {/* Restore - chỉ hiện khi bị từ chối */}
+                        {listing.status === 'Bị từ chối' && (
+                          <button onClick={() => handleRestore(listing.id)} className="text-blue-500 hover:text-blue-700 p-1" title="Khôi phục tin đăng">
+                            <span className="material-symbols-outlined text-lg">restore</span>
+                          </button>
+                        )}
                         {/* Approve - chỉ hiện khi đang chờ duyệt */}
                         {listing.status === 'Đang chờ duyệt' && (
                           <button onClick={() => handleApprove(listing.id)} className="text-emerald-500 hover:text-emerald-700 p-1" title="Duyệt bài">
