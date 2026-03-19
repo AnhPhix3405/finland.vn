@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Edit2, EyeOff, CheckCircle2, Trash2, Filter, ChevronDown, List as ListIcon } from "lucide-react";
+import { Edit2, EyeOff, CheckCircle2, Trash2, Filter, ChevronDown, List as ListIcon, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/src/store/authStore";
 import { useNotificationStore } from "@/src/store/notificationStore";
@@ -133,6 +133,57 @@ export default function MyListingsSection() {
     setCurrentPage(newPage);
   };
 
+  const handleRefresh = () => {
+    setCurrentPage(1);
+    const loadListings = async () => {
+      if (!accessToken) return;
+      try {
+        setLoading(true);
+        const res = await getMyListings(accessToken, filter === "all" ? "all" : filter, 1);
+        
+        if (res.statusCode === 401) {
+          clearAuth();
+          addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+          router.push('/dang-nhap');
+          return;
+        }
+        
+        if (res.success && res.data) {
+          const mapped = res.data.map((l: Record<string, unknown>) => ({
+             id: String(l.id),
+             listing_code: l.listing_code ? String(l.listing_code) : String(l.id).slice(0, 8),
+             title: String(l.title),
+             price: formatPrice(l.price as string | number),
+             address: l.address ? `${l.address}, ${l.ward}` : `${l.ward}, ${l.province}`,
+             image: (l.thumbnail_url as string) || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=400",
+             status: (l.status as ListingStatus) || "Đang chờ duyệt",
+             date: l.created_at ? new Date(l.created_at as string).toLocaleDateString('vi-VN') : "?",
+             views: typeof l.views_count === 'number' ? l.views_count : 0,
+             slug: l.slug ? String(l.slug) : undefined,
+             transaction_type: (l.transaction_types as Record<string, unknown>)?.hashtag ? String((l.transaction_types as Record<string, unknown>).hashtag) : undefined
+          }));
+          setListings(mapped);
+          if (res.pagination) {
+            setPagination({
+              page: res.pagination.page as number,
+              limit: res.pagination.limit as number,
+              total: res.pagination.total as number,
+              totalPages: res.pagination.totalPages as number
+            });
+          }
+        } else if (!res.success) {
+          addToast(res.error || 'Lỗi tải danh sách tin đăng', 'error');
+        }
+      } catch (_err) {
+        console.error(_err);
+        addToast('Lỗi kết nối, vui lòng thử lại', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadListings();
+  };
+
   const handleUpdateStatus = async (id: string, newStatus: string) => {
     if (!accessToken) return;
     try {
@@ -203,21 +254,35 @@ export default function MyListingsSection() {
           <p className="text-sm text-slate-500 mt-1">Quản lý các bất động sản bạn đã đăng tin.</p>
         </div>
 
-        <div className="relative">
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setIsFilterOpen(!isFilterOpen)}
+            onClick={handleRefresh}
+            disabled={loading}
             className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-black border transition-all duration-200 ${
-              isFilterOpen 
-                ? "bg-emerald-600 text-white border-emerald-600 shadow-md" 
+              loading
+                ? "bg-slate-200 dark:bg-slate-700 text-slate-400 border-slate-200 dark:border-slate-700 cursor-not-allowed"
                 : "bg-white dark:bg-slate-800 text-slate-600 dark:text-white border-slate-200 dark:border-slate-700 hover:border-emerald-500"
             }`}
           >
-            <Filter className="size-3" />
-            <span className="uppercase tracking-lighter">
-              {filter === 'all' ? 'Tất cả' : statusConfig[filter].label}
-            </span>
-            <ChevronDown className={`size-3 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
+            <RefreshCw className={`size-3 ${loading ? 'animate-spin' : ''}`} />
+            <span className="uppercase tracking-lighter">Làm mới</span>
           </button>
+
+          <div className="relative">
+            <button
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-black border transition-all duration-200 ${
+                isFilterOpen 
+                  ? "bg-emerald-600 text-white border-emerald-600 shadow-md" 
+                  : "bg-white dark:bg-slate-800 text-slate-600 dark:text-white border-slate-200 dark:border-slate-700 hover:border-emerald-500"
+              }`}
+            >
+              <Filter className="size-3" />
+              <span className="uppercase tracking-lighter">
+                {filter === 'all' ? 'Tất cả' : statusConfig[filter]?.label || filter}
+              </span>
+              <ChevronDown className={`size-3 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
+            </button>
 
           {isFilterOpen && (
             <>
@@ -260,6 +325,7 @@ export default function MyListingsSection() {
               </div>
             </>
           )}
+          </div>
         </div>
       </div>
 
