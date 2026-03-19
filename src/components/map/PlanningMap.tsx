@@ -20,6 +20,7 @@ import { Button } from '@/src/components/ui/button';
 import { cn } from '@/src/lib/utils';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import LocationSelector from '@/src/components/feature/LocationSelector';
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
 
@@ -82,13 +83,8 @@ export function PlanningMap() {
   const [hoveredListing, setHoveredListing] = useState<any>(null);
   const [hoverPosition, setHoverPosition] = useState<{ x: number, y: number } | null>(null);
 
-  // Admin Search Data
-  const [provinces, setProvinces] = useState<any[]>([]);
-  const [districts, setDistricts] = useState<any[]>([]);
-  const [wards, setWards] = useState<any[]>([]);
-  const [selectedProvince, setSelectedProvince] = useState('79'); // HCM default
-  const [selectedDistrict, setSelectedDistrict] = useState('');
-  const [selectedWard, setSelectedWard] = useState('');
+  const [locSelectedProvince, setLocSelectedProvince] = useState('');
+  const [locSelectedWard, setLocSelectedWard] = useState('');
 
   const [reconcileTrigger, setReconcileTrigger] = useState(0);
   const [revGeocodeAddr, setRevGeocodeAddr] = useState<string>('');
@@ -459,50 +455,6 @@ export function PlanningMap() {
     }
   }, [listings.length]);
 
-  // Fetch admin data on load
-  useEffect(() => {
-    fetch('https://provinces.open-api.vn/api/p/')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setProvinces(data);
-          // Initial districts fetch for HCM (79)
-          fetch('https://provinces.open-api.vn/api/p/79?depth=2')
-            .then(res => res.json())
-            .then(pData => {
-              if (pData.districts) setDistricts(pData.districts);
-            });
-        }
-      })
-      .catch(err => console.error('Failed to load provinces', err));
-  }, []);
-
-  useEffect(() => {
-    if (selectedProvince && provinces.length > 0) {
-      fetch(`https://provinces.open-api.vn/api/p/${selectedProvince}?depth=2`)
-        .then(res => res.json())
-        .then(data => {
-          setDistricts(data.districts || []);
-          setSelectedDistrict('');
-          setWards([]);
-          setSelectedWard('');
-        })
-        .catch(err => console.error('Failed to load districts', err));
-    }
-  }, [selectedProvince]);
-
-  useEffect(() => {
-    if (selectedDistrict) {
-      fetch(`https://provinces.open-api.vn/api/d/${selectedDistrict}?depth=2`)
-        .then(res => res.json())
-        .then(data => {
-          setWards(data.wards || []);
-          setSelectedWard('');
-        })
-        .catch(err => console.error('Failed to load wards', err));
-    }
-  }, [selectedDistrict]);
-
   // Fetch listings for the map
   useEffect(() => {
     const fetchMapListings = async () => {
@@ -604,15 +556,7 @@ export function PlanningMap() {
   }, [handleSearchByCoord]);
 
   const geocodeAndMove = async () => {
-    const provinceObj = provinces.find(p => p.code == selectedProvince);
-    const districtObj = districts.find(d => d.code == selectedDistrict);
-    const wardObj = wards.find(w => w.code == selectedWard);
-
-    const provinceName = provinceObj?.name || '';
-    const districtName = districtObj?.name || '';
-    const wardName = wardObj?.name || '';
-
-    const query = [wardName, districtName, provinceName].filter(Boolean).join(', ');
+    const query = [locSelectedWard, locSelectedProvince].filter(Boolean).join(', ');
     console.log(`DEBUG: geocodeAndMove query: "${query}"`);
 
     if (!query) {
@@ -815,49 +759,13 @@ export function PlanningMap() {
             </div>
 
             <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[10px] text-white/30 uppercase px-1 font-bold tracking-wider">Tỉnh / Thành phố</label>
-                <select
-                  value={selectedProvince}
-                  onChange={(e) => setSelectedProvince(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white outline-none focus:ring-1 focus:ring-orange-500 transition-all text-sm appearance-none cursor-pointer"
-                >
-                  <option value="" className="bg-slate-900">-- Chọn Tỉnh/TP --</option>
-                  {provinces.map((p: any) => (
-                    <option key={p.code} value={p.code} className="bg-slate-900">{p.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-white/30 uppercase px-1 font-bold tracking-wider">Quận / Huyện</label>
-                  <select
-                    value={selectedDistrict}
-                    onChange={(e) => setSelectedDistrict(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white outline-none focus:ring-1 focus:ring-orange-500 transition-all text-sm appearance-none cursor-pointer"
-                  >
-                    <option value="" className="bg-slate-900">-- Quận/Huyện --</option>
-                    {districts.map((d: any) => (
-                      <option key={d.code} value={d.code} className="bg-slate-900">{d.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-white/30 uppercase px-1 font-bold tracking-wider">Phường / Xã</label>
-                  <select
-                    value={selectedWard}
-                    onChange={(e) => setSelectedWard(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white outline-none focus:ring-1 focus:ring-orange-500 transition-all text-sm appearance-none cursor-pointer"
-                  >
-                    <option value="" className="bg-slate-900">-- Phường/Xã --</option>
-                    {wards.map((w: any) => (
-                      <option key={w.code} value={w.code} className="bg-slate-900">{w.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
+              <LocationSelector
+                selectedProvince={locSelectedProvince}
+                onProvinceChange={setLocSelectedProvince}
+                selectedWard={locSelectedWard}
+                onWardChange={setLocSelectedWard}
+                showLabels={false}
+              />
 
               <Button
                 onClick={geocodeAndMove}
