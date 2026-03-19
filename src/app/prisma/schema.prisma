@@ -95,37 +95,38 @@ model tags {
 }
 
 model listings {
-  id                       String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  broker_id                String             @db.Uuid
+  id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  broker_id                String                     @db.Uuid
   title                    String
   description              String
-  province                 String             @db.VarChar(100)
-  ward                     String             @db.VarChar(100)
+  province                 String                     @db.VarChar(100)
+  ward                     String                     @db.VarChar(100)
   address                  String?
-  area                     Decimal?           @db.Decimal(10, 2)
+  area                     Decimal?                   @db.Decimal(10, 2)
   price                    BigInt?
-  direction                String?            @db.VarChar(20)
+  direction                String?                    @db.VarChar(20)
   status                   String?
-  property_type_id         String?            @db.Uuid
-  transaction_type_id      String?            @db.Uuid
-  slug                     String?            @unique(map: "idx_listings_slug_unique")
-  contact_name             String?            @db.VarChar(255)
-  contact_phone            String?            @db.VarChar(50)
-  listing_code             String?            @unique @db.VarChar(20)
+  property_type_id         String?                    @db.Uuid
+  transaction_type_id      String?                    @db.Uuid
+  slug                     String?                    @unique(map: "idx_listings_slug_unique")
+  contact_name             String?                    @db.VarChar(255)
+  contact_phone            String?                    @db.VarChar(50)
+  listing_code             String?                    @unique @db.VarChar(20)
   floor_count              Int?
   bedroom_count            Int?
   thumbnail_url            String?
-  views_count              Int                @default(0)
-  created_at               DateTime           @default(now()) @db.Timestamptz(6)
-  updated_at               DateTime           @default(now()) @db.Timestamptz(6)
-  price_per_m2             Decimal?           @db.Decimal(15, 2)
-  price_per_frontage_meter Decimal?           @db.Decimal(15, 2)
+  views_count              Int                        @default(0)
+  created_at               DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime                   @default(now()) @db.Timestamptz(6)
+  price_per_m2             Decimal?                   @db.Decimal(15, 2)
+  price_per_frontage_meter Decimal?                   @db.Decimal(15, 2)
   latitude                 Float?
   longitude                Float?
   bookmarks                bookmarks[]
-  brokers                  brokers            @relation(fields: [broker_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_listings_broker")
-  property_types           property_types?    @relation(fields: [property_type_id], references: [id], onUpdate: NoAction, map: "fk_listings_property_type")
-  transaction_types        transaction_types? @relation(fields: [transaction_type_id], references: [id], onUpdate: NoAction, map: "fk_listings_transaction_type")
+  listing_feature_hashtags listing_feature_hashtags[]
+  brokers                  brokers                    @relation(fields: [broker_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_listings_broker")
+  property_types           property_types?            @relation(fields: [property_type_id], references: [id], onUpdate: NoAction, map: "fk_listings_property_type")
+  transaction_types        transaction_types?         @relation(fields: [transaction_type_id], references: [id], onUpdate: NoAction, map: "fk_listings_transaction_type")
   tags                     tags[]
 
   @@index([broker_id], map: "idx_listings_broker_id")
@@ -192,6 +193,24 @@ model news_tags {
 
   @@id([news_id, tag_id])
   @@index([tag_id], map: "idx_news_tags_tag_id")
+}
+
+model feature_hashtags {
+  id                       String                     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name                     String                     @unique @db.VarChar(255)
+  hashtag                  String                     @unique @db.VarChar(255)
+  created_at               DateTime?                  @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime?                  @default(now()) @db.Timestamptz(6)
+  listing_feature_hashtags listing_feature_hashtags[]
+}
+
+model listing_feature_hashtags {
+  listing_id         String           @db.Uuid
+  feature_hashtag_id String           @db.Uuid
+  feature_hashtags   feature_hashtags @relation(fields: [feature_hashtag_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_listing_feature_hashtag")
+  listings           listings         @relation(fields: [listing_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_listing_feature_listing")
+
+  @@id([listing_id, feature_hashtag_id])
 }
 
 enum post_status {

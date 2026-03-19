@@ -3,11 +3,12 @@
 import React, { useState, useEffect } from "react";
 import { 
   getPropertyTypes, createPropertyType, updatePropertyType, deletePropertyType, PropertyType,
-  getTransactionTypes, createTransactionType, updateTransactionType, deleteTransactionType, TransactionType  
+  getTransactionTypes, createTransactionType, updateTransactionType, deleteTransactionType, TransactionType,
+  getFeatureHashtags, createFeatureHashtag, updateFeatureHashtag, deleteFeatureHashtag, FeatureHashtag
 } from "@/src/app/modules/property.service";
 
-type HashtagType = 'property' | 'transaction';
-type HashtagItem = PropertyType | TransactionType;
+type HashtagType = 'property' | 'transaction' | 'feature';
+type HashtagItem = PropertyType | TransactionType | FeatureHashtag;
 
 interface HashtagSystemManagerModalProps {
   isOpen: boolean;
@@ -60,14 +61,25 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
     }
   }, [newItemName, newItemHashtag]);
 
+  const getTypeName = () => {
+    switch (currentType) {
+      case 'property': return 'loại hình BĐS';
+      case 'transaction': return 'loại hình giao dịch';
+      case 'feature': return 'đặc điểm';
+      default: return '';
+    }
+  };
+
   const fetchItems = async () => {
     setLoading(true);
     try {
       let result;
       if (currentType === 'property') {
         result = await getPropertyTypes({ limit: 100 });
-      } else {
+      } else if (currentType === 'transaction') {
         result = await getTransactionTypes({ limit: 100 });
+      } else {
+        result = await getFeatureHashtags({ limit: 100 });
       }
       
       if (result.success) {
@@ -76,8 +88,7 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
         setToast({ message: result.error || 'Lỗi khi tải danh sách', type: 'error' });
       }
     } catch (error) {
-      const typeName = currentType === 'property' ? 'loại hình BĐS' : 'loại hình giao dịch';
-      setToast({ message: `Lỗi khi tải danh sách ${typeName}`, type: 'error' });
+      setToast({ message: `Lỗi khi tải danh sách ${getTypeName()}`, type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -85,13 +96,12 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
 
   const handleCreate = async () => {
     if (!newItemName.trim()) {
-      const typeName = currentType === 'property' ? 'loại hình BĐS' : 'loại hình giao dịch';
-      setToast({ message: `Vui lòng nhập tên ${typeName}`, type: 'error' });
+      setToast({ message: `Vui lòng nhập tên ${getTypeName()}`, type: 'error' });
       return;
     }
 
     const finalHashtag = newItemHashtag.trim() || hashtagPreview;
-    const typeName = currentType === 'property' ? 'loại hình BĐS' : 'loại hình giao dịch';
+    const typeName = getTypeName();
 
     try {
       let result;
@@ -100,8 +110,13 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
           name: newItemName.trim(),
           hashtag: finalHashtag
         });
-      } else {
+      } else if (currentType === 'transaction') {
         result = await createTransactionType({ 
+          name: newItemName.trim(),
+          hashtag: finalHashtag
+        });
+      } else {
+        result = await createFeatureHashtag({ 
           name: newItemName.trim(),
           hashtag: finalHashtag
         });
@@ -123,8 +138,7 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
 
   const handleUpdate = async (id: string, name: string, hashtag?: string) => {
     if (!name.trim()) {
-      const typeName = currentType === 'property' ? 'loại hình BĐS' : 'loại hình giao dịch';
-      setToast({ message: `Vui lòng nhập tên ${typeName}`, type: 'error' });
+      setToast({ message: `Vui lòng nhập tên ${getTypeName()}`, type: 'error' });
       return;
     }
 
@@ -136,8 +150,14 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
           name: name.trim(),
           hashtag: hashtag?.trim() || generateHashtag(name.trim())
         });
-      } else {
+      } else if (currentType === 'transaction') {
         result = await updateTransactionType({ 
+          id, 
+          name: name.trim(),
+          hashtag: hashtag?.trim() || generateHashtag(name.trim())
+        });
+      } else {
+        result = await updateFeatureHashtag({ 
           id, 
           name: name.trim(),
           hashtag: hashtag?.trim() || generateHashtag(name.trim())
@@ -152,21 +172,22 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
         setToast({ message: result.error || 'Lỗi khi cập nhật', type: 'error' });
       }
     } catch (error) {
-      const typeName = currentType === 'property' ? 'loại hình BĐS' : 'loại hình giao dịch';
-      setToast({ message: `Lỗi khi cập nhật ${typeName}`, type: 'error' });
+      setToast({ message: `Lỗi khi cập nhật ${getTypeName()}`, type: 'error' });
     }
   };
 
   const handleDelete = async (id: string) => {
-    const typeName = currentType === 'property' ? 'loại hình BĐS' : 'loại hình giao dịch';
+    const typeName = getTypeName();
     if (!confirm(`Bạn có chắc chắn muốn xóa ${typeName} này?`)) return;
 
     try {
       let result;
       if (currentType === 'property') {
         result = await deletePropertyType(id);
-      } else {
+      } else if (currentType === 'transaction') {
         result = await deleteTransactionType(id);
+      } else {
+        result = await deleteFeatureHashtag(id);
       }
       
       if (result.success) {
@@ -219,7 +240,7 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
             Chọn loại hashtag:
           </label>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <button
               onClick={() => handleTypeChange('property')}
               className={`px-4 py-2 rounded-sm text-sm font-medium transition-colors ${
@@ -240,6 +261,16 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
             >
               Loại hình giao dịch
             </button>
+            <button
+              onClick={() => handleTypeChange('feature')}
+              className={`px-4 py-2 rounded-sm text-sm font-medium transition-colors ${
+                currentType === 'feature'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600'
+              }`}
+            >
+              Đặc điểm
+            </button>
           </div>
         </div>
 
@@ -247,14 +278,14 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <div>
               <label htmlFor="item-name" className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-                Tên {currentType === 'property' ? 'loại hình BĐS' : 'loại hình giao dịch'}
+                Tên {getTypeName()}
               </label>
               <input
                 id="item-name"
                 name="itemName"
                 type="text"
                 autoComplete="off"
-                placeholder={currentType === 'property' ? "VD: Nhà phố, Chung cư..." : "VD: Mua bán, Cho thuê..."}
+                placeholder={currentType === 'property' ? "VD: Nhà phố, Chung cư..." : currentType === 'transaction' ? "VD: Mua bán, Cho thuê..." : "VD: Mặt tiền, Sân vườn..."}
                 value={newItemName}
                 onChange={(e) => setNewItemName(e.target.value)}
                 onKeyPress={(e) => handleKeyPress(e, handleCreate)}
@@ -300,7 +331,7 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 sticky top-0">
                 <th className="px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                  Tên {currentType === 'property' ? 'loại hình BĐS' : 'loại hình giao dịch'}
+                  Tên {getTypeName()}
                 </th>
                 <th className="px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Hashtag</th>
                 <th className="px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ngày tạo</th>
@@ -318,7 +349,7 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
               ) : items.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
-                    Chưa có {currentType === 'property' ? 'loại hình BĐS' : 'loại hình giao dịch'} nào
+                    Chưa có {getTypeName()} nào
                   </td>
                 </tr>
               ) : (
