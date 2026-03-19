@@ -13,6 +13,8 @@ export interface CreateListingData {
   ward: string;
   address?: string;
   area?: number;
+  latitude?: number;
+  longitude?: number;
   price?: string | number;
   price_per_m2?: number;
   price_per_frontage_meter?: number;
@@ -113,15 +115,20 @@ export async function getListings(params?: {
   sortBy?: string;
   token?: string;
   search?: string;
+  onMap?: boolean;
 }): Promise<{data: Record<string, unknown>[], pagination: Record<string, unknown>}> {
   try {
-    const { page = 1, limit = 10, hashtags, province, ward, priceMin, priceMax, sortBy, token, search } = params || {};
+    const { page = 1, limit = 10, hashtags, province, ward, priceMin, priceMax, sortBy, token, search, onMap } = params || {};
     
     // Build URL with query parameters
     const searchParams = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString()
     });
+
+    if (onMap) {
+      searchParams.set('onMap', 'true');
+    }
     
     if (hashtags && hashtags.length > 0) {
       searchParams.set('hashtags', hashtags.join(','));

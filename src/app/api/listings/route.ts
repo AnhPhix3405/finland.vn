@@ -62,6 +62,7 @@ export async function GET(request: NextRequest) {
     const priceMax = searchParams.get('priceMax');
     const sortBy = searchParams.get('sortBy') || 'newest';
     const search = searchParams.get('search');
+    const onMap = searchParams.get('onMap') === 'true';
 
     let currentBrokerId: string | null = null;
     const authHeader = request.headers.get('authorization');
@@ -155,6 +156,13 @@ export async function GET(request: NextRequest) {
           { title: { contains: search, mode: 'insensitive' } },
           { brokers: { full_name: { contains: search, mode: 'insensitive' } } }
         ]
+      });
+    }
+
+    if (onMap) {
+      andConditions.push({
+        latitude: { not: null },
+        longitude: { not: null }
       });
     }
 
@@ -361,7 +369,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { title, description, transaction_type_id, property_type_id, province, ward, address, area, price, price_per_m2, price_per_frontage_meter, direction, tags, contact_name: rawContactName, contact_phone: rawContactPhone, floor_count, bedroom_count } = body;
+    const { title, description, transaction_type_id, property_type_id, province, ward, address, area, price, price_per_m2, price_per_frontage_meter, direction, tags, contact_name: rawContactName, contact_phone: rawContactPhone, floor_count, bedroom_count, latitude, longitude } = body;
 
     const currentYearStr = new Date().getFullYear().toString().substring(2, 4);
     const prefix = `FIN${currentYearStr}`;
@@ -442,6 +450,8 @@ export async function POST(request: NextRequest) {
         listing_code: finalListingCode,
         floor_count: floor_count ?? null,
         bedroom_count: bedroom_count ?? null,
+        latitude: latitude ?? null,
+        longitude: longitude ?? null,
       },
       include: {
         brokers: { select: { id: true, full_name: true, phone: true, email: true, avatar_url: true } }

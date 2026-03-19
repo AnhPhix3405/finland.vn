@@ -19,10 +19,10 @@ export default function Home() {
       <section className="py-6 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <a className="border border-gray-200 dark:border-slate-700 rounded-sm p-4 flex flex-row items-center hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors group" href="#">
+            <Link className="border border-gray-200 dark:border-slate-700 rounded-sm p-4 flex flex-row items-center hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors group" href="/ban-do-quy-hoach">
               <span className="material-symbols-outlined text-primary mr-3 text-xl">map</span>
               <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Bản đồ quy hoạch</span>
-            </a>
+            </Link>
             <a className="border border-gray-200 dark:border-slate-700 rounded-sm p-4 flex flex-row items-center hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors group" href="#">
               <span className="material-symbols-outlined text-primary mr-3 text-xl">layers</span>
               <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Kho bản đồ</span>

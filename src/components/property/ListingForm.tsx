@@ -11,6 +11,7 @@ import { useUserStore } from "@/src/store/userStore";
 import { useAuthStore } from "@/src/store/authStore";
 import { useNotificationStore } from "@/src/store/notificationStore";
 import LocationSelector from "../feature/LocationSelector";
+import MapPicker from "../feature/MapPicker";
 import { loadAllFormOptions, SelectOption } from "@/src/app/modules/form-options.service";
 
 interface ListingFormProps {
@@ -69,6 +70,8 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
   const [contactPhone, setContactPhone] = useState("");
   const [floorCount, setFloorCount] = useState("");
   const [bedroomCount, setBedroomCount] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
 
   // File states
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -155,6 +158,40 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
       setShowSuggestions(false);
     }
   };
+
+  // Automatic geocoding based on address
+  useEffect(() => {
+    const query = [address, ward, province].filter(Boolean).join(', ');
+    if (query.trim().length < 5) return;
+
+    const delayDebounceFn = setTimeout(async () => {
+      try {
+        const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
+        const res = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${token}&country=vn&limit=1`
+        );
+        const data = await res.json();
+        if (data.features && data.features.length > 0) {
+          const [targetLng, targetLat] = data.features[0].center;
+          setLatitude(targetLat);
+          setLongitude(targetLng);
+        }
+      } catch (err) {
+        console.error('Geocoding error:', err);
+      }
+    }, 1000);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [province, ward, address]);
+  
+  // Auto-calculate price per m2
+  useEffect(() => {
+    const priceValue = price.replace(/\D/g, '');
+    if (priceValue && area && parseFloat(area) > 0) {
+      const calculated = Math.round(parseInt(priceValue) / parseFloat(area));
+      setPricePerM2(calculated.toString());
+    }
+  }, [price, area]);
 
   // File handling functions
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -351,6 +388,8 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
         contact_phone: contactPhone.trim() || undefined,
         floor_count: floorCount ? parseInt(floorCount) : undefined,
         bedroom_count: bedroomCount ? parseInt(bedroomCount) : undefined,
+        latitude: latitude || undefined,
+        longitude: longitude || undefined,
       });
 
       if (!listingResult.success) {
@@ -536,6 +575,19 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
               onChange={(e) => setAddress(e.target.value)}
               placeholder="Ví dụ: 123 Nguyễn Huệ, Phường Bến Nghé"
               className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
+            />
+          </div>
+
+          {/* Map Picker */}
+          <div className="md:col-span-2 space-y-3">
+            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Vị trí chính xác trên bản đồ</label>
+            <MapPicker
+              initialLat={latitude || undefined}
+              initialLng={longitude || undefined}
+              onLocationChange={(lat, lng) => {
+                setLatitude(lat);
+                setLongitude(lng);
+              }}
             />
           </div>
         </div>

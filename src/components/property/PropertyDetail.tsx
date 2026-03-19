@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   MapPin,
   Ruler,
@@ -21,6 +21,8 @@ import {
   Tag,
   Hash
 } from "lucide-react";
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
@@ -79,6 +81,8 @@ interface Listing {
     hashtag: string;
   } | null;
   listing_code?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 interface PropertyDetailProps {
@@ -99,6 +103,32 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
   const [isLoadingBookmark, setIsLoadingBookmark] = useState(false);
   const addToast = useNotificationStore((state) => state.addToast);
   const accessToken = useAuthStore((state) => state.accessToken);
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const map = useRef<mapboxgl.Map | null>(null);
+
+  useEffect(() => {
+    if (!listing?.latitude || !listing?.longitude || !mapContainer.current) return;
+    if (map.current) return;
+
+    mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
+
+    map.current = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: [listing.longitude, listing.latitude],
+      zoom: 15,
+      interactive: true // Allow zooming but maybe disable if pure static is better
+    });
+
+    new mapboxgl.Marker({ color: "#f97316" })
+      .setLngLat([listing.longitude, listing.latitude])
+      .addTo(map.current);
+
+    return () => {
+      map.current?.remove();
+      map.current = null;
+    };
+  }, [listing?.latitude, listing?.longitude]);
 
   // Use props attachments if provided, otherwise fetch from API
   useEffect(() => {
@@ -181,10 +211,15 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
     };
 
     const formatPricePerM2 = (pricePerM2?: number | null) => {
-      if (!pricePerM2) return "Không xác định";
-      if (pricePerM2 >= 1000000000) return `${(pricePerM2 / 1000000000).toFixed(2)} Tỷ/m²`;
-      if (pricePerM2 >= 1000000) return `${(pricePerM2 / 1000000).toFixed(1)} Triệu/m²`;
-      return `${(pricePerM2 / 1000).toFixed(0)} Nghìn/m²`;
+      let value = pricePerM2;
+      if (!value && listing?.price && listing?.area) {
+        value = Number(listing.price) / Number(listing.area);
+      }
+
+      if (!value) return "Không xác định";
+      if (value >= 1000000000) return `${(value / 1000000000).toFixed(2)} Tỷ/m²`;
+      if (value >= 1000000) return `${(value / 1000000).toFixed(1)} Triệu/m²`;
+      return `${(value / 1000).toFixed(0)} Nghìn/m²`;
     };
 
     const formatPricePerFrontage = (pricePerFrontageMeter?: number | null) => {
@@ -471,6 +506,24 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
               </div>
             </div>
           </div>
+
+          {/* Map Section */}
+          {listing?.latitude && listing?.longitude && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white border-l-4 border-emerald-600 pl-3">Vị trí trên bản đồ</h3>
+              <div className="w-full h-[300px] rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 relative group shadow-sm transition-all hover:shadow-md">
+                <div ref={mapContainer} className="w-full h-full" />
+                <div className="absolute top-4 left-4 z-10">
+                   <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl flex items-center gap-2.5">
+                      <div className="bg-orange-500/10 p-1.5 rounded-lg">
+                        <MapPin className="size-4 text-orange-500" />
+                      </div>
+                      <span className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">Toạ độ chính xác</span>
+                   </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Tags */}
           {property.tags && property.tags.length > 0 && (
