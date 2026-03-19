@@ -65,6 +65,8 @@ export default function MyListingsSection() {
   const addToast = useNotificationStore((state) => state.addToast);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filter, setFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [transactionType, setTransactionType] = useState("");
   const [loading, setLoading] = useState(true);
   const [listings, setListings] = useState<PropertyListing[]>([]);
   const [pagination, setPagination] = useState<PaginationState>({ page: 1, limit: 10, total: 0, totalPages: 0 });
@@ -77,111 +79,80 @@ export default function MyListingsSection() {
     onConfirm: () => void;
   } | null>(null);
 
-  useEffect(() => {
-    const loadListings = async () => {
-      if (!accessToken) return;
-      try {
-        setLoading(true);
-        const res = await getMyListings(accessToken, filter === "all" ? "all" : filter, currentPage);
-        
-        if (res.statusCode === 401) {
-          console.log('❌ Token invalid, redirecting to login');
-          clearAuth();
-          addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
-          router.push('/dang-nhap');
-          return;
-        }
-        
-        if (res.success && res.data) {
-          const mapped = res.data.map((l: Record<string, unknown>) => ({
-             id: String(l.id),
-             listing_code: l.listing_code ? String(l.listing_code) : String(l.id).slice(0, 8),
-             title: String(l.title),
-             price: formatPrice(l.price as string | number),
-             address: l.address ? `${l.address}, ${l.ward}` : `${l.ward}, ${l.province}`,
-             image: (l.thumbnail_url as string) || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=400",
-             status: (l.status as ListingStatus) || "Đang chờ duyệt",
-             date: l.created_at ? new Date(l.created_at as string).toLocaleDateString('vi-VN') : "?",
-             views: typeof l.views_count === 'number' ? l.views_count : 0,
-             slug: l.slug ? String(l.slug) : undefined,
-             transaction_type: (l.transaction_types as Record<string, unknown>)?.hashtag ? String((l.transaction_types as Record<string, unknown>).hashtag) : undefined
-          }));
-          setListings(mapped);
-          if (res.pagination) {
-            setPagination({
-              page: res.pagination.page as number,
-              limit: res.pagination.limit as number,
-              total: res.pagination.total as number,
-              totalPages: res.pagination.totalPages as number
-            });
-          }
-        } else if (!res.success) {
-          addToast(res.error || 'Lỗi tải danh sách tin đăng', 'error');
-        }
-      } catch (_err) {
-        console.error(_err);
-        addToast('Lỗi kết nối, vui lòng thử lại', 'error');
-      } finally {
-        setLoading(false);
+  const loadListings = async (page = currentPage) => {
+    if (!accessToken) return;
+    try {
+      setLoading(true);
+      const res = await getMyListings(
+        accessToken, 
+        filter === "all" ? "all" : filter, 
+        page,
+        searchTerm || undefined,
+        transactionType || undefined
+      );
+      
+      if (res.statusCode === 401) {
+        console.log('❌ Token invalid, redirecting to login');
+        clearAuth();
+        addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+        router.push('/dang-nhap');
+        return;
       }
-    };
+      
+      if (res.success && res.data) {
+        const mapped = res.data.map((l: Record<string, unknown>) => ({
+           id: String(l.id),
+           listing_code: l.listing_code ? String(l.listing_code) : String(l.id).slice(0, 8),
+           title: String(l.title),
+           price: formatPrice(l.price as string | number),
+           address: l.address ? `${l.address}, ${l.ward}` : `${l.ward}, ${l.province}`,
+           image: (l.thumbnail_url as string) || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=400",
+           status: (l.status as ListingStatus) || "Đang chờ duyệt",
+           date: l.created_at ? new Date(l.created_at as string).toLocaleDateString('vi-VN') : "?",
+           views: typeof l.views_count === 'number' ? l.views_count : 0,
+           slug: l.slug ? String(l.slug) : undefined,
+           transaction_type: (l.transaction_types as Record<string, unknown>)?.hashtag ? String((l.transaction_types as Record<string, unknown>).hashtag) : undefined
+        }));
+        setListings(mapped);
+        if (res.pagination) {
+          setPagination({
+            page: res.pagination.page as number,
+            limit: res.pagination.limit as number,
+            total: res.pagination.total as number,
+            totalPages: res.pagination.totalPages as number
+          });
+        }
+      } else if (!res.success) {
+        addToast(res.error || 'Lỗi tải danh sách tin đăng', 'error');
+      }
+    } catch (_err) {
+      console.error(_err);
+      addToast('Lỗi kết nối, vui lòng thử lại', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    loadListings();
-  }, [accessToken, filter, currentPage, clearAuth, addToast, router]);
+  useEffect(() => {
+    loadListings(1);
+  }, [accessToken, filter, transactionType, clearAuth, addToast, router]);
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
+    loadListings(newPage);
+  };
+
+  const handleSearch = () => {
+    setCurrentPage(1);
+    loadListings(1);
   };
 
   const handleRefresh = () => {
+    setSearchTerm("");
+    setTransactionType("");
+    setFilter("all");
     setCurrentPage(1);
-    const loadListings = async () => {
-      if (!accessToken) return;
-      try {
-        setLoading(true);
-        const res = await getMyListings(accessToken, filter === "all" ? "all" : filter, 1);
-        
-        if (res.statusCode === 401) {
-          clearAuth();
-          addToast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
-          router.push('/dang-nhap');
-          return;
-        }
-        
-        if (res.success && res.data) {
-          const mapped = res.data.map((l: Record<string, unknown>) => ({
-             id: String(l.id),
-             listing_code: l.listing_code ? String(l.listing_code) : String(l.id).slice(0, 8),
-             title: String(l.title),
-             price: formatPrice(l.price as string | number),
-             address: l.address ? `${l.address}, ${l.ward}` : `${l.ward}, ${l.province}`,
-             image: (l.thumbnail_url as string) || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=400",
-             status: (l.status as ListingStatus) || "Đang chờ duyệt",
-             date: l.created_at ? new Date(l.created_at as string).toLocaleDateString('vi-VN') : "?",
-             views: typeof l.views_count === 'number' ? l.views_count : 0,
-             slug: l.slug ? String(l.slug) : undefined,
-             transaction_type: (l.transaction_types as Record<string, unknown>)?.hashtag ? String((l.transaction_types as Record<string, unknown>).hashtag) : undefined
-          }));
-          setListings(mapped);
-          if (res.pagination) {
-            setPagination({
-              page: res.pagination.page as number,
-              limit: res.pagination.limit as number,
-              total: res.pagination.total as number,
-              totalPages: res.pagination.totalPages as number
-            });
-          }
-        } else if (!res.success) {
-          addToast(res.error || 'Lỗi tải danh sách tin đăng', 'error');
-        }
-      } catch (_err) {
-        console.error(_err);
-        addToast('Lỗi kết nối, vui lòng thử lại', 'error');
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadListings();
+    loadListings(1);
   };
 
   const handleUpdateStatus = async (id: string, newStatus: string) => {
@@ -248,83 +219,120 @@ export default function MyListingsSection() {
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-visible relative">
-      <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4 rounded-t-xl z-20 relative bg-white dark:bg-slate-900">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white">Tin đăng của tôi</h1>
-          <p className="text-sm text-slate-500 mt-1">Quản lý các bất động sản bạn đã đăng tin.</p>
-        </div>
+      <div className="p-6 border-b border-slate-100 dark:border-slate-800 rounded-t-xl z-20 relative bg-white dark:bg-slate-900">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white">Tin đăng của tôi</h1>
+              <p className="text-sm text-slate-500 mt-1">Quản lý các bất động sản bạn đã đăng tin.</p>
+            </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleRefresh}
-            disabled={loading}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-black border transition-all duration-200 ${
-              loading
-                ? "bg-slate-200 dark:bg-slate-700 text-slate-400 border-slate-200 dark:border-slate-700 cursor-not-allowed"
-                : "bg-white dark:bg-slate-800 text-slate-600 dark:text-white border-slate-200 dark:border-slate-700 hover:border-emerald-500"
-            }`}
-          >
-            <RefreshCw className={`size-3 ${loading ? 'animate-spin' : ''}`} />
-            <span className="uppercase tracking-lighter">Làm mới</span>
-          </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRefresh}
+                disabled={loading}
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-black border transition-all duration-200 ${
+                  loading
+                    ? "bg-slate-200 dark:bg-slate-700 text-slate-400 border-slate-200 dark:border-slate-700 cursor-not-allowed"
+                    : "bg-white dark:bg-slate-800 text-slate-600 dark:text-white border-slate-200 dark:border-slate-700 hover:border-emerald-500"
+                }`}
+              >
+                <RefreshCw className={`size-3 ${loading ? 'animate-spin' : ''}`} />
+                <span className="uppercase tracking-lighter">Làm mới</span>
+              </button>
 
-          <div className="relative">
-            <button
-              onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-black border transition-all duration-200 ${
-                isFilterOpen 
-                  ? "bg-emerald-600 text-white border-emerald-600 shadow-md" 
-                  : "bg-white dark:bg-slate-800 text-slate-600 dark:text-white border-slate-200 dark:border-slate-700 hover:border-emerald-500"
-              }`}
-            >
-              <Filter className="size-3" />
-              <span className="uppercase tracking-lighter">
-                {filter === 'all' ? 'Tất cả' : statusConfig[filter]?.label || filter}
-              </span>
-              <ChevronDown className={`size-3 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
-            </button>
+              <div className="relative">
+                <button
+                  onClick={() => setIsFilterOpen(!isFilterOpen)}
+                  className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-black border transition-all duration-200 ${
+                    isFilterOpen 
+                      ? "bg-emerald-600 text-white border-emerald-600 shadow-md" 
+                      : "bg-white dark:bg-slate-800 text-slate-600 dark:text-white border-slate-200 dark:border-slate-700 hover:border-emerald-500"
+                  }`}
+                >
+                  <Filter className="size-3" />
+                  <span className="uppercase tracking-lighter">
+                    {filter === 'all' ? 'Tất cả' : statusConfig[filter]?.label || filter}
+                  </span>
+                  <ChevronDown className={`size-3 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`} />
+                </button>
 
-          {isFilterOpen && (
-            <>
-              <div 
-                className="fixed inset-0 z-60" 
-                onClick={() => setIsFilterOpen(false)}
-              ></div>
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg shadow-2xl z-70 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right ring-1 ring-black/5">
-                <div className="p-1 space-y-0.5">
-                  <button
-                    onClick={() => { setFilter("all"); setIsFilterOpen(false); }}
-                    className={`w-full flex items-center justify-between px-2.5 py-2 rounded-md text-[11px] font-bold transition-all ${
-                      filter === "all" 
-                        ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400" 
-                        : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                    }`}
-                  >
-                    <span>Tất cả trạng thái</span>
-                    {filter === "all" && <CheckCircle2 className="size-3" />}
-                  </button>
-                  <div className="h-px bg-slate-50 dark:bg-slate-800 my-1 mx-1"></div>
-                  {(Object.keys(statusConfig) as ListingStatus[]).map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => { setFilter(s); setIsFilterOpen(false); }}
-                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-md text-[11px] font-bold transition-all ${
-                        filter === s 
-                          ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400" 
-                          : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span className={`size-1.5 rounded-full ${statusConfig[s].bg.replace('bg-', 'bg-')}`}></span>
-                        {statusConfig[s].label}
-                      </span>
-                      {filter === s && <CheckCircle2 className="size-3" />}
-                    </button>
-                  ))}
-                </div>
+              {isFilterOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-60" 
+                    onClick={() => setIsFilterOpen(false)}
+                  ></div>
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg shadow-2xl z-70 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right ring-1 ring-black/5">
+                    <div className="p-1 space-y-0.5">
+                      <button
+                        onClick={() => { setFilter("all"); setIsFilterOpen(false); }}
+                        className={`w-full flex items-center justify-between px-2.5 py-2 rounded-md text-[11px] font-bold transition-all ${
+                          filter === "all" 
+                            ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400" 
+                            : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        }`}
+                      >
+                        <span>Tất cả trạng thái</span>
+                        {filter === "all" && <CheckCircle2 className="size-3" />}
+                      </button>
+                      <div className="h-px bg-slate-50 dark:bg-slate-800 my-1 mx-1"></div>
+                      {(Object.keys(statusConfig) as ListingStatus[]).map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => { setFilter(s); setIsFilterOpen(false); }}
+                          className={`w-full flex items-center justify-between px-2.5 py-2 rounded-md text-[11px] font-bold transition-all ${
+                            filter === s 
+                              ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400" 
+                              : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <span className={`size-1.5 rounded-full ${statusConfig[s].bg.replace('bg-', 'bg-')}`}></span>
+                            {statusConfig[s].label}
+                          </span>
+                          {filter === s && <CheckCircle2 className="size-3" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
               </div>
-            </>
-          )}
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                placeholder="Tìm kiếm theo tiêu đề..."
+                className="pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-sm text-slate-900 dark:text-white w-full focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              />
+            </div>
+            <select
+              value={transactionType}
+              onChange={(e) => {
+                setTransactionType(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-sm text-slate-900 dark:text-white min-w-[140px]"
+            >
+              <option value="">Tất cả giao dịch</option>
+              <option value="mua-ban">Mua bán</option>
+              <option value="cho-thue">Cho thuê</option>
+            </select>
+            <button
+              onClick={handleSearch}
+              disabled={loading}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              Tìm kiếm
+            </button>
           </div>
         </div>
       </div>

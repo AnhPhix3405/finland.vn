@@ -59,6 +59,8 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const status = searchParams.get('status') || 'all';
+    const search = searchParams.get('search') || '';
+    const transactionType = searchParams.get('transaction_type') || '';
     
     const skip = (page - 1) * limit;
 
@@ -68,6 +70,16 @@ export async function GET(request: NextRequest) {
     
     if (status && status !== 'all') {
        whereClause.status = status;
+    }
+
+    if (search) {
+      whereClause.title = { contains: search, mode: 'insensitive' };
+    }
+
+    if (transactionType) {
+      whereClause.transaction_types = {
+        hashtag: transactionType
+      };
     }
 
     const listings = await prisma.listings.findMany({

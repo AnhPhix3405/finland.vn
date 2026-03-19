@@ -204,14 +204,28 @@ export async function getListingsByHashtags(hashtags: string[], params?: {
 export async function getMyListings(
   token: string, 
   status: string = "all",
-  page: number = 1
+  page: number = 1,
+  search?: string,
+  transactionType?: string
 ): Promise<{ success: boolean; data: Record<string, unknown>[]; pagination?: Record<string, unknown>; error?: string; statusCode?: number }> {
   try {
-    const response = await fetchWithRetry(`/api/brokers/me/listings?status=${status}&page=${page}&limit=10`, {
+    const params = new URLSearchParams({
+      status,
+      page: page.toString(),
+      limit: '10'
+    });
+    
+    if (search) {
+      params.append('search', search);
+    }
+    if (transactionType) {
+      params.append('transaction_type', transactionType);
+    }
+    
+    const response = await fetchWithRetry(`/api/brokers/me/listings?${params.toString()}`, {
       token
     });
 
-    // Return status code so component can handle 401 differently
     const result = await response.json();
     return {
       ...result,
