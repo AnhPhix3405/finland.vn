@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Plus, X } from "lucide-react";
 import RichTextEditor from "@/src/components/ui/RichTextEditor";
 import LocationSelector from "@/src/components/feature/LocationSelector";
+import MapPicker from "@/src/components/feature/MapPicker";
 import { loadAllFormOptions, SelectOption } from "@/src/app/modules/form-options.service";
 import { uploadListingAttachments, deleteAttachment } from "@/src/app/modules/upload.service";
 import { getAllTagNamesAPI, processTagsForListingClient } from "@/src/app/modules/tags.service.client";
@@ -64,6 +65,8 @@ export default function EditListingPage() {
   const [contactPhone, setContactPhone] = useState("");
   const [floorCount, setFloorCount] = useState("");
   const [bedroomCount, setBedroomCount] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
 
   // File states
   const [initialImages, setInitialImages] = useState<Attachment[]>([]);
@@ -131,6 +134,8 @@ export default function EditListingPage() {
           setContactPhone(l.contact_phone || "");
           setFloorCount(l.floor_count?.toString() || "");
           setBedroomCount(l.bedroom_count?.toString() || "");
+          setLatitude(l.latitude ?? null);
+          setLongitude(l.longitude ?? null);
           if (l.tags) {
             setSelectedHashTags(l.tags.map((t: { slug?: string; name: string }) => t.slug || t.name));
           }
@@ -160,6 +165,30 @@ export default function EditListingPage() {
   const slugify = (text: string) => {
     return text.toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').replace(/([^0-9a-z-\s])/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
   };
+
+  useEffect(() => {
+    const query = [address, ward, province].filter(Boolean).join(', ');
+    if (query.trim().length < 5) return;
+
+    const delayDebounceFn = setTimeout(async () => {
+      try {
+        const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
+        const res = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${token}&country=vn&limit=1`
+        );
+        const data = await res.json();
+        if (data.features && data.features.length > 0) {
+          const [targetLng, targetLat] = data.features[0].center;
+          setLatitude(targetLat);
+          setLongitude(targetLng);
+        }
+      } catch (err) {
+        console.error('Geocoding error:', err);
+      }
+    }, 1000);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [province, ward, address]);
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, '');
@@ -294,6 +323,8 @@ export default function EditListingPage() {
         contact_phone: contactPhone.trim() || null,
         floor_count: floorCount ? parseInt(floorCount) : null,
         bedroom_count: bedroomCount ? parseInt(bedroomCount) : null,
+        latitude: latitude || null,
+        longitude: longitude || null,
       };
 
       const res = await fetchWithRetry(`/api/listings/${listingId}`, {
@@ -427,10 +458,24 @@ export default function EditListingPage() {
                 Vị trí
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <LocationSelector selectedProvince={province} onProvinceChange={setProvince} selectedWard={ward} onWardChange={setWard} requiredProvince={true} requiredWard={true} />
+                <div className="w-120">
+                  <LocationSelector selectedProvince={province} onProvinceChange={setProvince} selectedWard={ward} onWardChange={setWard} requiredProvince={true} requiredWard={true} />
+
+                </div>
                 <div className="md:col-span-2 space-y-2">
                   <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Địa chỉ cụ thể</label>
                   <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500" />
+                </div>
+                <div className="md:col-span-2 space-y-3">
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Vị trí chính xác trên bản đồ</label>
+                  <MapPicker
+                    initialLat={latitude || undefined}
+                    initialLng={longitude || undefined}
+                    onLocationChange={(lat, lng) => {
+                      setLatitude(lat);
+                      setLongitude(lng);
+                    }}
+                  />
                 </div>
               </div>
             </section>

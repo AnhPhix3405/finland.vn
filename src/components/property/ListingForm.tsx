@@ -183,7 +183,7 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
 
     return () => clearTimeout(delayDebounceFn);
   }, [province, ward, address]);
-  
+
   // Auto-calculate price per m2
   useEffect(() => {
     const priceValue = price.replace(/\D/g, '');
@@ -554,14 +554,16 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
           Vị trí
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <LocationSelector
-            selectedProvince={province}
-            onProvinceChange={(val) => { setProvince(val); setErrors(prev => ({ ...prev, province: '' })); }}
-            selectedWard={ward}
-            onWardChange={(val) => { setWard(val); setErrors(prev => ({ ...prev, ward: '' })); }}
-            requiredProvince={true}
-            requiredWard={true}
-          />
+          <div className="w-120">
+            <LocationSelector
+              selectedProvince={province}
+              onProvinceChange={(val) => { setProvince(val); setErrors(prev => ({ ...prev, province: '' })); }}
+              selectedWard={ward}
+              onWardChange={(val) => { setWard(val); setErrors(prev => ({ ...prev, ward: '' })); }}
+              requiredProvince={true}
+              requiredWard={true}
+            />
+          </div>
           {(errors.province || errors.ward) && (
             <div className="md:col-span-2">
               <p className="text-red-500 text-xs">{errors.province || errors.ward}</p>
