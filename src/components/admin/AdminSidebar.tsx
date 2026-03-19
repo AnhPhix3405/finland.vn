@@ -2,11 +2,28 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function AdminSidebar() {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+    const checkWidth = () => {
+      if (window.innerWidth >= 1024) {
+        setCollapsed(false);
+      } else {
+        setCollapsed(true);
+      }
+    };
+    
+    checkWidth();
+    window.addEventListener('resize', checkWidth);
+    
+    return () => window.removeEventListener('resize', checkWidth);
+  }, []);
 
   const navLinks = [
     { href: "/admin", label: "Tổng quan", icon: "dashboard", exact: true },
@@ -16,6 +33,23 @@ export default function AdminSidebar() {
     { href: "/admin/moi-gioi", label: "Quản lý Môi giới", icon: "group", exact: false },
     { href: "/admin/doi-mat-khau", label: "Đổi mật khẩu", icon: "lock", exact: false },
   ];
+
+  if (!isHydrated) {
+    return (
+      <aside className="w-16 bg-slate-900 flex flex-col h-full flex-shrink-0">
+        <div className="h-16 px-3 flex items-center justify-center border-b border-slate-800">
+          <span className="text-emerald-700 font-bold text-lg">F</span>
+        </div>
+        <nav className="flex-1 py-4 px-2 flex flex-col gap-1">
+          {navLinks.map((link) => (
+            <div key={link.href} className="py-2.5 px-0 flex justify-center">
+              <span className="material-symbols-outlined text-xl text-slate-400">business</span>
+            </div>
+          ))}
+        </nav>
+      </aside>
+    );
+  }
 
   return (
     <aside className={`${collapsed ? "w-16" : "w-64"} bg-slate-900 flex flex-col h-full flex-shrink-0 transition-all duration-300`}>
@@ -51,7 +85,7 @@ export default function AdminSidebar() {
         })}
       </nav>
 
-      <div className="p-2 border-t border-slate-800">
+      <div className="p-2 border-t border-slate-800 hidden lg:block">
         <button
           onClick={() => setCollapsed(!collapsed)}
           title={collapsed ? "Mở rộng" : "Thu gọn"}
