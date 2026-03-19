@@ -155,6 +155,14 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const authCheck = await verifyAdminAuth(request);
+    if (!authCheck.valid) {
+      return NextResponse.json(
+        { success: false, error: authCheck.error },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { id, status } = body;
 
@@ -165,9 +173,36 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Get listing to check transaction type
+    const existingListing = await prisma.listings.findUnique({
+      where: { id },
+      include: {
+        transaction_types: {
+          select: { hashtag: true }
+        }
+      }
+    });
+
+    if (!existingListing) {
+      return NextResponse.json(
+        { success: false, error: 'Listing not found' },
+        { status: 404 }
+      );
+    }
+
+    // Auto-correct status based on transaction type
+    let finalStatus = status;
+    const transactionHashtag = existingListing.transaction_types?.hashtag;
+    
+    if (status === 'Đã bán' && transactionHashtag === 'cho-thue') {
+      finalStatus = 'Đã xong';
+    } else if (status === 'Đã xong' && transactionHashtag === 'mua-ban') {
+      finalStatus = 'Đã bán';
+    }
+
     const updatedListing = await prisma.listings.update({
       where: { id },
-      data: { status },
+      data: { status: finalStatus },
       include: {
         brokers: {
           select: {

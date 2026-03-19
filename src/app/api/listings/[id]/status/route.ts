@@ -100,7 +100,12 @@ export async function PATCH(
 
     // Check if listing exists
     const existingListing = await prisma.listings.findUnique({
-      where: { id }
+      where: { id },
+      include: {
+        transaction_types: {
+          select: { hashtag: true }
+        }
+      }
     });
 
     if (!existingListing) {
@@ -151,12 +156,22 @@ export async function PATCH(
       );
     }
 
+    // Auto-correct status based on transaction type
+    let finalStatus = status;
+    const transactionHashtag = existingListing.transaction_types?.hashtag;
+    
+    if (status === 'Đã bán' && transactionHashtag === 'cho-thue') {
+      finalStatus = 'Đã xong';
+    } else if (status === 'Đã xong' && transactionHashtag === 'mua-ban') {
+      finalStatus = 'Đã bán';
+    }
+
     // Allow change from Đã ẩn to Đang hiển thị
 
     // Update the listing status
     const updatedListing = await prisma.listings.update({
       where: { id },
-      data: { status },
+      data: { status: finalStatus },
       include: {
         brokers: {
           select: {
