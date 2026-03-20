@@ -22,6 +22,7 @@ export interface CreateListingData {
   visibility?: boolean;
   status?: string;
   tags?: string[];
+  feature_hashtag_ids?: string[];
   contact_name?: string;
   contact_phone?: string;
   floor_count?: number;

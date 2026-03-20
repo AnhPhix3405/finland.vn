@@ -2,13 +2,13 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Plus, X } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import RichTextEditor from "@/src/components/ui/RichTextEditor";
 import LocationSelector from "@/src/components/feature/LocationSelector";
 import MapPicker from "@/src/components/feature/MapPicker";
 import { loadAllFormOptions, SelectOption } from "@/src/app/modules/form-options.service";
 import { uploadListingAttachments, deleteAttachment } from "@/src/app/modules/upload.service";
-import { getAllTagNamesAPI, processTagsForListingClient } from "@/src/app/modules/tags.service.client";
+import { getFeatureHashtags, FeatureHashtag } from "@/src/app/modules/property.service";
 import { updateAttachmentSortOrder } from "@/src/app/modules/attachments.service";
 import { fetchWithRetry } from "@/src/lib/api/fetch-with-retry";
 import { useAuthStore } from "@/src/store/authStore";
@@ -40,15 +40,13 @@ export default function EditListingPage() {
 
   const [transactionTypeId, setTransactionTypeId] = useState("");
   const [propertyTypeId, setPropertyTypeId] = useState("");
-  const [selectedHashTags, setSelectedHashTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState("");
-  const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedFeatureHashtags, setSelectedFeatureHashtags] = useState<string[]>([]);
   const [description, setDescription] = useState("");
 
   // Options loaded from API
   const [propertyTypes, setPropertyTypes] = useState<SelectOption[]>([]);
   const [transactionTypes, setTransactionTypes] = useState<SelectOption[]>([]);
+  const [featureHashtags, setFeatureHashtags] = useState<FeatureHashtag[]>([]);
 
   // Form data states
   const [title, setTitle] = useState("");
@@ -87,20 +85,30 @@ export default function EditListingPage() {
   const showFloors = isHouse || isOffice;
   const showDimensions = !isApartment;
 
+  const toggleFeatureHashtag = (id: string) => {
+    setSelectedFeatureHashtags(prev => 
+      prev.includes(id) 
+        ? prev.filter(h => h !== id)
+        : [...prev, id]
+    );
+  };
+
   // INITIAL LOAD - Optimized with parallel calls
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Parallel fetch: options, tags, and listing
-        const [options, tags, listingRes] = await Promise.all([
+        // Parallel fetch: options, features, and listing
+        const [options, featureResult, listingRes] = await Promise.all([
           loadAllFormOptions(),
-          getAllTagNamesAPI(),
+          getFeatureHashtags({ limit: 100 }),
           slug && accessToken ? fetchWithRetry(`/api/listings/${slug}`, { token: accessToken || undefined, isAdmin: false }) : Promise.resolve(null)
         ]);
 
         setPropertyTypes(options.propertyTypes);
         setTransactionTypes(options.transactionTypes);
-        setTagSuggestions(tags);
+        if (featureResult.success && featureResult.data) {
+          setFeatureHashtags(featureResult.data);
+        }
 
         if (!slug || !listingRes) return;
 
@@ -136,8 +144,8 @@ export default function EditListingPage() {
           setBedroomCount(l.bedroom_count?.toString() || "");
           setLatitude(l.latitude ?? null);
           setLongitude(l.longitude ?? null);
-          if (l.tags) {
-            setSelectedHashTags(l.tags.map((t: { slug?: string; name: string }) => t.slug || t.name));
+          if (l.listing_feature_hashtags) {
+            setSelectedFeatureHashtags(l.listing_feature_hashtags.map((fh: { feature_hashtag_id: string }) => fh.feature_hashtag_id));
           }
 
           // Fetch images in parallel with listing data
@@ -197,39 +205,6 @@ export default function EditListingPage() {
       return;
     }
     setPrice(Number(val).toLocaleString('vi-VN'));
-  };
-
-  const addTag = (tagToAdd?: string) => {
-    const tag = (tagToAdd || tagInput).trim().replace(/^#/, "");
-    if (tag && !selectedHashTags.includes(tag)) {
-      setSelectedHashTags([...selectedHashTags, tag]);
-    }
-    setTagInput("");
-    setShowSuggestions(false);
-  };
-
-  const removeTag = (tag: string) => {
-    setSelectedHashTags(selectedHashTags.filter(t => t !== tag));
-  };
-
-  const handleTagInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setTagInput(value);
-
-    if (value.trim().length > 0) {
-      try {
-        if (value.trim().length > 1) {
-          const freshSuggestions = await getAllTagNamesAPI(value.trim());
-          const filteredFresh = freshSuggestions.filter(tag => !selectedHashTags.includes(tag));
-          setTagSuggestions(prev => [...new Set([...prev, ...filteredFresh])]);
-        }
-        setShowSuggestions(true);
-      } catch (error) {
-        setShowSuggestions(false);
-      }
-    } else {
-      setShowSuggestions(false);
-    }
   };
 
   // Files
@@ -341,9 +316,27 @@ export default function EditListingPage() {
         throw new Error(dataJson.error || "Update database failed");
       }
 
-      // 2. TAGS: Client Side Update (We simply re-send the tags using the tag service client side helper if backend lacks it)
-      if (selectedHashTags.length >= 0) {
-        await processTagsForListingClient(selectedHashTags, listingId);
+      // 2. UPDATE FEATURE HASHTAGS
+      // Delete existing and create new ones
+      try {
+        const deleteRes = await fetchWithRetry(`/api/listings/${listingId}/feature-hashtags`, {
+          method: 'DELETE',
+          token: accessToken || undefined,
+          isAdmin: false
+        });
+        if (deleteRes.ok) {
+          for (const featureId of selectedFeatureHashtags) {
+            await fetchWithRetry(`/api/listings/${listingId}/feature-hashtags`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ feature_hashtag_id: featureId }),
+              token: accessToken || undefined,
+              isAdmin: false
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error updating feature hashtags:', err);
       }
 
       // 2.5 UPDATE SORT ORDER FOR CHANGED IMAGES ONLY
@@ -534,29 +527,31 @@ export default function EditListingPage() {
                 </div>
               </div>
 
-              {/* Tags */}
+              {/* Feature Hashtags */}
               <div className="space-y-3">
-                <label className="text-sm font-semibold">Hashtags</label>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {selectedHashTags.map(tag => (
-                    <span key={tag} className="inline-flex gap-1 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 text-xs font-bold border">
-                      #{tag} <button type="button" onClick={() => removeTag(tag)}><X className="size-3" /></button>
-                    </span>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <input type="text" value={tagInput} onChange={handleTagInputChange} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())} placeholder="Ví dụ: chính-chủ..." className="w-full bg-slate-50 border py-2 px-4 rounded-lg text-sm" />
-                    {showSuggestions && (
-                      <div className="absolute top-12 w-full bg-white border shadow shadow-xl rounded-lg overflow-hidden z-20">
-                        {tagSuggestions.filter(t => !selectedHashTags.includes(t)).slice(0, 5).map(t => (
-                          <button type="button" key={t} onClick={() => addTag(t)} className="w-full text-left p-3 hover:bg-slate-100">#{t}</button>
-                        ))}
-                      </div>
-                    )}
+                <label className="text-sm font-semibold">Đặc điểm nổi bật</label>
+                {loading ? (
+                  <div className="text-sm text-slate-500">Đang tải...</div>
+                ) : featureHashtags.length === 0 ? (
+                  <div className="text-sm text-slate-500">Chưa có đặc điểm nào</div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {featureHashtags.map(feature => (
+                      <button
+                        key={feature.id}
+                        type="button"
+                        onClick={() => toggleFeatureHashtag(feature.id)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                          selectedFeatureHashtags.includes(feature.id)
+                            ? 'bg-emerald-600 text-white shadow-md'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+                        }`}
+                      >
+                        {feature.name}
+                      </button>
+                    ))}
                   </div>
-                  <button type="button" onClick={() => addTag()} className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-bold flex gap-2"><Plus className="size-4" /> Thêm</button>
-                </div>
+                )}
               </div>
 
               <div className="space-y-2">

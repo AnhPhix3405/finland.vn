@@ -369,7 +369,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { title, description, transaction_type_id, property_type_id, province, ward, address, area, price, price_per_m2, price_per_frontage_meter, direction, tags, contact_name: rawContactName, contact_phone: rawContactPhone, floor_count, bedroom_count, latitude, longitude } = body;
+    const { title, description, transaction_type_id, property_type_id, province, ward, address, area, price, price_per_m2, price_per_frontage_meter, direction, tags, feature_hashtag_ids, contact_name: rawContactName, contact_phone: rawContactPhone, floor_count, bedroom_count, latitude, longitude } = body;
 
     const currentYearStr = new Date().getFullYear().toString().substring(2, 4);
     const prefix = `FIN${currentYearStr}`;
@@ -467,10 +467,30 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Create feature hashtags
+    let processedFeatureHashtags: string[] = [];
+    if (feature_hashtag_ids && Array.isArray(feature_hashtag_ids) && feature_hashtag_ids.length > 0) {
+      try {
+        for (const featureHashtagId of feature_hashtag_ids) {
+          await prisma.listing_feature_hashtags.create({
+            data: {
+              listing_id: listing.id,
+              feature_hashtag_id: featureHashtagId
+            }
+          });
+          processedFeatureHashtags.push(featureHashtagId);
+        }
+        console.log(`Created ${processedFeatureHashtags.length} feature hashtags for listing ${listing.id}`);
+      } catch (featureError) {
+        console.error('Error creating feature hashtags:', featureError);
+      }
+    }
+
     return NextResponse.json(serializeData({
       success: true,
       data: listing,
       tags: processedTags,
+      feature_hashtag_ids: processedFeatureHashtags,
       message: 'Tạo bài đăng thành công'
     }), { status: 201 });
 

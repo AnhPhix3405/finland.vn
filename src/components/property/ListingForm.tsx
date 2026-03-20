@@ -3,10 +3,10 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import UserRichTextEditor from "../ui/UserRichTextEditor";
-import { Camera, Plus, X, Check, Video } from "lucide-react";
+import { Camera } from "lucide-react";
 import { createListing } from "@/src/app/modules/listings.service";
 import { uploadListingAttachments } from "@/src/app/modules/upload.service";
-import { getAllTagNamesAPI } from "@/src/app/modules/tags.service.client";
+import { getFeatureHashtags, FeatureHashtag } from "@/src/app/modules/property.service";
 import { useUserStore } from "@/src/store/userStore";
 import { useAuthStore } from "@/src/store/authStore";
 import { useNotificationStore } from "@/src/store/notificationStore";
@@ -25,28 +25,28 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
   const addToast = useNotificationStore((state) => state.addToast);
   const [transactionTypeId, setTransactionTypeId] = useState("");
   const [propertyTypeId, setPropertyTypeId] = useState("");
-  const [selectedHashTags, setSelectedHashTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState("");
-  const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedFeatureHashtags, setSelectedFeatureHashtags] = useState<string[]>([]);
   const [description, setDescription] = useState("");
 
   // Options loaded from API
   const [propertyTypes, setPropertyTypes] = useState<SelectOption[]>([]);
   const [transactionTypes, setTransactionTypes] = useState<SelectOption[]>([]);
+  const [featureHashtags, setFeatureHashtags] = useState<FeatureHashtag[]>([]);
   const [optionsLoading, setOptionsLoading] = useState(true);
 
   // Load options on component mount - Optimized with parallel calls
   useEffect(() => {
     const loadOptions = async () => {
       try {
-        const [options, allTagNames] = await Promise.all([
+        const [options, featureResult] = await Promise.all([
           loadAllFormOptions(),
-          getAllTagNamesAPI()
+          getFeatureHashtags({ limit: 100 })
         ]);
         setPropertyTypes(options.propertyTypes);
         setTransactionTypes(options.transactionTypes);
-        setTagSuggestions(allTagNames);
+        if (featureResult.success && featureResult.data) {
+          setFeatureHashtags(featureResult.data);
+        }
       } catch (error) {
         console.error('Error loading form options:', error);
       } finally {
@@ -55,6 +55,14 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
     };
     loadOptions();
   }, []);
+
+  const toggleFeatureHashtag = (id: string) => {
+    setSelectedFeatureHashtags(prev => 
+      prev.includes(id) 
+        ? prev.filter(h => h !== id)
+        : [...prev, id]
+    );
+  };
 
   // Form data states
   const [title, setTitle] = useState("");
@@ -93,71 +101,6 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
   const showBedrooms = isHouse || isApartment;
   const showFloors = isHouse || isOffice;
   const showDimensions = !isApartment;
-
-  const addTag = (tagToAdd?: string) => {
-    const tag = (tagToAdd || tagInput).trim().replace(/^#/, "");
-    if (tag && !selectedHashTags.includes(tag)) {
-      setSelectedHashTags([...selectedHashTags, tag]);
-    }
-    setTagInput("");
-    setShowSuggestions(false);
-  };
-
-  const removeTag = (tag: string) => {
-    setSelectedHashTags(selectedHashTags.filter(t => t !== tag));
-  };
-
-  const handleTagInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setTagInput(value);
-
-    // Filter and fetch suggestions based on input
-    if (value.trim().length > 0) {
-      try {
-        // First show local filtered suggestions immediately 
-        const localFiltered = tagSuggestions.filter(tag =>
-          tag.toLowerCase().includes(value.toLowerCase()) &&
-          !selectedHashTags.includes(tag)
-        );
-
-        // Then fetch fresh suggestions from API if the input is meaningful
-        if (value.trim().length > 1) {
-          const freshSuggestions = await getAllTagNamesAPI(value.trim());
-          const filteredFresh = freshSuggestions.filter(tag =>
-            !selectedHashTags.includes(tag)
-          );
-
-          // Merge and deduplicate 
-          const combined = [...new Set([...localFiltered, ...filteredFresh])];
-          setTagSuggestions(prev => {
-            const newSuggestions = [...new Set([...prev, ...filteredFresh])];
-            return newSuggestions;
-          });
-        }
-
-        setShowSuggestions(true);
-      } catch (error) {
-        console.error('Error fetching tag suggestions:', error);
-        // Fallback to local filtering
-        const filtered = tagSuggestions.filter(tag =>
-          tag.toLowerCase().includes(value.toLowerCase()) &&
-          !selectedHashTags.includes(tag)
-        );
-        setShowSuggestions(filtered.length > 0);
-      }
-    } else {
-      setShowSuggestions(false);
-    }
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      addTag();
-    } else if (e.key === "Escape") {
-      setShowSuggestions(false);
-    }
-  };
 
   // Automatic geocoding based on address
   useEffect(() => {
@@ -383,7 +326,7 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
         price_per_frontage_meter: pricePerFrontageMeter ? parseFloat(pricePerFrontageMeter) : undefined,
         direction,
         broker_id: user.id,
-        tags: selectedHashTags, // Include tags in the request
+        feature_hashtag_ids: selectedFeatureHashtags,
         contact_name: contactName.trim() || undefined,
         contact_phone: contactPhone.trim() || undefined,
         floor_count: floorCount ? parseInt(floorCount) : undefined,
@@ -719,71 +662,29 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
         </div>
 
         <div className="space-y-3">
-          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Hashtags (Đặc điểm nổi bật)</label>
-          <div className="flex flex-wrap gap-2 mb-3">
-            {selectedHashTags.map(tag => (
-              <span
-                key={tag}
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-bold border border-emerald-200 dark:border-emerald-800"
-              >
-                #{tag}
+          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Đặc điểm nổi bật</label>
+          {optionsLoading ? (
+            <div className="text-sm text-slate-500">Đang tải...</div>
+          ) : featureHashtags.length === 0 ? (
+            <div className="text-sm text-slate-500">Chưa có đặc điểm nào</div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {featureHashtags.map(feature => (
                 <button
+                  key={feature.id}
                   type="button"
-                  onClick={() => removeTag(tag)}
-                  className="hover:text-emerald-900 dark:hover:text-emerald-200 p-0.5"
+                  onClick={() => toggleFeatureHashtag(feature.id)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    selectedFeatureHashtags.includes(feature.id)
+                      ? 'bg-emerald-600 text-white shadow-md'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+                  }`}
                 >
-                  <X className="size-3" />
+                  {feature.name}
                 </button>
-              </span>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">#</span>
-              <input
-                type="text"
-                value={tagInput}
-                onChange={handleTagInputChange}
-                onKeyDown={handleKeyPress}
-                onFocus={() => tagInput && setShowSuggestions(true)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                placeholder="Ví dụ: chính-chủ, mặt-tiền..."
-                className="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2 px-7 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
-              />
-
-              {/* Tag Suggestions Dropdown */}
-              {showSuggestions && tagInput && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-40 overflow-y-auto z-10">
-                  {tagSuggestions
-                    .filter(tag =>
-                      tag.toLowerCase().includes(tagInput.toLowerCase()) &&
-                      !selectedHashTags.includes(tag)
-                    )
-                    .slice(0, 5) // Limit to 5 suggestions
-                    .map((tag) => (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => addTag(tag)}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-900 dark:text-white"
-                      >
-                        #{tag}
-                      </button>
-                    ))
-                  }
-                </div>
-              )}
+              ))}
             </div>
-            <button
-              type="button"
-              onClick={() => addTag()}
-              className="px-4 py-2 bg-slate-900 dark:bg-slate-800 text-white rounded-lg text-sm font-bold hover:bg-slate-800 transition-colors flex items-center gap-2"
-            >
-              <Plus className="size-4" />
-              Thêm
-            </button>
-          </div>
-          <p className="text-[10px] text-slate-400 font-medium">Ấn Enter để thêm hashtag nhanh</p>
+          )}
         </div>
 
         <div className="space-y-2">

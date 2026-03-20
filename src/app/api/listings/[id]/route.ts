@@ -137,6 +137,18 @@ export async function GET(
               name: true,
               hashtag: true
             }
+          },
+          listing_feature_hashtags: {
+            select: {
+              feature_hashtag_id: true,
+              feature_hashtags: {
+                select: {
+                  id: true,
+                  name: true,
+                  hashtag: true
+                }
+              }
+            }
           }
         }
       });
@@ -174,6 +186,18 @@ export async function GET(
               id: true,
               name: true,
               hashtag: true
+            }
+          },
+          listing_feature_hashtags: {
+            select: {
+              feature_hashtag_id: true,
+              feature_hashtags: {
+                select: {
+                  id: true,
+                  name: true,
+                  hashtag: true
+                }
+              }
             }
           }
         }
