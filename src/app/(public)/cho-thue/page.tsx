@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { PropertyCard } from "../../../components/property/PropertyCard";
 import { PropertyFilter, FilterState } from "../../../components/property/PropertyFilter";
 import { Pagination } from "../../../components/shared/Pagination";
@@ -10,7 +10,7 @@ import { useAuthStore } from "@/src/store/authStore";
 import Link from "next/link";
 import { Search, X } from "lucide-react";
 
-export default function ChoThuePage() {
+function ChoThueContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -313,5 +313,13 @@ export default function ChoThuePage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function ChoThuePage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div></div>}>
+      <ChoThueContent />
+    </Suspense>
   );
 }

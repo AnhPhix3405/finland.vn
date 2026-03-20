@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { PropertyCard } from "../../../components/property/PropertyCard";
 import { PropertyFilter, FilterState } from "../../../components/property/PropertyFilter";
 import { Pagination } from "../../../components/shared/Pagination";
@@ -10,7 +10,7 @@ import { useAuthStore } from "@/src/store/authStore";
 import Link from "next/link";
 import { Search, X } from "lucide-react";
 
-export default function MuaBanPage() {
+function MuaBanContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [properties, setProperties] = useState<Record<string, unknown>[]>([]);
@@ -341,5 +341,13 @@ export default function MuaBanPage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function MuaBanPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div></div>}>
+      <MuaBanContent />
+    </Suspense>
   );
 }
