@@ -64,7 +64,21 @@ export function proxy(request: NextRequest) {
       );
     }
 
-    const response = NextResponse.next();
+    let response = NextResponse.next();
+
+    if (request.method === 'GET') {
+      const limitParams = request.nextUrl.searchParams.getAll('limit');
+      const needsRewrite = limitParams.some(val => {
+        const parsed = parseInt(val, 10);
+        return !isNaN(parsed) && parsed > 20;
+      });
+
+      if (needsRewrite) {
+        const newUrl = request.nextUrl.clone();
+        newUrl.searchParams.set('limit', '20');
+        response = NextResponse.rewrite(newUrl);
+      }
+    }
 
     response.headers.set('X-RateLimit-Limit', String(LIMIT));
     response.headers.set('X-RateLimit-Remaining', String(result.remaining));
