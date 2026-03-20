@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server';
 const requests = new Map<string, { count: number; start: number }>();
 
 const WINDOW_MS = 60 * 1000;
-const LIMIT = 20;
+const LIMIT = 30;
 
 function rateLimit(ip: string): { allowed: boolean; remaining: number; resetIn: number } {
   const now = Date.now();
@@ -66,17 +66,21 @@ export function proxy(request: NextRequest) {
 
     let response = NextResponse.next();
 
-    if (request.method === 'GET') {
+    if (request.method === 'GET' && !pathname.startsWith('/api/property_types')) {
       const limitParams = request.nextUrl.searchParams.getAll('limit');
-      const needsRewrite = limitParams.some(val => {
+      const isLimitExceeded = limitParams.some(val => {
         const parsed = parseInt(val, 10);
         return !isNaN(parsed) && parsed > 20;
       });
 
-      if (needsRewrite) {
-        const newUrl = request.nextUrl.clone();
-        newUrl.searchParams.set('limit', '20');
-        response = NextResponse.rewrite(newUrl);
+      if (isLimitExceeded) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Tham số limit không được vượt quá 20',
+          },
+          { status: 400 }
+        );
       }
     }
 
