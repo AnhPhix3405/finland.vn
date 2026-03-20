@@ -5,12 +5,13 @@ import { PropertyCard } from "../../../components/property/PropertyCard";
 import { PropertyFilter, FilterState } from "../../../components/property/PropertyFilter";
 import { Pagination } from "../../../components/shared/Pagination";
 import { getProjects } from "../../modules/projects.service";
-import Link from "next/link";
+import { Search, X } from "lucide-react";
 
 export default function ProjectList() {
   const [projects, setProjects] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentFilters, setCurrentFilters] = useState<FilterState>({});
+  const [searchQuery, setSearchQuery] = useState("");
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 12,
@@ -33,7 +34,7 @@ export default function ProjectList() {
     return `${numPrice.toLocaleString("vi-VN")} VND`;
   };
 
-  const loadProjects = async (filters: FilterState, page: number = 1) => {
+  const loadProjects = async (filters: FilterState, page: number = 1, search: string = searchQuery) => {
     try {
       setLoading(true);
       const result = await getProjects({
@@ -45,6 +46,7 @@ export default function ProjectList() {
         priceMin: filters.priceMin,
         priceMax: filters.priceMax,
         sortBy: filters.sortBy,
+        search: search || undefined,
       });
 
       if (result.success) {
@@ -82,6 +84,7 @@ export default function ProjectList() {
 
   useEffect(() => {
     loadProjects({});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFilterChange = (filters: FilterState) => {
@@ -91,6 +94,16 @@ export default function ProjectList() {
 
   const handlePageChange = (page: number) => {
     loadProjects(currentFilters, page);
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    loadProjects(currentFilters, 1, searchQuery);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery("");
+    loadProjects(currentFilters, 1, "");
   };
 
   return (
@@ -116,6 +129,29 @@ export default function ProjectList() {
         </div>
       </div>
 
+      {/* Search Bar */}
+      <form onSubmit={handleSearch} className="mb-6">
+        <div className="relative max-w-xl">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Tìm kiếm theo tên dự án..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-10 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={clearSearch}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+            >
+              <X className="size-5" />
+            </button>
+          )}
+        </div>
+      </form>
+
       <PropertyFilter onFilterChange={handleFilterChange} />
 
       {loading && (
@@ -127,6 +163,7 @@ export default function ProjectList() {
 
       {!loading && (
         <>
+
           {projects.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {projects.map((project) => {
@@ -152,8 +189,18 @@ export default function ProjectList() {
           ) : (
             <div className="text-center py-12">
               <p className="text-slate-500 dark:text-slate-400">
-                Không tìm thấy dự án nào phù hợp với tiêu chí lọc.
+                {searchQuery
+                  ? `Không tìm thấy dự án nào khớp với "${searchQuery}".`
+                  : "Không tìm thấy dự án nào phù hợp với tiêu chí lọc."}
               </p>
+              {searchQuery && (
+                <button
+                  onClick={clearSearch}
+                  className="mt-3 text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+                >
+                  Xóa tìm kiếm
+                </button>
+              )}
             </div>
           )}
 
