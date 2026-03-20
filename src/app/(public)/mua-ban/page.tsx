@@ -5,13 +5,14 @@ import { PropertyCard } from "../../../components/property/PropertyCard";
 import { PropertyFilter, FilterState } from "../../../components/property/PropertyFilter";
 import { Pagination } from "../../../components/shared/Pagination";
 import { getListingsByHashtags } from "../../modules/listings.service";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/src/store/authStore";
 import Link from "next/link";
 import { Search, X } from "lucide-react";
 
 export default function MuaBanPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [properties, setProperties] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentFilters, setCurrentFilters] = useState<FilterState>({});
@@ -24,7 +25,7 @@ export default function MuaBanPage() {
   });
   const accessToken = useAuthStore((state) => state.accessToken);
   const isHydrated = useAuthStore((state) => state.isHydrated);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || "");
   
   const componentStartTime = useRef<number>(0);
   const apiStartTime = useRef<number>(0);

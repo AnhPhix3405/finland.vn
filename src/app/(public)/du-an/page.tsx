@@ -5,13 +5,15 @@ import { PropertyCard } from "../../../components/property/PropertyCard";
 import { PropertyFilter, FilterState } from "../../../components/property/PropertyFilter";
 import { Pagination } from "../../../components/shared/Pagination";
 import { getProjects } from "../../modules/projects.service";
+import { useSearchParams } from "next/navigation";
 import { Search, X } from "lucide-react";
 
 export default function ProjectList() {
+  const searchParams = useSearchParams();
   const [projects, setProjects] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentFilters, setCurrentFilters] = useState<FilterState>({});
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || "");
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 12,

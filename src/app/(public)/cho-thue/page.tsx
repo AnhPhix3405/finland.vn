@@ -5,13 +5,14 @@ import { PropertyCard } from "../../../components/property/PropertyCard";
 import { PropertyFilter, FilterState } from "../../../components/property/PropertyFilter";
 import { Pagination } from "../../../components/shared/Pagination";
 import { getListingsByHashtags } from "../../modules/listings.service";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/src/store/authStore";
 import Link from "next/link";
 import { Search, X } from "lucide-react";
 
 export default function ChoThuePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const accessToken = useAuthStore((state) => state.accessToken);
   const [properties, setProperties] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +26,7 @@ export default function ChoThuePage() {
   });
   const isHydrated = useAuthStore((state) => state.isHydrated);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || "");
 
   const buildHashtags = (filters: FilterState) => {
     const hashtags = ['cho-thue']; // Always include base hashtag
