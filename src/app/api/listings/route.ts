@@ -188,7 +188,14 @@ export async function GET(request: NextRequest) {
         brokers: true,
         tags: { select: { id: true, name: true, slug: true } },
         property_types: { select: { id: true, name: true, hashtag: true } },
-        transaction_types: { select: { id: true, name: true, hashtag: true } }
+        transaction_types: { select: { id: true, name: true, hashtag: true } },
+        listing_feature_hashtags: {
+          select: {
+            feature_hashtags: {
+              select: { id: true, name: true, hashtag: true }
+            }
+          }
+        }
       },
       orderBy
     });
@@ -234,10 +241,16 @@ export async function GET(request: NextRequest) {
       const firstAttachment = listingAttachments[0];
       const imageUrl = listing.thumbnail_url || firstAttachment?.secure_url || firstAttachment?.url || null;
 
+      // Extract feature tags from listing_feature_hashtags
+      const featureTags = (listing.listing_feature_hashtags || []).map((lfh: { feature_hashtags: { id: string; name: string; hashtag: string } }) => lfh.feature_hashtags);
+
+      console.log('🔍 [SEARCH] featureTags for listing', listing.id, ':', JSON.stringify(featureTags));
+
       return {
         ...listing,
         is_bookmarked: bookmarkMap[listing.id] || false,
-        thumbnail_url: imageUrl
+        thumbnail_url: imageUrl,
+        featureTags: featureTags
       };
     });
 
@@ -245,6 +258,7 @@ export async function GET(request: NextRequest) {
     if (search && listingsWithBookmarks.length > 0) {
       console.log('🔍 [SEARCH] First result broker:', listingsWithBookmarks[0].brokers?.full_name);
     }
+    console.log('🔍 [SEARCH] First listing featureTags:', JSON.stringify(listingsWithBookmarks[0]?.featureTags));
 
     return NextResponse.json(serializeData({
       success: true,

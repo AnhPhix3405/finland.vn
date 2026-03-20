@@ -7,6 +7,12 @@ import { toggleBookmark } from "@/src/app/modules/bookmarks.service";
 import { useNotificationStore } from "@/src/store/notificationStore";
 import { useAuthStore } from "@/src/store/authStore";
 
+export interface FeatureTag {
+  id: string;
+  name: string;
+  hashtag: string;
+}
+
 export interface PropertyCardProps {
   id: string;
   image: string;
@@ -15,6 +21,7 @@ export interface PropertyCardProps {
   title: string;
   location: string;
   tags: string[];
+  featureTags?: FeatureTag[];
   isPriority?: boolean;
   slug?: string | null;
   type?: "mua-ban" | "cho-thue";
@@ -51,6 +58,7 @@ export function PropertyCard({
   title,
   location,
   tags,
+  featureTags = [],
   isPriority = false,
   slug,
   type = "mua-ban",
@@ -144,14 +152,26 @@ export function PropertyCard({
             {title}
           </h3>
         </Link>
-        <div className="flex items-center text-slate-500 dark:text-slate-400 text-xs mb-3">
+        <div className="flex items-center text-slate-500 dark:text-slate-400 text-xs mb-2">
           <MapPin className="w-4 h-4 mr-1" aria-hidden="true" />
           {location}
         </div>
+        {featureTags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {featureTags.map((feature, index) => (
+              <span
+                key={`feature-${feature.id || index}`}
+                className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-sm border border-emerald-200 dark:border-emerald-800"
+              >
+                {feature.name}
+              </span>
+            ))}
+          </div>
+        )}
         <div className="flex flex-wrap gap-2 mb-4 mt-auto">
           {tags.map((tag, index) => (
             <span
-              key={index}
+              key={`tag-${index}`}
               className="bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300 text-[10px] font-bold px-2 py-0.5 rounded-sm"
             >
               #{tag}

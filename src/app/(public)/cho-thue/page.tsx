@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { PropertyCard } from "../../../components/property/PropertyCard";
 import { PropertyFilter, FilterState } from "../../../components/property/PropertyFilter";
 import { Pagination } from "../../../components/shared/Pagination";
@@ -89,6 +89,7 @@ export default function ChoThuePage() {
           id: result.data[0].id,
           title: result.data[0].title,
           broker: result.data[0].brokers,
+          featureTags: result.data[0].featureTags,
         } : null
       });
       
@@ -101,6 +102,7 @@ export default function ChoThuePage() {
         title: listing.title,
         location: `${listing.ward}, ${listing.province}`,
         tags: ((listing.tags as unknown[]) || [])?.map((tag: unknown) => String((tag as Record<string, unknown>).slug)) || [],
+        featureTags: (listing.featureTags as Record<string, unknown>[]) || [],
         isPriority: false, // Can add logic later
         slug: listing.slug,
         broker: listing.brokers,
@@ -277,10 +279,11 @@ export default function ChoThuePage() {
                     title={String(cardData.title)}
                     location={String(cardData.location)}
                     tags={Array.isArray(cardData.tags) ? (cardData.tags as string[]) : []}
+                    featureTags={Array.isArray(cardData.featureTags) ? (cardData.featureTags as { id: string; name: string; hashtag: string }[]) : []}
                     slug={cardData.slug as string | undefined}
                     type="cho-thue" 
                     status={cardData.status as string | undefined}
-                    isBookmarked={Boolean(cardData.is_bookmarked)}
+                    isBookmarked={bookmarkedMap[String(property.id)] || false}
                     onBookmarkToggle={(isBookmarked) => {
                       setBookmarkedMap(prev => ({
                         ...prev,

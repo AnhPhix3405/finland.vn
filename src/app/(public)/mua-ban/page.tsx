@@ -40,6 +40,11 @@ export default function MuaBanPage() {
     };
   }, []);
 
+  // Debug properties state changes
+  useEffect(() => {
+    console.log('🔄 properties state changed, first item featureTags:', properties[0]?.featureTags);
+  }, [properties]);
+
   const buildHashtags = (filters: FilterState) => {
     const hashtags = ['mua-ban']; // Always include base hashtag
 
@@ -107,6 +112,10 @@ export default function MuaBanPage() {
           id: result.data[0].id,
           title: result.data[0].title,
           broker: result.data[0].brokers,
+          featureTags: result.data[0].featureTags,
+          listing_feature_hashtags: result.data[0].listing_feature_hashtags,
+          hasOwnFeatureTags: Object.prototype.hasOwnProperty.call(result.data[0], 'featureTags'),
+          allKeys: Object.keys(result.data[0]),
         } : null
       });
 
@@ -115,22 +124,31 @@ export default function MuaBanPage() {
       console.log(`🔹 [PERF] API /api/listings latency: ${apiLatency.toFixed(3)}s`);
 
       // Map API data to component expected format with fetching images
-      const mappedProperties = result.data.map((listing: Record<string, unknown>) => ({
-        id: String(listing.id),
-        image: getListingImage(listing.thumbnail_url as string | undefined),
-        price: (listing.price as string | number) ? formatPrice(listing.price as string | number) : "Thỏa thuận",
-        area: (listing.area as number | null) ? `${listing.area} m²` : "N/A",
-        title: listing.title,
-        location: `${listing.ward}, ${listing.province}`,
-        tags: ((listing.tags as unknown[]) || [])?.map((tag: unknown) => String((tag as Record<string, unknown>).slug)) || [],
-        isPriority: false, // Can add logic later
-        slug: listing.slug,
-        broker: listing.brokers,
-        status: listing.status,
-        is_bookmarked: listing.is_bookmarked || false
-      }));
+      const mappedProperties = result.data.map((listing: Record<string, unknown>) => {
+        const featureTags = (listing.featureTags as Record<string, unknown>[]) || [];
+        console.log('📦 mappedProperties - listing.featureTags:', featureTags, 'type:', typeof featureTags);
+        return {
+          id: String(listing.id),
+          image: getListingImage(listing.thumbnail_url as string | undefined),
+          price: (listing.price as string | number) ? formatPrice(listing.price as string | number) : "Thỏa thuận",
+          area: (listing.area as number | null) ? `${listing.area} m²` : "N/A",
+          title: listing.title,
+          location: `${listing.ward}, ${listing.province}`,
+          tags: ((listing.tags as unknown[]) || [])?.map((tag: unknown) => String((tag as Record<string, unknown>).slug)) || [],
+          featureTags: JSON.parse(JSON.stringify(featureTags)),
+          isPriority: false,
+          slug: listing.slug,
+          broker: listing.brokers,
+          status: listing.status,
+          is_bookmarked: listing.is_bookmarked || false
+        };
+      });
 
+      console.log('📦 mappedProperties[0]:', mappedProperties[0]?.featureTags);
       setProperties(mappedProperties);
+      
+      // Check state immediately after set
+      console.log('📦 setProperties called with mappedProperties[0].featureTags:', mappedProperties[0]?.featureTags);
       
       // Track render time
       renderStartTime.current = performance.now();
@@ -289,6 +307,7 @@ export default function MuaBanPage() {
                     title={String(cardData.title)}
                     location={String(cardData.location)}
                     tags={Array.isArray(cardData.tags) ? (cardData.tags as string[]) : []}
+                    featureTags={Array.isArray(cardData.featureTags) ? (cardData.featureTags as { id: string; name: string; hashtag: string }[]) : []}
                     slug={cardData.slug as string | undefined}
                     type="mua-ban"
                     status={cardData.status as string | undefined}

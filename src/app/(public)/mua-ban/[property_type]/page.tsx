@@ -17,6 +17,7 @@ interface MappedProperty {
   title: string;
   location: string;
   tags: string[];
+  featureTags: { id: string; name: string; hashtag: string }[];
   slug: string;
   broker: Record<string, unknown>;
   status: string;
@@ -112,6 +113,15 @@ export default function MuaBanPropertyTypePage() {
         search: searchQuery || undefined
       });
 
+      console.log('📥 loadFilteredListings - Response:', {
+        dataLength: result.data.length,
+        firstItem: result.data[0] ? {
+          id: result.data[0].id,
+          title: result.data[0].title,
+          featureTags: result.data[0].featureTags,
+        } : null
+      });
+
       const formatPrice = (price: string | number) => {
         if (!price) return "Thỏa thuận";
         const numPrice = Number(price);
@@ -138,6 +148,7 @@ export default function MuaBanPropertyTypePage() {
         title: String(item.title),
         location: `${item.ward}, ${item.province}`,
         tags: ((item.tags as unknown[]) || [])?.map((tag: unknown) => String((tag as Record<string, unknown>).slug)) || [],
+        featureTags: (item.featureTags as { id: string; name: string; hashtag: string }[]) || [],
         slug: item.slug ? String(item.slug) : "",
         broker: (item.brokers as Record<string, unknown>) || {},
         status: item.status ? String(item.status) : ""
