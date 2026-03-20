@@ -111,10 +111,10 @@ export default function BrokerList() {
 
       {/* Filters */}
       <div className="bg-white dark:bg-slate-800 p-4 border border-gray-200 dark:border-slate-700 mb-6 rounded-sm shadow-sm">
-        <div className="flex flex-row gap-3 items-end">
+        <div className="flex flex-col lg:flex-row gap-3 lg:items-end">
           {/* Search - bên tr ái */}
-          <div className="flex gap-2 min-w-[200px]">
-            <div className="relative">
+          <div className="flex gap-2 w-full lg:w-auto flex-1">
+            <div className="relative flex-1">
               <div className="absolute inset-y-1 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-5 w-5 text-slate-400" />
               </div>
@@ -129,43 +129,40 @@ export default function BrokerList() {
             </div>
             <button
               onClick={handleSearch}
-              className="px-8 h-10 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-sm transition-colors"
+              className="px-4 sm:px-8 h-10 shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-sm transition-colors"
             >
               Tìm
             </button>
             <button
               onClick={() => fetchBrokers(searchQuery, province, ward, 1)}
               disabled={loading}
-              className="w-10 h-10 flex items-center justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm rounded-sm transition-colors disabled:opacity-50"
+              className="w-10 h-10 shrink-0 flex items-center justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm rounded-sm transition-colors disabled:opacity-50"
               title="Làm mới"
             >
               <span className={`material-symbols-outlined text-lg ${loading ? 'animate-spin' : ''}`}>refresh</span>
             </button>
+            {/* Filter Button */}
+            <button
+              onClick={handleFilterChange}
+              className="px-4 sm:px-6 h-10 shrink-0 border border-emerald-600 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-sm font-medium rounded-sm transition-colors"
+            >
+              Lọc
+            </button>
           </div>
 
-          <div className="flex flex-row ml-auto">
+          <div className="flex flex-col lg:flex-row lg:ml-auto w-full lg:w-auto gap-3 lg:gap-2">
             {/* Location Selector - bên phải */}
-            <div className="flex gap-2 items-end">
-              <div className="w-120">
-                <LocationSelector
-                  showLabels={false}
-                  selectedProvince={province}
-                  onProvinceChange={(value) => {
-                    setProvince(value);
-                    setWard("");
-                  }}
-                  selectedWard={ward}
-                  onWardChange={(value) => setWard(value)}
-                />
-              </div>
-
-              {/* Filter Button */}
-              <button
-                onClick={handleFilterChange}
-                className="px-6 h-10 border border-emerald-600 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-sm font-medium rounded-sm transition-colors"
-              >
-                Lọc
-              </button>
+            <div className="w-full lg:w-[480px]">
+              <LocationSelector
+                showLabels={false}
+                selectedProvince={province}
+                onProvinceChange={(value) => {
+                  setProvince(value);
+                  setWard("");
+                }}
+                selectedWard={ward}
+                onWardChange={(value) => setWard(value)}
+              />
             </div>
           </div>
         </div>
