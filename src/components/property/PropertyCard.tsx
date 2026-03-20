@@ -24,7 +24,7 @@ export interface PropertyCardProps {
   featureTags?: FeatureTag[];
   isPriority?: boolean;
   slug?: string | null;
-  type?: "mua-ban" | "cho-thue";
+  type?: "mua-ban" | "cho-thue" | "du-an";
   status?: string | null;
   isBookmarked?: boolean;
   onBookmarkToggle?: (isBookmarked: boolean) => void;
@@ -73,8 +73,14 @@ export function PropertyCard({
   const accessToken = useAuthStore((state) => state.accessToken);
 
   // Use slug for URL, fallback to id if no slug
-  const basePath = type === "cho-thue" ? "/cho-thue" : "/mua-ban";
-  const detailUrl = slug ? `${basePath}/bai-dang/${slug}` : `${basePath}/bai-dang/${id}`;
+  const basePath =
+    type === "cho-thue" ? "/cho-thue"
+    : type === "du-an" ? "/du-an"
+    : "/mua-ban";
+  const detailUrl =
+    type === "du-an"
+      ? `${basePath}/${slug || id}`
+      : slug ? `${basePath}/bai-dang/${slug}` : `${basePath}/bai-dang/${id}`;
 
   const handleBookmarkClick = async (e: React.MouseEvent) => {
     e.preventDefault();

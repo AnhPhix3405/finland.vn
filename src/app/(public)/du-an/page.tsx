@@ -181,7 +181,7 @@ export default function ProjectList() {
                     location={String(cardData.location)}
                     tags={Array.isArray(cardData.tags) ? (cardData.tags as string[]) : []}
                     slug={cardData.slug as string | undefined}
-                    type="mua-ban"
+                    type="du-an"
                     status={cardData.status as string | undefined}
                     showBookmark={false}
                   />

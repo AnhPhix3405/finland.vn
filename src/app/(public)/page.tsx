@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Search, ChevronDown } from "lucide-react";
 
@@ -91,6 +91,113 @@ function HomeSearchWidget() {
   );
 }
 
+const DEFAULT_PROJECT_IMAGE = "https://lh3.googleusercontent.com/aida-public/AB6AXuAH-qH24_KE8TIFtAOlg2VMxFw51PbmagHsDz-fp6Y_o13wCplh0YpY5tUVGtFy_1YJB66cE-ffhS1bk0Khp5Id5HsZm2Vn7isAq4e3dgAm2smw-oxIc6ZJMRAczbqKi_kj0UIofIfDnHxU34GvPlK-Og0xGinm9wGIfWLsRQ9fqzoYOYfmBA-cQ32_dFeyQ0cYN5hgai2CsH15n0rd3N0dVC5HbLBDzPaUbpyyq_mUnWXQDljSIAPURnziqfdaHPhnGT183UxhHGub";
+
+interface FeaturedProject {
+  id: string;
+  name: string;
+  slug: string | null;
+  thumbnail_url: string | null;
+  province: string | null;
+  ward: string | null;
+  area: number | null;
+  status: string | null;
+}
+
+function FeaturedProjects() {
+  const [projects, setProjects] = useState<FeaturedProject[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/projects?limit=3&sortBy=newest')
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success) setProjects(res.data || []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const skeletons = Array.from({ length: 3 });
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {skeletons.map((_, i) => (
+          <div key={i} className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 flex flex-col animate-pulse">
+            <div className="h-48 bg-slate-200 dark:bg-slate-700" />
+            <div className="p-4 flex flex-col gap-3">
+              <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4" />
+              <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/2" />
+              <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded mt-auto" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (projects.length === 0) {
+    return (
+      <p className="text-slate-500 dark:text-slate-400 text-sm py-8 text-center">
+        Chưa có dự án nào.
+      </p>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {projects.map((project) => {
+        const location = [project.ward, project.province].filter(Boolean).join(", ");
+        const detailUrl = `/du-an/${project.slug || project.id}`;
+        return (
+          <div key={project.id} className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 flex flex-col hover:shadow-lg transition-shadow rounded-sm overflow-hidden">
+            <div className="relative h-48">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                alt={project.name}
+                className="w-full h-full object-cover"
+                src={project.thumbnail_url || DEFAULT_PROJECT_IMAGE}
+              />
+              {project.status && (
+                <div className="absolute top-2 left-2 bg-emerald-600 text-white text-xs font-bold px-2 py-1 uppercase rounded-sm">
+                  {project.status}
+                </div>
+              )}
+            </div>
+            <div className="p-4 flex-grow flex flex-col">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2 line-clamp-2 hover:text-primary cursor-pointer">
+                {project.name}
+              </h3>
+              {location && (
+                <div className="flex items-center text-sm text-gray-500 dark:text-slate-400 mb-3 truncate">
+                  <span className="material-symbols-outlined text-[16px] mr-1 text-gray-400">location_on</span>
+                  {location}
+                </div>
+              )}
+              {project.area && (
+                <div className="flex justify-end items-center mb-4">
+                  <span className="text-sm font-medium text-gray-600 dark:text-slate-300">
+                    {project.area.toLocaleString("vi-VN")} m²
+                  </span>
+                </div>
+              )}
+              <div className="mt-auto border-t border-gray-100 dark:border-slate-700 pt-4">
+                <Link
+                  className="block w-full text-center px-4 py-2 border border-emerald-700 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-sm text-sm font-medium transition-colors"
+                  href={detailUrl}
+                >
+                  Xem chi tiết
+                </Link>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function Home() {
   return (
     <>
@@ -108,7 +215,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Search widget section replacing the 4 quick-links */}
       <section className="py-8 bg-white dark:bg-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-6 border-b border-gray-200 dark:border-slate-700 pb-2">
@@ -117,84 +223,7 @@ export default function Home() {
               Xem tất cả <span className="material-symbols-outlined text-sm ml-1">chevron_right</span>
             </Link>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-            <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 flex flex-col hover:border-primary transition-colors">
-              <div className="relative h-48">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img alt="Căn hộ cao cấp Vinhomes" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDegODUZ6REUfZ6wkYPWzTvrGzNKwi9JzombB3Jm48DAIJ6gU_Hcip9JPHZawF2rOio2uMXLrU1OxdeQEccJN8BVYW3aLazAcmZuCXbn17s81oYARqRzA-VpwhKIjoRnPYKUdiVh2LRe0G7cZ-0UnMSkC8uZokSoX-EuTpK-RoVvRFwTlG0oEnHn3JFa5oYq9rSfn0VyqzW2enpvmLRt07e7y42Ow2L-dFD6LKIXCOG6f-ZQ2E3R6496POzsn00YuELKLh2o2H1XF1O" />
-                <div className="absolute top-2 left-2 bg-emerald-600 text-white text-xs font-bold px-2 py-1 uppercase rounded-sm">
-                  Đang mở bán
-                </div>
-              </div>
-              <div className="p-4 flex-grow flex flex-col">
-                <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2 line-clamp-2 hover:text-primary cursor-pointer">Căn hộ cao cấp Vinhomes Grand Park</h3>
-                <div className="flex items-center text-sm text-gray-500 dark:text-slate-400 mb-3 truncate">
-                  <span className="material-symbols-outlined text-[16px] mr-1 text-gray-400">location_on</span>
-                  Quận 9, TP.HCM
-                </div>
-                <div className="flex justify-end items-center mb-4">
-                  <span className="text-sm font-medium text-gray-600 dark:text-slate-300">75 m²</span>
-                </div>
-                <div className="mt-auto border-t border-gray-100 dark:border-slate-700 pt-4">
-                  <Link className="block w-full text-center px-4 py-2 border border-emerald-700 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-sm text-sm font-medium transition-colors" href="/du-an/demo">
-                    Xem chi tiết
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 flex flex-col hover:border-primary transition-colors">
-              <div className="relative h-48">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img alt="Khu đô thị Aqua City" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsMeEiB-shjejI2MZohhnY1E4ZqZviwN4BtQM5XyfoKFguCaoH4EIbZMQhQGIDbelvkQNbHOY7ok5w3aKy5kDO-GK9fwG32LrAi64RwxkqKX31C8IvFMjpwS6DuzYPfUJ9DkoeXM7dgN5aPywVa8Oaz0vzCZ7w5zzNzU50GzO_gJdjiajPHmAVDuygloybiE3FCYNujYDXPICxDdTh0rs4ZxLWLVqsy3L7PfTtoXfL_9-5QMKrut-C2w0YkFBF1IDkxczDnFMBsPTX" />
-                <div className="absolute top-2 left-2 bg-emerald-600 text-white text-xs font-bold px-2 py-1 uppercase rounded-sm">
-                  Sắp bàn giao
-                </div>
-              </div>
-              <div className="p-4 flex-grow flex flex-col">
-                <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2 line-clamp-2 hover:text-primary cursor-pointer">Khu đô thị sinh thái thông minh Aqua City</h3>
-                <div className="flex items-center text-sm text-gray-500 dark:text-slate-400 mb-3 truncate">
-                  <span className="material-symbols-outlined text-[16px] mr-1 text-gray-400">location_on</span>
-                  Biên Hòa, Đồng Nai
-                </div>
-                <div className="flex justify-end items-center mb-4">
-                  <span className="text-sm font-medium text-gray-600 dark:text-slate-300">120 m²</span>
-                </div>
-                <div className="mt-auto border-t border-gray-100 dark:border-slate-700 pt-4">
-                  <Link className="block w-full text-center px-4 py-2 border border-emerald-700 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-sm text-sm font-medium transition-colors" href="/du-an/demo">
-                    Xem chi tiết
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 flex flex-col hover:border-primary transition-colors">
-              <div className="relative h-48">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img alt="Masteri Centre Point" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA9b2hFSFxaOuDlxVhafP7OzZUSTbxay9I4hadpxI_oHuHGJcdagL-ls1TQ57H7kADtmWdGELHQWeDxwJN0LEpJw2evOuCDRd1VyhAxpg0B3pZDd0SKPM4Z9a_72kjBO46KWmTzCh0ceySePMso8k_Gs3fxJy9TWc80-HIKCfNRugpvfUXiyTQM5TcdjVlHj-Q8GIuvoFEvAJvK6k5j44g-lRwsbnA2ILZutTVtyEtB67anekCfI14HlaogL0PbtR9mgdgf1dGYoTbY" />
-                <div className="absolute top-2 left-2 bg-gray-600 text-white text-xs font-bold px-2 py-1 uppercase rounded-sm">
-                  Đã bàn giao
-                </div>
-              </div>
-              <div className="p-4 flex-grow flex flex-col">
-                <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2 line-clamp-2 hover:text-primary cursor-pointer">Khu căn hộ compound cao cấp Masteri Centre Point</h3>
-                <div className="flex items-center text-sm text-gray-500 dark:text-slate-400 mb-3 truncate">
-                  <span className="material-symbols-outlined text-[16px] mr-1 text-gray-400">location_on</span>
-                  Quận 9, TP.HCM
-                </div>
-                <div className="flex justify-end items-center mb-4">
-                  <span className="text-sm font-medium text-gray-600 dark:text-slate-300">50 m²</span>
-                </div>
-                <div className="mt-auto border-t border-gray-100 dark:border-slate-700 pt-4">
-                  <Link className="block w-full text-center px-4 py-2 border border-emerald-700 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-sm text-sm font-medium transition-colors" href="/du-an/demo">
-                    Xem chi tiết
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-          </div>
+          <FeaturedProjects />
         </div>
       </section>
     </>
