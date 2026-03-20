@@ -30,9 +30,6 @@ function HomeSearchWidget() {
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      <p className="text-white/80 text-sm font-medium mb-3 text-center tracking-wide uppercase">
-        Tìm kiếm trong Finland
-      </p>
       <form onSubmit={handleSearch} className="flex shadow-xl rounded-lg overflow-visible">
         {/* Category Dropdown */}
         <div className="relative flex-shrink-0">
@@ -114,7 +111,7 @@ function FeaturedProjects() {
       .then((res) => {
         if (res.success) setProjects(res.data || []);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
