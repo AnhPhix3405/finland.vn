@@ -102,8 +102,13 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
   const showFloors = isHouse || isOffice;
   const showDimensions = !isApartment;
 
+  const isManualMarkerRef = useRef(false);
+
   // Automatic geocoding based on address
   useEffect(() => {
+    // Nếu người dùng đã chủ động kéo ghim bản đồ, không tự động geocode đè lên nữa
+    if (isManualMarkerRef.current) return;
+
     const query = [address, ward, province].filter(Boolean).join(', ');
     if (query.trim().length < 5) return;
 
@@ -494,9 +499,17 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
           <div className="w-120">
             <LocationSelector
               selectedProvince={province}
-              onProvinceChange={(val) => { setProvince(val); setErrors(prev => ({ ...prev, province: '' })); }}
+              onProvinceChange={(val) => { 
+                isManualMarkerRef.current = false;
+                setProvince(val); 
+                setErrors(prev => ({ ...prev, province: '' })); 
+              }}
               selectedWard={ward}
-              onWardChange={(val) => { setWard(val); setErrors(prev => ({ ...prev, ward: '' })); }}
+              onWardChange={(val) => { 
+                isManualMarkerRef.current = false;
+                setWard(val); 
+                setErrors(prev => ({ ...prev, ward: '' })); 
+              }}
               requiredProvince={true}
               requiredWard={true}
             />
@@ -524,6 +537,8 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
               initialLat={latitude || undefined}
               initialLng={longitude || undefined}
               onLocationChange={(lat, lng) => {
+                // Đánh dấu người dùng đã chủ động kéo bản đồ
+                isManualMarkerRef.current = true;
                 setLatitude(lat);
                 setLongitude(lng);
               }}

@@ -172,7 +172,22 @@ export default function EditListingPage() {
     return text.toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').replace(/([^0-9a-z-\s])/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
   };
 
+  const isManualMarkerRef = useRef(false);
+  const isInitialDataLoaded = useRef(false);
+
   useEffect(() => {
+    // 1. Nếu chưa tải xong dữ liệu gốc từ API, không làm gì cả
+    if (loading || !listingId) return;
+
+    // 2. Nếu đây là lần đầu tiên dữ liệu được load vào state, đánh dấu đã load và không geocode
+    if (!isInitialDataLoaded.current) {
+      isInitialDataLoaded.current = true;
+      return;
+    }
+
+    // 3. Nếu người dùng đã chủ động kéo ghim bản đồ, không tự động geocode đè lên nữa
+    if (isManualMarkerRef.current) return;
+
     const query = [address, ward, province].filter(Boolean).join(', ');
     if (query.trim().length < 5) return;
 
@@ -194,7 +209,7 @@ export default function EditListingPage() {
     }, 1000);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [province, ward, address]);
+  }, [province, ward, address, loading, listingId]);
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, '');
@@ -459,7 +474,22 @@ export default function EditListingPage() {
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="w-120">
-                  <LocationSelector selectedProvince={province} onProvinceChange={setProvince} selectedWard={ward} onWardChange={setWard} requiredProvince={true} requiredWard={true} />
+                  <LocationSelector 
+                    selectedProvince={province} 
+                    onProvinceChange={(val) => {
+                      // Reset cờ thủ công khi đổi tỉnh/thành
+                      isManualMarkerRef.current = false;
+                      setProvince(val);
+                    }} 
+                    selectedWard={ward} 
+                    onWardChange={(val) => {
+                      // Reset cờ thủ công khi đổi quận/huyện/phường
+                      isManualMarkerRef.current = false;
+                      setWard(val);
+                    }} 
+                    requiredProvince={true} 
+                    requiredWard={true} 
+                  />
 
                 </div>
                 <div className="md:col-span-2 space-y-2">
@@ -472,6 +502,8 @@ export default function EditListingPage() {
                     initialLat={latitude || undefined}
                     initialLng={longitude || undefined}
                     onLocationChange={(lat, lng) => {
+                      // Đánh dấu người dùng đã chủ động kéo bản đồ
+                      isManualMarkerRef.current = true;
                       setLatitude(lat);
                       setLongitude(lng);
                     }}

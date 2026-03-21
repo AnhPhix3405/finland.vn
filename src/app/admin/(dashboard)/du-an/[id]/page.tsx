@@ -31,7 +31,7 @@ export default function AdminProjectDetail() {
   const router = useRouter();
   const { activeProjectId } = useProjectContext();
   const addToast = useNotificationStore((state) => state.addToast);
-  
+
   useAdminAuth(() => {
     router.push('/admin/login');
   });
@@ -50,14 +50,14 @@ export default function AdminProjectDetail() {
   const [selectedProvince, setSelectedProvince] = useState<string>('');
   const [selectedDistrict, setSelectedDistrict] = useState<string>('');
   const [projectStatus, setProjectStatus] = useState<string>('');
-  
+
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
 
   const PROJECT_STATUS_OPTIONS = [
-      { value: 'sắp mở bán', label: 'Sắp mở bán' },
-      { value: 'đang mở bán', label: 'Đang mở bán' },
-      { value: 'hàng thứ cấp', label: 'Hàng thứ cấp' },
+    { value: 'sắp mở bán', label: 'Sắp mở bán' },
+    { value: 'đang mở bán', label: 'Đang mở bán' },
+    { value: 'hàng thứ cấp', label: 'Hàng thứ cấp' },
   ];
 
   useEffect(() => {
@@ -117,11 +117,22 @@ export default function AdminProjectDetail() {
     };
     fetchProjectDetails();
   }, [slug]);
+  const isManualMarkerRef = React.useRef(false);
+  const isInitialDataLoaded = React.useRef(false);
 
   // Geocoding Effect - Jump map when province/ward changes
   useEffect(() => {
-    // Only geocode if we haven't manually picked a location or it was the initial load
-    // Actually, always geocode if the text changes, unless the user specifically dragged
+    // 1. Nếu chưa tải xong dữ liệu gốc, không làm gì cả
+    if (!projectId) return;
+
+    // 2. Nếu đây là lần đầu tiên dữ liệu được load vào state, đánh dấu đã load và không geocode
+    if (!isInitialDataLoaded.current) {
+      isInitialDataLoaded.current = true;
+      return;
+    }
+
+    // 3. Nếu người dùng đã chủ động kéo ghim bản đồ, không tự động geocode đè lên nữa
+    if (isManualMarkerRef.current) return;
     
     if (!selectedProvince) return;
     
@@ -148,7 +159,7 @@ export default function AdminProjectDetail() {
     // Use a small delay for better UX
     const timer = setTimeout(geocode, 1000);
     return () => clearTimeout(timer);
-  }, [selectedProvince, selectedDistrict]);
+  }, [selectedProvince, selectedDistrict, projectId]);
 
   const formatCurrencyOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '');
@@ -333,9 +344,9 @@ export default function AdminProjectDetail() {
           const original = originalImages.find(o => o.id === img.id);
           return !original || original.sort_order !== img.sort_order;
         });
-        
+
         if (changedImages.length > 0) {
-          await Promise.all(changedImages.map(img => 
+          await Promise.all(changedImages.map(img =>
             fetch(`/api/attachments/${img.id}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
@@ -346,7 +357,7 @@ export default function AdminProjectDetail() {
       }
 
       addToast('Lưu dự án thành công!', 'success');
-      
+
       // Redirect after showing toast
       setTimeout(() => {
         router.push('/admin/du-an');
@@ -375,10 +386,10 @@ export default function AdminProjectDetail() {
               </div>
               <div className="col-span-1">
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Loại hình <span className="text-red-500">*</span></label>
-                <select 
-                  value={selectedPropertyTypeId} 
-                  onChange={(e) => setSelectedPropertyTypeId(e.target.value)} 
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white text-slate-700" 
+                <select
+                  value={selectedPropertyTypeId}
+                  onChange={(e) => setSelectedPropertyTypeId(e.target.value)}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white text-slate-700"
                   id="propertyType"
                   disabled={loadingPropertyTypes}
                 >
@@ -403,9 +414,15 @@ export default function AdminProjectDetail() {
               </div>
               <LocationSelector
                 selectedProvince={selectedProvince}
-                onProvinceChange={setSelectedProvince}
+                onProvinceChange={(val) => {
+                  isManualMarkerRef.current = false;
+                  setSelectedProvince(val);
+                }}
                 selectedWard={selectedDistrict}
-                onWardChange={setSelectedDistrict}
+                onWardChange={(val) => {
+                  isManualMarkerRef.current = false;
+                  setSelectedDistrict(val);
+                }}
                 requiredProvince={true}
               />
 
@@ -415,6 +432,8 @@ export default function AdminProjectDetail() {
                   initialLat={latitude || undefined}
                   initialLng={longitude || undefined}
                   onLocationChange={(lat, lng) => {
+                    // Đánh dấu người dùng đã chủ động kéo bản đồ
+                    isManualMarkerRef.current = true;
                     setLatitude(lat);
                     setLongitude(lng);
                   }}
@@ -447,8 +466,8 @@ export default function AdminProjectDetail() {
                     {images
                       .filter(img => !deletedApiImages.includes(img.id))
                       .map((img, index) => (
-                        <div 
-                          key={img.id} 
+                        <div
+                          key={img.id}
                           className="relative group rounded-sm overflow-hidden border-2 border-slate-200 dark:border-slate-700 cursor-move draggable"
                           draggable
                           onDragStart={() => handleDragStart(index)}
@@ -540,9 +559,9 @@ export default function AdminProjectDetail() {
 
               <div className="col-span-1 md:col-span-2 py-3 border-t border-slate-200 dark:border-slate-700 mt-2">
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="projectStatus">Trạng thái dự án</label>
-                <select 
-                  value={projectStatus} 
-                  onChange={(e) => setProjectStatus(e.target.value)} 
+                <select
+                  value={projectStatus}
+                  onChange={(e) => setProjectStatus(e.target.value)}
                   className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white text-slate-700"
                   id="projectStatus"
                 >

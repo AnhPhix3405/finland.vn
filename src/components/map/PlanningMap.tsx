@@ -20,7 +20,6 @@ import { Button } from '@/src/components/ui/button';
 import { cn } from '@/src/lib/utils';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import LocationSelector from '@/src/components/feature/LocationSelector';
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
 
@@ -80,12 +79,16 @@ export function PlanningMap() {
   const [isStyleSwitching, setIsStyleSwitching] = useState(false);
   const [showInfo, setShowInfo] = useState(true);
   const [listings, setListings] = useState<any[]>([]);
-  const [projects, setProjects] = useState<any[]>([]);
   const [hoveredListing, setHoveredListing] = useState<any>(null);
   const [hoverPosition, setHoverPosition] = useState<{ x: number, y: number } | null>(null);
 
-  const [locSelectedProvince, setLocSelectedProvince] = useState('');
-  const [locSelectedWard, setLocSelectedWard] = useState('');
+  // Admin Search Data
+  const [provinces, setProvinces] = useState<any[]>([]);
+  const [districts, setDistricts] = useState<any[]>([]);
+  const [wards, setWards] = useState<any[]>([]);
+  const [selectedProvince, setSelectedProvince] = useState('79'); // HCM default
+  const [selectedDistrict, setSelectedDistrict] = useState('');
+  const [selectedWard, setSelectedWard] = useState('');
 
   const [reconcileTrigger, setReconcileTrigger] = useState(0);
   const [revGeocodeAddr, setRevGeocodeAddr] = useState<string>('');
@@ -269,12 +272,8 @@ export function PlanningMap() {
         const feature = e.features?.[0];
         if (feature) {
           const props = feature.properties;
-          if (props?.objectType === 'project') {
-            router.push(`/du-an/${props?.slug}`);
-          } else {
-            const prefix = props?.transaction_type_hashtag === 'cho-thue' ? 'cho-thue' : 'mua-ban';
-            router.push(`/${prefix}/bai-dang/${props?.slug}`);
-          }
+          const prefix = props?.transaction_type_hashtag === 'cho-thue' ? 'cho-thue' : 'mua-ban';
+          router.push(`/${prefix}/bai-dang/${props?.slug}`);
         }
       };
 
@@ -370,8 +369,8 @@ export function PlanningMap() {
         }
       });
 
-      // 6. Update Map Objects Source (Listings & Projects)
-      const listingFeatures = listings.map(l => ({
+      // 6. Update Listings Source (NEW)
+      const mapFeatures = listings.map(l => ({
         type: 'Feature' as const,
         geometry: {
           type: 'Point' as const,
@@ -379,7 +378,6 @@ export function PlanningMap() {
         },
         properties: {
           ...l,
-          objectType: 'listing',
           transaction_type_hashtag: l.transaction_types?.hashtag || 'mua-ban',
           price_label: (() => {
             const p = l.price_per_m2 ? Number(l.price_per_m2) : (l.price && l.area ? Number(l.price) / Number(l.area) : null);
@@ -387,23 +385,6 @@ export function PlanningMap() {
           })()
         }
       }));
-
-      const projectFeatures = projects.map(p => ({
-        type: 'Feature' as const,
-        geometry: {
-          type: 'Point' as const,
-          coordinates: [p.longitude, p.latitude]
-        },
-        properties: {
-          ...p,
-          objectType: 'project',
-          title: p.name,
-          transaction_type_hashtag: 'du-an',
-          price_label: p.price ? `${(Number(p.price) / 1000000).toFixed(1)} tr/m²` : 'Liên hệ'
-        }
-      }));
-
-      const mapFeatures = [...listingFeatures, ...projectFeatures];
 
       if (!m.getSource('listings-source')) {
         m.addSource('listings-source', {
@@ -429,12 +410,7 @@ export function PlanningMap() {
           source: 'listings-source',
           paint: {
             'circle-radius': 6,
-            'circle-color': [
-              'match',
-              ['get', 'objectType'],
-              'project', '#0284c7', // Sky blue for projects
-              '#f97316' // Orange for listings
-            ],
+            'circle-color': '#f97316',
             'circle-stroke-width': 2,
             'circle-stroke-color': '#ffffff'
           }
@@ -462,12 +438,7 @@ export function PlanningMap() {
           },
           paint: {
             'text-color': '#ffffff',
-            'text-halo-color': [
-              'match',
-              ['get', 'objectType'],
-              'project', '#0284c7',
-              '#f97316'
-            ],
+            'text-halo-color': '#f97316',
             'text-halo-width': 2
           }
         });
@@ -481,31 +452,71 @@ export function PlanningMap() {
     }
   }, [historyFeatures, selectedInfo, showSelectedHighlight, mapStyle, reconcileTrigger, listings]);
 
-  // Special effect to catch edge cases where map is ready but reconcile didn't run for objects
+  // Special effect to catch edge cases where map is ready but reconcile didn't run for listings
   useEffect(() => {
-    if (map.current?.isStyleLoaded() && (listings.length > 0 || projects.length > 0)) {
+    if (map.current?.isStyleLoaded() && listings.length > 0) {
       setReconcileTrigger(prev => prev + 1);
     }
-  }, [listings.length, projects.length]);
+  }, [listings.length]);
 
-  // Fetch listings and projects for the map
+  // Fetch admin data on load
   useEffect(() => {
-    const fetchMapObjects = async () => {
+    fetch('https://provinces.open-api.vn/api/p/')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setProvinces(data);
+          // Initial districts fetch for HCM (79)
+          fetch('https://provinces.open-api.vn/api/p/79?depth=2')
+            .then(res => res.json())
+            .then(pData => {
+              if (pData.districts) setDistricts(pData.districts);
+            });
+        }
+      })
+      .catch(err => console.error('Failed to load provinces', err));
+  }, []);
+
+  useEffect(() => {
+    if (selectedProvince && provinces.length > 0) {
+      fetch(`https://provinces.open-api.vn/api/p/${selectedProvince}?depth=2`)
+        .then(res => res.json())
+        .then(data => {
+          setDistricts(data.districts || []);
+          setSelectedDistrict('');
+          setWards([]);
+          setSelectedWard('');
+        })
+        .catch(err => console.error('Failed to load districts', err));
+    }
+  }, [selectedProvince]);
+
+  useEffect(() => {
+    if (selectedDistrict) {
+      fetch(`https://provinces.open-api.vn/api/d/${selectedDistrict}?depth=2`)
+        .then(res => res.json())
+        .then(data => {
+          setWards(data.wards || []);
+          setSelectedWard('');
+        })
+        .catch(err => console.error('Failed to load wards', err));
+    }
+  }, [selectedDistrict]);
+
+  // Fetch listings for the map
+  useEffect(() => {
+    const fetchMapListings = async () => {
       try {
-        const [lRes, pRes] = await Promise.all([
-          fetch('/api/listings?onMap=true&limit=100'),
-          fetch('/api/projects?onMap=true&limit=100')
-        ]);
-        const lData = await lRes.json();
-        const pData = await pRes.json();
-        
-        if (lData.success) setListings(lData.data);
-        if (pData.success) setProjects(pData.data);
+        const response = await fetch('/api/listings?onMap=true&limit=100');
+        const result = await response.json();
+        if (result.success) {
+          setListings(result.data);
+        }
       } catch (err) {
-        console.error('Error fetching map objects:', err);
+        console.error('Error fetching map listings:', err);
       }
     };
-    fetchMapObjects();
+    fetchMapListings();
   }, []);
 
 
@@ -593,7 +604,15 @@ export function PlanningMap() {
   }, [handleSearchByCoord]);
 
   const geocodeAndMove = async () => {
-    const query = [locSelectedWard, locSelectedProvince].filter(Boolean).join(', ');
+    const provinceObj = provinces.find(p => p.code == selectedProvince);
+    const districtObj = districts.find(d => d.code == selectedDistrict);
+    const wardObj = wards.find(w => w.code == selectedWard);
+
+    const provinceName = provinceObj?.name || '';
+    const districtName = districtObj?.name || '';
+    const wardName = wardObj?.name || '';
+
+    const query = [wardName, districtName, provinceName].filter(Boolean).join(', ');
     console.log(`DEBUG: geocodeAndMove query: "${query}"`);
 
     if (!query) {
@@ -796,13 +815,49 @@ export function PlanningMap() {
             </div>
 
             <div className="space-y-4">
-              <LocationSelector
-                selectedProvince={locSelectedProvince}
-                onProvinceChange={setLocSelectedProvince}
-                selectedWard={locSelectedWard}
-                onWardChange={setLocSelectedWard}
-                showLabels={false}
-              />
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-white/30 uppercase px-1 font-bold tracking-wider">Tỉnh / Thành phố</label>
+                <select
+                  value={selectedProvince}
+                  onChange={(e) => setSelectedProvince(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white outline-none focus:ring-1 focus:ring-orange-500 transition-all text-sm appearance-none cursor-pointer"
+                >
+                  <option value="" className="bg-slate-900">-- Chọn Tỉnh/TP --</option>
+                  {provinces.map((p: any) => (
+                    <option key={p.code} value={p.code} className="bg-slate-900">{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-white/30 uppercase px-1 font-bold tracking-wider">Quận / Huyện</label>
+                  <select
+                    value={selectedDistrict}
+                    onChange={(e) => setSelectedDistrict(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white outline-none focus:ring-1 focus:ring-orange-500 transition-all text-sm appearance-none cursor-pointer"
+                  >
+                    <option value="" className="bg-slate-900">-- Quận/Huyện --</option>
+                    {districts.map((d: any) => (
+                      <option key={d.code} value={d.code} className="bg-slate-900">{d.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-white/30 uppercase px-1 font-bold tracking-wider">Phường / Xã</label>
+                  <select
+                    value={selectedWard}
+                    onChange={(e) => setSelectedWard(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white outline-none focus:ring-1 focus:ring-orange-500 transition-all text-sm appearance-none cursor-pointer"
+                  >
+                    <option value="" className="bg-slate-900">-- Phường/Xã --</option>
+                    {wards.map((w: any) => (
+                      <option key={w.code} value={w.code} className="bg-slate-900">{w.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
 
               <Button
                 onClick={geocodeAndMove}
@@ -1006,11 +1061,8 @@ export function PlanningMap() {
               {hoveredListing.thumbnail_url && (
                 <div className="relative aspect-video w-full">
                   <img src={hoveredListing.thumbnail_url} alt="" className="w-full h-full object-cover" />
-                  <div className={cn(
-                    "absolute top-2 left-2 text-white text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-wider",
-                    hoveredListing.objectType === 'project' ? "bg-sky-600" : "bg-emerald-500"
-                  )}>
-                    {hoveredListing.objectType === 'project' ? 'Dự án' : (hoveredListing.transaction_type_hashtag === 'cho-thue' ? 'Cho thuê' : 'Đang bán')}
+                  <div className="absolute top-2 left-2 bg-emerald-500 text-white text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-wider">
+                    {hoveredListing.transaction_type_hashtag === 'cho-thue' ? 'Cho thuê' : 'Đang bán'}
                   </div>
                 </div>
               )}
@@ -1019,15 +1071,12 @@ export function PlanningMap() {
                   <span className="text-xl font-black text-red-600">
                     {(() => {
                       const price = Number(hoveredListing.price);
-                      if (!price || price === 0) return 'Liên hệ';
                       if (price >= 1000000000) return `${(price / 1000000000).toFixed(2)} Tỷ`;
                       if (price >= 1000000) return `${(price / 1000000).toFixed(0)} Triệu`;
                       return `${price.toLocaleString()} đ`;
                     })()}
                   </span>
-                  {hoveredListing.area && (
-                    <span className="text-slate-500 font-bold text-xs">• {hoveredListing.area}m²</span>
-                  )}
+                  <span className="text-slate-500 font-bold text-xs">• {hoveredListing.area}m²</span>
                 </div>
                 <h3 className="text-slate-900 dark:text-white font-bold text-sm line-clamp-2 leading-tight">
                   {hoveredListing.title}
@@ -1035,14 +1084,14 @@ export function PlanningMap() {
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-700 space-y-1.5">
                   <div className="flex items-center gap-2 text-slate-500 text-[10px]">
                     <MapPin className="size-3 text-emerald-500" />
-                    <span className="truncate">{[hoveredListing.ward, hoveredListing.province].filter(Boolean).join(', ')}</span>
+                    <span className="truncate">{hoveredListing.address}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-orange-600 dark:text-orange-400 font-black text-[10px] uppercase">
-                       {hoveredListing.price_label}
+                      {hoveredListing.price_label}
                     </span>
                     <span className="text-slate-400 text-[9px] font-medium italic">
-                       {hoveredListing.listing_code || hoveredListing.project_code}
+                      {hoveredListing.listing_code}
                     </span>
                   </div>
                 </div>
