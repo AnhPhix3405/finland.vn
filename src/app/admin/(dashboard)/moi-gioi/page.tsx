@@ -19,17 +19,20 @@ interface Broker {
   address: string | null;
   slug: string | null;
   is_active: boolean;
+  _count?: {
+    listings: number;
+  };
 }
 
 export default function AdminBrokerList() {
   const router = useRouter();
   const adminToken = useAdminStore((state) => state.accessToken);
   const addToast = useNotificationStore((state) => state.addToast);
-  
+
   useAdminAuth(() => {
     router.push('/admin/login');
   });
-  
+
   const [brokers, setBrokers] = useState<Broker[]>([]);
   const [loadingBrokers, setLoadingBrokers] = useState(false);
   const [operatingId, setOperatingId] = useState<string | null>(null);
@@ -45,7 +48,7 @@ export default function AdminBrokerList() {
     province: "",
     ward: ""
   });
-  
+
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -62,19 +65,19 @@ export default function AdminBrokerList() {
       if (filters.province) params.set('province', filters.province);
       if (filters.ward) params.set('ward', filters.ward);
       if (searchTerm) params.set('search', searchTerm);
-      
+
       const res = await fetchWithRetry(`/api/admin/brokers?${params.toString()}`, {
         token: adminToken || undefined,
         isAdmin: true,
       });
-      
+
       if (res.status === 401) {
         useAdminStore.getState().clearAuth();
         addToast('Phiên đăng nhập hết hạn', 'error');
         router.push('/admin/login');
         return;
       }
-      
+
       const json = await res.json();
       if (json.success) {
         setBrokers(json.data);
@@ -239,6 +242,11 @@ export default function AdminBrokerList() {
       <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
         {[broker.address, broker.ward, broker.province].filter(Boolean).join(', ') || '—'}
       </td>
+      <td className="px-6 py-4 text-sm text-center">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-600">
+          {broker._count?.listings || 0}
+        </span>
+      </td>
       <td className="px-6 py-4 text-sm">
         {broker.is_active ? (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 text-xs font-medium">
@@ -346,6 +354,7 @@ export default function AdminBrokerList() {
                   <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Họ và Tên</th>
                   <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Số điện thoại</th>
                   <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Khu vực hoạt động</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center">Số bài đăng</th>
                   <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Trạng thái</th>
                   <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Hành động</th>
                 </tr>
@@ -353,7 +362,7 @@ export default function AdminBrokerList() {
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                 {loadingBrokers ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-6 text-center text-sm text-slate-400 dark:text-slate-500">
+                    <td colSpan={7} className="px-6 py-6 text-center text-sm text-slate-400 dark:text-slate-500">
                       <span className="inline-flex items-center gap-2">
                         <span className="material-symbols-outlined text-base animate-spin" aria-hidden="true">progress_activity</span>
                         Đang tải môi giới...
@@ -395,11 +404,10 @@ export default function AdminBrokerList() {
                 <button
                   key={pageNum}
                   onClick={() => handlePageChange(pageNum)}
-                  className={`px-3 py-1.5 min-w-[32px] rounded-sm text-sm font-medium flex items-center justify-center transition-colors ${
-                    pagination.page === pageNum
+                  className={`px-3 py-1.5 min-w-[32px] rounded-sm text-sm font-medium flex items-center justify-center transition-colors ${pagination.page === pageNum
                       ? 'bg-emerald-600 text-white'
                       : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
-                  }`}
+                    }`}
                 >
                   {pageNum}
                 </button>

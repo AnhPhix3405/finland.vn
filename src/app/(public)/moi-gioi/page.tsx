@@ -15,6 +15,9 @@ interface Broker {
   ward: string | null;
   address: string | null;
   phone: string;
+  _count?: {
+    listings: number;
+  };
 }
 
 export default function BrokerList() {
@@ -196,9 +199,14 @@ export default function BrokerList() {
                 {/* Info */}
                 <div className="flex-grow flex flex-col justify-between">
                   <div>
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors">
-                      {broker.full_name}
-                    </h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors">
+                        {broker.full_name}
+                      </h2>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800">
+                        {broker._count?.listings || 0} bài đăng
+                      </span>
+                    </div>
                     {broker.bio && (
                       <div className="flex items-start gap-2 mt-2">
                         <FileText className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />

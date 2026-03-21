@@ -57,7 +57,16 @@ export async function GET(request: NextRequest) {
         where,
         skip,
         take: limit,
-        orderBy: { created_at: 'desc' },
+        include: {
+          _count: {
+            select: { listings: true }
+          }
+        },
+        orderBy: {
+          listings: {
+            _count: 'desc'
+          }
+        },
       }),
       prisma.brokers.count({ where }),
     ]);

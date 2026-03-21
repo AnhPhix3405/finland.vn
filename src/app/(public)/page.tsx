@@ -106,7 +106,7 @@ function FeaturedProjects() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/projects?limit=3&sortBy=newest')
+    fetch('/api/projects?limit=3&sortBy=popular')
       .then((r) => r.json())
       .then((res) => {
         if (res.success) setProjects(res.data || []);

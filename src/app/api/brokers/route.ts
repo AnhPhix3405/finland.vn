@@ -89,7 +89,16 @@ export async function GET(request: NextRequest) {
       where,
       skip,
       take: limit,
-      orderBy: { created_at: 'desc' }
+      include: {
+        _count: {
+          select: { listings: true }
+        }
+      },
+      orderBy: {
+        listings: {
+          _count: 'desc'
+        }
+      }
     });
 
     // Trả về danh sách môi giới (không bao gồm password_hash)

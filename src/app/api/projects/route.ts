@@ -74,6 +74,8 @@ export async function GET(request: NextRequest) {
       orderBy = [{ price: 'asc' }, { created_at: 'desc' }];
     } else if (sortBy === 'price_desc') {
       orderBy = [{ price: 'desc' }, { created_at: 'desc' }];
+    } else if (sortBy === 'popular') {
+      orderBy = [{ views_count: 'desc' }, { created_at: 'desc' }];
     } else if (sortBy === 'newest') {
       orderBy = [{ created_at: 'desc' }, { name: 'asc' }];
     } else {
