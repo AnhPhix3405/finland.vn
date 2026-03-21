@@ -2,7 +2,18 @@
 import { useAuthStore } from '@/src/store/authStore';
 import { fetchWithRetry } from '@/src/lib/api/fetch-with-retry';
 
+function validateImageFile(file: File) {
+  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+  const extension = file.name.split('.').pop()?.toLowerCase() || '';
+  const validExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+  
+  if (!validTypes.includes(file.type) || !validExtensions.includes(extension)) {
+    throw new Error('Chỉ cho phép tải lên các định dạng ảnh: jpg, jpeg, png, gif.');
+  }
+}
+
 export async function uploadProjectFile(file: File, projectId: string) {
+  validateImageFile(file);
   const accessToken = useAuthStore.getState().accessToken;
 
   // lấy chữ ký
@@ -60,27 +71,34 @@ type AttachmentData = {
   sort_order?: number;
 }
 async function createAttachment(data: AttachmentData, accessToken?: string) {
-  const res = await fetchWithRetry("/api/attachments", {
+  // Route to appropriate endpoint based on target_type
+  const endpoint = data.target_type === 'admin' ? '/api/admin/attachments' : '/api/attachments';
+  const isAdmin = data.target_type === 'admin';
+  
+  const res = await fetchWithRetry(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     token: accessToken,
-    isAdmin: false,
+    isAdmin: isAdmin,
     body: JSON.stringify(data)
   });
   return await res.json();
 }
 
-export async function deleteAttachment(id: string, accessToken?: string) {
-  const res = await fetchWithRetry(`/api/attachments/${id}`, {
+export async function deleteAttachment(id: string, accessToken?: string, isAdmin: boolean = false) {
+  const endpoint = isAdmin ? `/api/admin/attachments?id=${id}` : `/api/attachments/${id}`;
+  
+  const res = await fetchWithRetry(endpoint, {
     method: 'DELETE',
     token: accessToken,
-    isAdmin: false
+    isAdmin: isAdmin
   });
   return await res.json();
 }
 
 
 export async function uploadBrokerAvatar(file: File, brokerId: string) {
+  validateImageFile(file);
   console.log('🔹 [UPLOAD AVATAR] Starting upload for brokerId:', brokerId);
   const accessToken = useAuthStore.getState().accessToken;
   
@@ -156,24 +174,19 @@ export async function uploadBrokerAvatar(file: File, brokerId: string) {
   }
 }
 
-export async function uploadAttachments(file: File) {
-  const accessToken = useAuthStore.getState().accessToken;
+export async function uploadAdminAttachments(file: File) {
+  validateImageFile(file);
+  const adminStoreModule = await import('@/src/store/adminStore');
+  const accessToken = adminStoreModule.useAdminStore.getState().accessToken;
   
-  // Determine role and user info
-  const userStore = (await import('@/src/store/userStore')).useUserStore.getState();
-  const user = userStore.user;
-  console.log("user", user);
-  const isBroker = user?.role === 'broker';
+  const signEndpoint = '/api/upload/sign';
+  const folder = 'finland/attachments';
+  const isAdmin = true;
 
-  // Use role-specific sign endpoint
-  const signEndpoint = isBroker ? '/api/upload/brokers/sign' : '/api/upload/sign';
-  const folder = isBroker ? 'finland/brokers' : 'finland/attachments';
-
-  // Get upload signature
   const signRes = await fetchWithRetry(signEndpoint, {
     method: 'POST',
     token: accessToken || undefined,
-    isAdmin: false
+    isAdmin: isAdmin
   });
   
   if (!signRes.ok) {
@@ -204,20 +217,84 @@ export async function uploadAttachments(file: File) {
       size_bytes: uploadData.bytes.toString(),
       original_name: uploadData.original_filename,
       public_id: uploadData.public_id,
-      // broker: target_type='broker', target_id=broker user id
-      // admin: target_type='admin', no target_id needed
-      target_type: isBroker ? 'broker' : 'admin',
-      target_id: isBroker ? user?.id : undefined,
+      target_type: 'admin',
     };
     console.log('attachmentData', attachmentData);
-    await createAttachment(attachmentData, accessToken || undefined);
+    const attachmentResult = await createAttachment(attachmentData, accessToken || undefined);
+    console.log('Attachment creation result:', attachmentResult);
+    if (!attachmentResult.success) {
+      throw new Error(attachmentResult.error || 'Failed to create attachment');
+    }
     return uploadData;
   } catch (err) {
-    console.log(err);
+    console.error('uploadAdminAttachments error:', err);
+    throw err;
+  }
+}
+
+export async function uploadBrokerAttachments(file: File) {
+  validateImageFile(file);
+  const accessToken = useAuthStore.getState().accessToken;
+  
+  const userStore = (await import('@/src/store/userStore')).useUserStore.getState();
+  const user = userStore.user;
+
+  const signEndpoint = '/api/upload/brokers/sign';
+  const folder = 'finland/brokers';
+  const isAdmin = false;
+
+  const signRes = await fetchWithRetry(signEndpoint, {
+    method: 'POST',
+    token: accessToken || undefined,
+    isAdmin: isAdmin
+  });
+  
+  if (!signRes.ok) {
+    const err = await signRes.json();
+    throw new Error(err.error || 'Không thể lấy chữ ký upload');
+  }
+  
+  const { timestamp, signature, cloudName, apiKey } = await signRes.json();
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('api_key', apiKey);
+  formData.append('timestamp', timestamp);
+  formData.append('signature', signature);
+  formData.append('folder', folder);
+
+  try {
+    const uploadRes = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
+      { method: 'POST', body: formData }
+    );
+    const uploadData = await uploadRes.json();
+    console.log('uploadData', uploadData);
+
+    const attachmentData: AttachmentData = {
+      url: uploadData.url,
+      secure_url: uploadData.secure_url,
+      size_bytes: uploadData.bytes.toString(),
+      original_name: uploadData.original_filename,
+      public_id: uploadData.public_id,
+      target_type: 'broker',
+      target_id: user?.id,
+    };
+    console.log('attachmentData', attachmentData);
+    const attachmentResult = await createAttachment(attachmentData, accessToken || undefined);
+    console.log('Attachment creation result:', attachmentResult);
+    if (!attachmentResult.success) {
+      throw new Error(attachmentResult.error || 'Failed to create attachment');
+    }
+    return uploadData;
+  } catch (err) {
+    console.error('uploadBrokerAttachments error:', err);
+    throw err;
   }
 }
 
 export async function uploadListingAttachments(file: File, listingId: string, accessToken?: string, sortOrder: number = 0) {
+  validateImageFile(file);
   const token = accessToken || useAuthStore.getState().accessToken;
   
   // lấy chữ ký
@@ -267,6 +344,7 @@ export async function uploadListingAttachments(file: File, listingId: string, ac
 }
 
 export async function uploadNewsThumbnail(file: File) {
+  validateImageFile(file);
   const accessToken = useAuthStore.getState().accessToken;
   
   // Get signature for news upload

@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { X, UploadCloud, ImageIcon } from "lucide-react";
-import { uploadAttachments } from "@/src/app/modules/upload.service";
+import { uploadBrokerAttachments } from "@/src/app/modules/upload.service";
 import { useAuthStore } from "@/src/store/authStore";
 import { useUserStore } from "@/src/store/userStore";
 
@@ -26,13 +26,13 @@ export function UserMediaPicker({ isOpen, onClose, onSelect }: UserMediaPickerPr
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    
+
     const accessToken = useAuthStore((state) => state.accessToken);
     const { user } = useUserStore();
 
     const fetchUserImages = React.useCallback(async () => {
         if (!accessToken || !user?.id) return;
-        
+
         setIsLoading(true);
         try {
             // Get attachments where target_type='broker' and target_id = current broker's ID
@@ -42,7 +42,7 @@ export function UserMediaPicker({ isOpen, onClose, onSelect }: UserMediaPickerPr
                 }
             });
             const attachmentsJson = await attachmentsRes.json();
-            
+
             if (attachmentsJson.success && attachmentsJson.data) {
                 const mappedImages: BrokerImage[] = attachmentsJson.data.map((att: Record<string, unknown>) => ({
                     url: att.secure_url as string,
@@ -88,10 +88,16 @@ export function UserMediaPicker({ isOpen, onClose, onSelect }: UserMediaPickerPr
     const handleFiles = (files: File[]) => {
         const newImageUrls = files.map((file) => URL.createObjectURL(file));
         const newFileMap = { ...fileMap };
+        const newBrokerImages: BrokerImage[] = [];
+        
         files.forEach((file, index) => {
-            newFileMap[newImageUrls[index]] = file;
+            const url = newImageUrls[index];
+            newFileMap[url] = file;
+            newBrokerImages.push({ url, createdAt: new Date() });
         });
+        
         setFileMap(newFileMap);
+        setUserImages((prev) => [...newBrokerImages, ...prev]);
         setSelectedImages((prev) => [...prev, ...newImageUrls]);
     };
 
@@ -124,7 +130,7 @@ export function UserMediaPicker({ isOpen, onClose, onSelect }: UserMediaPickerPr
             for (const imageUrl of selectedImages) {
                 if (fileMap[imageUrl]) {
                     const file = fileMap[imageUrl];
-                    const uploadData = await uploadAttachments(file);
+                    const uploadData = await uploadBrokerAttachments(file);
 
                     if (uploadData && uploadData.secure_url) {
                         finalUrls.push(uploadData.secure_url);

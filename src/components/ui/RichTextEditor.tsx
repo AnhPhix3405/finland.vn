@@ -21,7 +21,10 @@ export default function RichTextEditor({ value, onChange, placeholder }: { value
             markdownImages += `\n![image](${url})\n`;
         });
 
-        mdEditorRef.current.insertText(markdownImages);
+        // Append images to the end of content instead of at cursor position
+        const currentValue = value || '';
+        const newValue = currentValue + markdownImages;
+        onChange?.(newValue);
     };
 
     return (

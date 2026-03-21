@@ -10,7 +10,7 @@ function serializeAttachments(attachments: Array<Record<string, unknown>>) {
     }));
 }
 
-async function verifyAuth(request: NextRequest) {
+async function verifyAdminAuth(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
     
@@ -26,22 +26,8 @@ async function verifyAuth(request: NextRequest) {
         
         const role = (payload as Record<string, unknown>).role as string;
         
-        if (role === 'admin') {
-            return { valid: true };
-        }
-        
-        const brokerId = (payload as Record<string, unknown>).id as string;
-        const broker = await prisma.brokers.findUnique({
-            where: { id: brokerId },
-            select: { is_active: true }
-        });
-
-        if (!broker) {
-            return { valid: false, error: 'Token không hợp lệ', status: 401 };
-        }
-
-        if (!broker.is_active) {
-            return { valid: false, error: 'Tài khoản của bạn đã bị khóa', status: 403 };
+        if (role !== 'admin') {
+            return { valid: false, error: 'Chỉ admin mới có quyền truy cập', status: 403 };
         }
 
         return { valid: true };
@@ -52,8 +38,8 @@ async function verifyAuth(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
     try {
-        // Verify authentication
-        const auth = await verifyAuth(request);
+        // Verify admin authentication
+        const auth = await verifyAdminAuth(request);
         if (!auth.valid) {
             return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
         }
@@ -61,29 +47,10 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const page = parseInt(searchParams.get('page') || '1');
         const limit = parseInt(searchParams.get('limit') || '100');
-        const target_id = searchParams.get('target_id');
-        const target_type = searchParams.get('target_type');
-        const slug = searchParams.get('slug');
 
-        const where: Record<string, unknown> = {};
-
-        if (target_id) {
-            where.target_id = target_id;
-        }
-
-        if (target_type) {
-            where.target_type = target_type;
-        }
-
-        if (slug) {
-            const project = await prisma.projects.findUnique({ where: { slug } });
-            if (project) {
-                where.target_id = project.id;
-                where.target_type = 'project';
-            } else {
-                where.target_id = '00000000-0000-0000-0000-000000000000';
-            }
-        }
+        const where = {
+            target_type: 'admin'
+        };
 
         const totalCount = await prisma.attachments.count({ where });
 
@@ -94,8 +61,7 @@ export async function GET(request: NextRequest) {
             orderBy: { created_at: 'desc' }
         });
 
-        console.log('attachments:', attachments);
-
+        console.log('📎 [ADMIN ATTACHMENTS] GET - Found:', attachments.length, 'total:', totalCount);
 
         return NextResponse.json({
             success: true,
@@ -109,7 +75,7 @@ export async function GET(request: NextRequest) {
         });
 
     } catch (error) {
-        console.error('Error fetching attachments:', error);
+        console.error('📎 [ADMIN ATTACHMENTS] GET Error:', error);
         return NextResponse.json(
             { success: false, error: 'Lỗi khi lấy danh sách attachments' },
             { status: 500 }
@@ -119,24 +85,18 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        const auth = await verifyAuth(request);
+        // Verify admin authentication
+        const auth = await verifyAdminAuth(request);
         if (!auth.valid) {
             return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
         }
 
         const body = await request.json();
-        const { url, secure_url, size_bytes, original_name, public_id, target_id, target_type, sort_order } = body;
+        const { url, secure_url, size_bytes, original_name, public_id, sort_order } = body;
 
-        if (!url || !secure_url || !target_type) {
+        if (!url || !secure_url) {
             return NextResponse.json(
-                { success: false, error: 'url, secure_url và target_type là bắt buộc' },
-                { status: 400 }
-            );
-        }
-        
-        if (target_type !== 'admin' && !target_id) {
-            return NextResponse.json(
-                { success: false, error: 'target_id là bắt buộc' },
+                { success: false, error: 'url và secure_url là bắt buộc' },
                 { status: 400 }
             );
         }
@@ -148,11 +108,13 @@ export async function POST(request: NextRequest) {
                 size_bytes: size_bytes ? BigInt(size_bytes) : null,
                 original_name,
                 public_id,
-                target_id,
-                target_type,
+                target_type: 'admin',
+                target_id: null,
                 sort_order: sort_order ?? 0
             }
         });
+
+        console.log('📎 [ADMIN ATTACHMENTS] POST - Created:', newAttachment.id);
 
         return NextResponse.json({
             success: true,
@@ -164,7 +126,7 @@ export async function POST(request: NextRequest) {
         }, { status: 201 });
 
     } catch (error) {
-        console.error('Error creating attachment:', error);
+        console.error('📎 [ADMIN ATTACHMENTS] POST Error:', error);
         return NextResponse.json(
             { success: false, error: 'Lỗi khi tạo attachment' },
             { status: 500 }
@@ -174,47 +136,65 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
     try {
-        const auth = await verifyAuth(request);
+        // Verify admin authentication
+        const auth = await verifyAdminAuth(request);
         if (!auth.valid) {
             return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
         }
 
         const { searchParams } = new URL(request.url);
-        const target_id = searchParams.get('target_id');
-        const target_type = searchParams.get('target_type');
+        const id = searchParams.get('id');
 
-        if (!target_id || !target_type) {
+        if (!id) {
             return NextResponse.json(
-                { success: false, error: 'target_id và target_type là bắt buộc' },
+                { success: false, error: 'id là bắt buộc' },
                 { status: 400 }
             );
         }
 
-        const attachments = await prisma.attachments.findMany({
-            where: { target_id, target_type }
+        const attachment = await prisma.attachments.findUnique({
+            where: { id }
         });
 
-        if (attachments.length > 0) {
-            const publicIds = attachments
-                .filter(img => img.public_id)
-                .map(img => img.public_id as string);
-
-            if (publicIds.length > 0) {
-                await Promise.all(publicIds.map(pid => cloudinary.uploader.destroy(pid)));
-            }
-
-            await prisma.attachments.deleteMany({ where: { target_id, target_type } });
+        if (!attachment) {
+            return NextResponse.json(
+                { success: false, error: 'Attachment không tồn tại' },
+                { status: 404 }
+            );
         }
+
+        if (attachment.target_type !== 'admin') {
+            return NextResponse.json(
+                { success: false, error: 'Chỉ có thể xóa attachment của admin' },
+                { status: 403 }
+            );
+        }
+
+        // Delete from Cloudinary
+        if (attachment.public_id) {
+            try {
+                await cloudinary.uploader.destroy(attachment.public_id);
+            } catch (err) {
+                console.error('Error deleting from Cloudinary:', err);
+            }
+        }
+
+        // Delete from database
+        await prisma.attachments.delete({
+            where: { id }
+        });
+
+        console.log('📎 [ADMIN ATTACHMENTS] DELETE - Deleted:', id);
 
         return NextResponse.json({
             success: true,
-            message: `Đã xóa ${attachments.length} attachments`
+            message: 'Xóa attachment thành công'
         });
 
     } catch (error) {
-        console.error('Error deleting bulk attachments:', error);
+        console.error('📎 [ADMIN ATTACHMENTS] DELETE Error:', error);
         return NextResponse.json(
-            { success: false, error: 'Lỗi khi xóa attachments' },
+            { success: false, error: 'Lỗi khi xóa attachment' },
             { status: 500 }
         );
     }

@@ -122,7 +122,7 @@ export default function LocationSelector({
                         onProvinceChange(e.target.value);
                         onWardChange('');
                     }}
-                    className="w-full bg-white border border-white/20 rounded-xl px-4 py-3 text-black outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm appearance-none cursor-pointer"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-black outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm appearance-none cursor-pointer"
                     id="projectCity"
                     name="province"
                 >
@@ -143,7 +143,7 @@ export default function LocationSelector({
                     value={selectedWard}
                     onChange={(e) => onWardChange(e.target.value)}
                     disabled={!selectedProvince || wardsList.length === 0}
-                    className="w-full bg-white border border-white/20 rounded-xl px-4 py-3 text-black outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm appearance-none cursor-pointer disabled:opacity-50"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-black outline-none focus:ring-2 focus:ring-orange-500 transition-all text-sm appearance-none cursor-pointer disabled:opacity-50"
                     id="projectDistrict"
                 >
                     <option value="">Chọn Phường / Xã</option>

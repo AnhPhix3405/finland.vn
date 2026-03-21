@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import RichTextEditor from "@/src/components/ui/RichTextEditor";
+import UserRichTextEditor from "@/src/components/ui/UserRichTextEditor";
 import LocationSelector from "@/src/components/feature/LocationSelector";
 import MapPicker from "@/src/components/feature/MapPicker";
 import { loadAllFormOptions, SelectOption } from "@/src/app/modules/form-options.service";
@@ -557,7 +557,7 @@ export default function EditListingPage() {
               <div className="space-y-2">
                 <label className="text-sm font-semibold">Mô tả chi tiết <span className="text-red-500">*</span></label>
                 <div className="border rounded-lg overflow-hidden">
-                  <RichTextEditor value={description} onChange={setDescription} />
+                  <UserRichTextEditor value={description} onChange={setDescription} />
                 </div>
               </div>
             </section>

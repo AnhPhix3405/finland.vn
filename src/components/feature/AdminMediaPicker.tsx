@@ -2,7 +2,8 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { X, UploadCloud } from "lucide-react";
-import { uploadAttachments } from "@/src/app/modules/upload.service";
+import { uploadAdminAttachments } from "@/src/app/modules/upload.service";
+import { useAdminStore } from "@/src/store/adminStore";
 
 interface AdminMediaPickerProps {
     isOpen: boolean;
@@ -19,9 +20,17 @@ export function AdminMediaPicker({ isOpen, onClose, onSelect }: AdminMediaPicker
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const adminAccessToken = useAdminStore((state) => state.accessToken);
+
     const fetchAdminImages = React.useCallback(async () => {
+        if (!adminAccessToken) return;
+
         try {
-            const res = await fetch(`/api/attachments?target_type=admin&limit=100`);
+            const res = await fetch(`/api/admin/attachments?limit=100`, {
+                headers: {
+                    'Authorization': `Bearer ${adminAccessToken}`
+                }
+            });
             const json = await res.json();
             if (json.success && json.data) {
                 const fetchedUrls = json.data
@@ -32,7 +41,7 @@ export function AdminMediaPicker({ isOpen, onClose, onSelect }: AdminMediaPicker
         } catch (err) {
             console.error("Error fetching admin images:", err);
         }
-    }, []);
+    }, [adminAccessToken]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -99,7 +108,7 @@ export function AdminMediaPicker({ isOpen, onClose, onSelect }: AdminMediaPicker
             for (const imageUrl of selectedImages) {
                 if (fileMap[imageUrl]) {
                     const file = fileMap[imageUrl];
-                    const uploadData = await uploadAttachments(file);
+                    const uploadData = await uploadAdminAttachments(file);
 
                     if (uploadData && uploadData.secure_url) {
                         finalUrls.push(uploadData.secure_url);
