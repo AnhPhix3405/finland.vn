@@ -57,6 +57,7 @@ interface Listing {
   contact_phone?: string | null;
   floor_count?: number | null;
   bedroom_count?: number | null;
+  updated_at?: string | null;
   brokers: {
     id: string;
     full_name: string;
@@ -193,6 +194,27 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
     }
   };
 
+  const formatRelativeTime = (dateString?: string | null): string => {
+    if (!dateString) return 'Không xác định';
+    
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSecs / 60);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    const diffMonths = Math.floor(diffDays / 30);
+    const diffYears = Math.floor(diffDays / 365);
+    
+    if (diffSecs < 60) return 'Vừa mới';
+    if (diffMins < 60) return `${diffMins} phút trước`;
+    if (diffHours < 24) return `${diffHours} giờ trước`;
+    if (diffDays < 30) return `${diffDays} ngày trước`;
+    if (diffMonths < 12) return `${diffMonths} tháng trước`;
+    return `${diffYears} năm trước`;
+  };
+
   const property = useMemo(() => {
     const formatPrice = (price?: string | null) => {
       if (!price) return "Thỏa thuận";
@@ -255,6 +277,7 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
         status: listing.status || "Đang hiển thị",
         listingCode: listing.listing_code || "N/A",
         postedAt: null,
+        updatedAt: listing.updated_at,
       };
     }
 
@@ -284,8 +307,7 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
       transactionType: "Mua bán",
       status: "Đang hiển thị",
       listingCode: "FIN26123456",
-      postedAt: "11/03/2026",
-    };
+      postedAt: "11/03/2026",      updatedAt: new Date().toISOString(),    };
   }, [type, isDemo, listing]);
 
   return (
@@ -434,6 +456,10 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
                   <span className="text-xl font-bold text-slate-900 dark:text-white">{property.pricePerFrontage}</span>
                 </div>
               )}
+              <div className="flex flex-col">
+                <span className="text-xs text-slate-500 mb-1 font-medium">Cập nhật</span>
+                <span className="text-sm font-semibold text-slate-900 dark:text-white">{formatRelativeTime(property.updatedAt)}</span>
+              </div>
               <div className="flex flex-wrap gap-2">
                 <button className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-colors">
                   <Share2 className="size-5 text-slate-600" />
@@ -457,7 +483,7 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
           {/* Description — Markdown */}
           <div className="space-y-3">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white border-l-4 border-emerald-600 pl-3">Thông tin mô tả</h3>
-            <div className="prose prose-slate dark:prose-invert max-w-none text-sm md:text-base leading-relaxed text-justify">
+            <div className="markdown-content text-sm md:text-base">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {property.description}
               </ReactMarkdown>

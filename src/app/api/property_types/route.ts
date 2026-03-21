@@ -9,6 +9,8 @@ export async function GET(request: NextRequest) {
         const limit = parseInt(searchParams.get('limit') || '50');
         const search = searchParams.get('search');
 
+        console.log('📦 [PROPERTY_TYPES] Fetching - page:', page, 'limit:', limit, 'search:', search);
+
         const skip = (page - 1) * limit;
 
         // Tạo điều kiện where
@@ -28,6 +30,8 @@ export async function GET(request: NextRequest) {
             take: limit,
             orderBy: { name: 'asc' }
         });
+
+        console.log('📦 [PROPERTY_TYPES] Found:', propertyTypes.length, 'total:', totalCount);
 
         return NextResponse.json({
             success: true,

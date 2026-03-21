@@ -22,6 +22,8 @@ export async function GET(request: NextRequest) {
         const limit = parseInt(searchParams.get('limit') || '100');
         const search = searchParams.get('search');
 
+        console.log('📦 [TRANSACTION_TYPES] Fetching - page:', page, 'limit:', limit, 'search:', search);
+
         const skip = (page - 1) * limit;
 
         // Tạo điều kiện where
@@ -41,6 +43,8 @@ export async function GET(request: NextRequest) {
             take: limit,
             orderBy: { name: 'asc' }
         });
+
+        console.log('📦 [TRANSACTION_TYPES] Found:', transactionTypes.length, 'total:', totalCount);
 
         return NextResponse.json({
             success: true,
