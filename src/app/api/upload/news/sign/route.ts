@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
         const timestamp = Math.round(new Date().getTime() / 1000);
 
         // Create signature for Cloudinary upload
-        const paramsToSign = `folder=finland/news&timestamp=${timestamp}${apiSecret}`;
+        const paramsToSign = `folder=finland/news&timestamp=${timestamp}&upload_preset=finland${apiSecret}`;
         const signature = crypto
             .createHash('sha256')
             .update(paramsToSign)

@@ -135,19 +135,28 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
     const validFiles = files.filter(file => file.type.startsWith('image/'));
     const invalidFiles = files.filter(file => !file.type.startsWith('image/'));
 
+    // Validate file sizes (max 3MB)
+    const MAX_SIZE = 3 * 1024 * 1024; // 3MB
+    const finalValidFiles = validFiles.filter(file => file.size <= MAX_SIZE);
+    const oversizedFiles = validFiles.filter(file => file.size > MAX_SIZE);
+
+    if (oversizedFiles.length > 0) {
+      addToast(`${oversizedFiles.length} ảnh bị loại bỏ vì vượt quá 3MB`, "error");
+    }
+
     if (invalidFiles.length > 0) {
       addToast(`${invalidFiles.length} file(s) bị loại bỏ vì không phải là ảnh`, "error");
     }
 
     // Check total file limit
-    const newTotalFiles = selectedFiles.length + validFiles.length;
+    const newTotalFiles = selectedFiles.length + finalValidFiles.length;
     if (newTotalFiles > 20) {
       const allowedCount = 20 - selectedFiles.length;
-      const trimmedFiles = validFiles.slice(0, allowedCount);
+      const trimmedFiles = finalValidFiles.slice(0, allowedCount);
       addToast(`Chỉ có thể tải lên tối đa 20 ảnh. Đã thêm ${trimmedFiles.length} ảnh.`, "info");
       setSelectedFiles(prev => [...prev, ...trimmedFiles]);
     } else {
-      setSelectedFiles(prev => [...prev, ...validFiles]);
+      setSelectedFiles(prev => [...prev, ...finalValidFiles]);
     }
 
     // Reset input
@@ -648,8 +657,8 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
                   type="button"
                   onClick={() => toggleFeatureHashtag(feature.id)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${selectedFeatureHashtags.includes(feature.id)
-                      ? 'bg-emerald-600 text-white shadow-md'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+                    ? 'bg-emerald-600 text-white shadow-md'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
                     }`}
                 >
                   {feature.name}

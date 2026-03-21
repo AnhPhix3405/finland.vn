@@ -85,8 +85,8 @@ export default function EditListingPage() {
   const showDimensions = !isApartment;
 
   const toggleFeatureHashtag = (id: string) => {
-    setSelectedFeatureHashtags(prev => 
-      prev.includes(id) 
+    setSelectedFeatureHashtags(prev =>
+      prev.includes(id)
         ? prev.filter(h => h !== id)
         : [...prev, id]
     );
@@ -212,7 +212,21 @@ export default function EditListingPage() {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const validFiles = files.filter(file => file.type.startsWith('image/') || file.type.startsWith('video/'));
+    const eligibleFiles = files.filter(file => file.type.startsWith('image/') || file.type.startsWith('video/'));
+    const invalidFiles = files.filter(file => !file.type.startsWith('image/') && !file.type.startsWith('video/'));
+
+    const MAX_SIZE = 3 * 1024 * 1024; // 3MB
+    const validFiles = eligibleFiles.filter(file => file.size <= MAX_SIZE);
+    const oversizedFiles = eligibleFiles.filter(file => file.size > MAX_SIZE);
+
+    if (oversizedFiles.length > 0) {
+      addToast(`${oversizedFiles.length} file bị loại bỏ vì vượt quá 3MB`, "error");
+    }
+
+    if (invalidFiles.length > 0) {
+      addToast(`${invalidFiles.length} file không hợp lệ (chỉ nhận ảnh/video)`, "error");
+    }
+
     const totalRemainingAPI = initialImages.length - deletedApiImages.length;
     const newTotal = totalRemainingAPI + selectedFiles.length + validFiles.length;
 
@@ -530,11 +544,10 @@ export default function EditListingPage() {
                         key={feature.id}
                         type="button"
                         onClick={() => toggleFeatureHashtag(feature.id)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                          selectedFeatureHashtags.includes(feature.id)
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${selectedFeatureHashtags.includes(feature.id)
                             ? 'bg-emerald-600 text-white shadow-md'
                             : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
-                        }`}
+                          }`}
                       >
                         {feature.name}
                       </button>

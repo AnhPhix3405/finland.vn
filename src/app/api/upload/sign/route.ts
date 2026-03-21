@@ -50,7 +50,8 @@ export async function POST(request: NextRequest) {
   const signature = cloudinary.utils.api_sign_request(
     {
       timestamp,
-      folder: "finland/attachments"
+      folder: "finland/attachments",
+      upload_preset: "finland"
     },
     process.env.CLOUDINARY_API_SECRET!
   )

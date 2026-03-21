@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
 
         // Create signature for Cloudinary upload (must match folder in frontend)
         const folder = 'finland/brokers';
-        const paramsToSign = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
+        const paramsToSign = `folder=${folder}&timestamp=${timestamp}&upload_preset=finland${apiSecret}`;
         const signature = crypto
             .createHash('sha256')
             .update(paramsToSign)

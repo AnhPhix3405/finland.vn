@@ -6,9 +6,14 @@ function validateImageFile(file: File) {
   const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
   const extension = file.name.split('.').pop()?.toLowerCase() || '';
   const validExtensions = ['jpg', 'jpeg', 'png', 'gif'];
-  
+
   if (!validTypes.includes(file.type) || !validExtensions.includes(extension)) {
     throw new Error('Chỉ cho phép tải lên các định dạng ảnh: jpg, jpeg, png, gif.');
+  }
+
+  const MAX_SIZE = 3 * 1024 * 1024; // 3MB
+  if (file.size > MAX_SIZE) {
+    throw new Error('Dung lượng ảnh không được vượt quá 3MB.');
   }
 }
 
@@ -37,6 +42,7 @@ export async function uploadProjectFile(file: File, projectId: string) {
   formData.append("timestamp", timestamp);
   formData.append("signature", signature);
   formData.append("folder", "finland/projects");
+  formData.append("upload_preset", "finland");
 
   const uploadRes = await fetch(
     `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
@@ -74,7 +80,7 @@ async function createAttachment(data: AttachmentData, accessToken?: string) {
   // Route to appropriate endpoint based on target_type
   const endpoint = data.target_type === 'admin' ? '/api/admin/attachments' : '/api/attachments';
   const isAdmin = data.target_type === 'admin';
-  
+
   const res = await fetchWithRetry(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -87,7 +93,7 @@ async function createAttachment(data: AttachmentData, accessToken?: string) {
 
 export async function deleteAttachment(id: string, accessToken?: string, isAdmin: boolean = false) {
   const endpoint = isAdmin ? `/api/admin/attachments?id=${id}` : `/api/attachments/${id}`;
-  
+
   const res = await fetchWithRetry(endpoint, {
     method: 'DELETE',
     token: accessToken,
@@ -101,19 +107,19 @@ export async function uploadBrokerAvatar(file: File, brokerId: string) {
   validateImageFile(file);
   console.log('🔹 [UPLOAD AVATAR] Starting upload for brokerId:', brokerId);
   const accessToken = useAuthStore.getState().accessToken;
-  
+
   // lấy chữ ký
   const signRes = await fetchWithRetry("/api/upload/brokers/sign", {
     method: "POST",
     token: accessToken || undefined,
     isAdmin: false
   });
-  
+
   if (!signRes.ok) {
     const err = await signRes.json();
     throw new Error(err.error || 'Không thể lấy chữ ký upload');
   }
-  
+
   const signData = await signRes.json();
   console.log('🔹 [UPLOAD AVATAR] Sign response:', signData);
 
@@ -126,6 +132,7 @@ export async function uploadBrokerAvatar(file: File, brokerId: string) {
   formData.append("timestamp", timestamp);
   formData.append("signature", signature);
   formData.append("folder", "finland/brokers");
+  formData.append("upload_preset", "finland");
 
   try {
     const uploadRes = await fetch(
@@ -144,7 +151,7 @@ export async function uploadBrokerAvatar(file: File, brokerId: string) {
 
     // Update broker avatar_url in database using id
     console.log('🔹 [UPLOAD AVATAR] Updating broker with id:', brokerId, 'avatar_url:', uploadData.secure_url);
-    
+
     const updateRes = await fetchWithRetry("/api/brokers", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -178,7 +185,7 @@ export async function uploadAdminAttachments(file: File) {
   validateImageFile(file);
   const adminStoreModule = await import('@/src/store/adminStore');
   const accessToken = adminStoreModule.useAdminStore.getState().accessToken;
-  
+
   const signEndpoint = '/api/upload/sign';
   const folder = 'finland/attachments';
   const isAdmin = true;
@@ -188,12 +195,12 @@ export async function uploadAdminAttachments(file: File) {
     token: accessToken || undefined,
     isAdmin: isAdmin
   });
-  
+
   if (!signRes.ok) {
     const err = await signRes.json();
     throw new Error(err.error || 'Không thể lấy chữ ký upload');
   }
-  
+
   const { timestamp, signature, cloudName, apiKey } = await signRes.json();
 
   const formData = new FormData();
@@ -202,6 +209,7 @@ export async function uploadAdminAttachments(file: File) {
   formData.append('timestamp', timestamp);
   formData.append('signature', signature);
   formData.append('folder', folder);
+  formData.append('upload_preset', 'finland');
 
   try {
     const uploadRes = await fetch(
@@ -235,7 +243,7 @@ export async function uploadAdminAttachments(file: File) {
 export async function uploadBrokerAttachments(file: File) {
   validateImageFile(file);
   const accessToken = useAuthStore.getState().accessToken;
-  
+
   const userStore = (await import('@/src/store/userStore')).useUserStore.getState();
   const user = userStore.user;
 
@@ -248,12 +256,12 @@ export async function uploadBrokerAttachments(file: File) {
     token: accessToken || undefined,
     isAdmin: isAdmin
   });
-  
+
   if (!signRes.ok) {
     const err = await signRes.json();
     throw new Error(err.error || 'Không thể lấy chữ ký upload');
   }
-  
+
   const { timestamp, signature, cloudName, apiKey } = await signRes.json();
 
   const formData = new FormData();
@@ -262,6 +270,7 @@ export async function uploadBrokerAttachments(file: File) {
   formData.append('timestamp', timestamp);
   formData.append('signature', signature);
   formData.append('folder', folder);
+  formData.append('upload_preset', 'finland');
 
   try {
     const uploadRes = await fetch(
@@ -296,14 +305,14 @@ export async function uploadBrokerAttachments(file: File) {
 export async function uploadListingAttachments(file: File, listingId: string, accessToken?: string, sortOrder: number = 0) {
   validateImageFile(file);
   const token = accessToken || useAuthStore.getState().accessToken;
-  
+
   // lấy chữ ký
   const signRes = await fetchWithRetry("/api/upload/listings/sign", {
     method: "POST",
     token: token || undefined,
     isAdmin: false
   });
-  
+
   if (!signRes.ok) {
     const err = await signRes.json();
     throw new Error(err.error || 'Không thể lấy chữ ký upload');
@@ -318,6 +327,7 @@ export async function uploadListingAttachments(file: File, listingId: string, ac
   formData.append("timestamp", timestamp);
   formData.append("signature", signature);
   formData.append("folder", "finland/listings");
+  formData.append("upload_preset", "finland");
 
   const uploadRes = await fetch(
     `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
@@ -346,14 +356,14 @@ export async function uploadListingAttachments(file: File, listingId: string, ac
 export async function uploadNewsThumbnail(file: File) {
   validateImageFile(file);
   const accessToken = useAuthStore.getState().accessToken;
-  
+
   // Get signature for news upload
   const signRes = await fetchWithRetry("/api/upload/news/sign", {
     method: "POST",
     token: accessToken || undefined,
     isAdmin: false
   });
-  
+
   if (!signRes.ok) {
     const err = await signRes.json();
     throw new Error(err.error || 'Không thể lấy chữ ký upload');
@@ -368,6 +378,7 @@ export async function uploadNewsThumbnail(file: File) {
   formData.append("timestamp", timestamp);
   formData.append("signature", signature);
   formData.append("folder", "finland/news");
+  formData.append("upload_preset", "finland");
 
   try {
     const uploadRes = await fetch(

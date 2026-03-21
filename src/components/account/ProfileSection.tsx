@@ -53,8 +53,8 @@ export default function ProfileSection() {
       addToast('Chỉ chấp nhận file ảnh (JPG, PNG, GIF)', 'error');
       return;
     }
-    if (file.size > 5 * 1024 * 1024) { // 5MB
-      addToast('Kích thước file không được vượt quá 5MB', 'error');
+    if (file.size > 3 * 1024 * 1024) { // 3MB
+      addToast('Kích thước file không được vượt quá 3MB', 'error');
       return;
     }
 
@@ -77,12 +77,12 @@ export default function ProfileSection() {
       const updateData = { ...formData };
       console.log('🔹 [PROFILE] updateData:', updateData);
       console.log('🔹 [PROFILE] selectedFile:', selectedFile);
-      
+
       if (selectedFile) {
         console.log('🔹 [PROFILE] Uploading avatar for brokerId:', user.id);
         const uploadResult = await uploadBrokerAvatar(selectedFile, user.id);
         console.log('🔹 [PROFILE] Upload result:', uploadResult);
-        
+
         if (uploadResult && uploadResult.brokerUpdate?.success) {
           updateData.avatar_url = uploadResult.secure_url;
           console.log('🔹 [PROFILE] Avatar URL set:', updateData.avatar_url);
@@ -90,7 +90,7 @@ export default function ProfileSection() {
           throw new Error('Failed to upload avatar');
         }
       }
-      
+
       const hasFormChanges = (
         formData.full_name !== user.full_name ||
         formData.email !== (user.email || '') ||
@@ -100,12 +100,12 @@ export default function ProfileSection() {
         formData.bio !== (user.bio || '')
       );
       console.log('🔹 [PROFILE] hasFormChanges:', hasFormChanges);
-      
+
       if (hasFormChanges || selectedFile) {
         console.log('🔹 [PROFILE] Calling updateBroker with phone:', user.phone, 'id:', user.id);
         const result = await updateBroker(user.phone, updateData, user.id);
         console.log('🔹 [PROFILE] updateBroker result:', result);
-        
+
         if (result.success) {
           setSelectedFile(null);
           setPreviewUrl(null);
@@ -148,11 +148,11 @@ export default function ProfileSection() {
                 <User className="size-10 md:size-16 opacity-50" />
               )}
             </div>
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isSubmitting}
-              className="absolute -bottom-3 -right-3 bg-white dark:bg-slate-800 shadow-md border border-slate-200 dark:border-slate-700 rounded-full p-2 hover:text-emerald-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed" 
+              className="absolute -bottom-3 -right-3 bg-white dark:bg-slate-800 shadow-md border border-slate-200 dark:border-slate-700 rounded-full p-2 hover:text-emerald-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Đổi ảnh đại diện"
             >
               <Camera className="size-4 md:size-5" />
@@ -174,8 +174,8 @@ export default function ProfileSection() {
               </p>
             )}
             <div className="flex justify-center sm:justify-start gap-2">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isSubmitting}
                 className="px-4 py-1.5 text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -183,8 +183,8 @@ export default function ProfileSection() {
                 Chọn ảnh
               </button>
               {(selectedFile || user?.avatar_url) && (
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => {
                     setSelectedFile(null);
                     setPreviewUrl(null);
@@ -206,10 +206,10 @@ export default function ProfileSection() {
               <label htmlFor="fullName" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
                 Họ và Tên <span className="text-red-500">*</span>
               </label>
-              <input 
+              <input
                 id="fullName"
                 name="full_name"
-                type="text" 
+                type="text"
                 value={formData.full_name}
                 onChange={handleInputChange}
                 className="w-full rounded-md border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-slate-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500 transition-all text-sm h-10 px-3 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
@@ -222,11 +222,11 @@ export default function ProfileSection() {
                 Số điện thoại <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <input 
+                <input
                   id="phoneNumber"
-                  type="tel" 
-                  defaultValue={user.phone} 
-                  readOnly 
+                  type="tel"
+                  defaultValue={user.phone}
+                  readOnly
                   className="w-full rounded-md bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 text-sm cursor-not-allowed pr-20 h-10 px-3 shadow-sm focus:outline-none"
                 />
                 <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase tracking-wider text-emerald-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-sm">
@@ -239,10 +239,10 @@ export default function ProfileSection() {
               <label htmlFor="emailAddress" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
                 Email
               </label>
-              <input 
+              <input
                 id="emailAddress"
                 name="email"
-                type="email" 
+                type="email"
                 value={formData.email}
                 onChange={handleInputChange}
                 placeholder="Nhập email của bạn"
@@ -267,10 +267,10 @@ export default function ProfileSection() {
                 <MapPin className="w-4 h-4 text-emerald-600" />
                 Địa chỉ
               </label>
-              <input 
+              <input
                 id="address"
                 name="address"
-                type="text" 
+                type="text"
                 value={formData.address || ''}
                 onChange={handleInputChange}
                 placeholder="Số nhà, đường..."
@@ -283,7 +283,7 @@ export default function ProfileSection() {
                 <FileText className="w-4 h-4 text-emerald-600" />
                 Giới thiệu bản thân
               </label>
-              <textarea 
+              <textarea
                 id="bio"
                 name="bio"
                 value={formData.bio || ''}
@@ -299,11 +299,11 @@ export default function ProfileSection() {
                 <Bell className="size-4" /> Cài đặt thông báo
               </h3>
               <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-3.5 rounded-lg border border-slate-100 dark:border-slate-800">
-                <input 
-                  id="emailNotifications" 
-                  type="checkbox" 
+                <input
+                  id="emailNotifications"
+                  type="checkbox"
                   defaultChecked
-                  className="size-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-600 dark:border-slate-600 dark:bg-slate-700" 
+                  className="size-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-600 dark:border-slate-600 dark:bg-slate-700"
                 />
                 <label htmlFor="emailNotifications" className="text-sm text-slate-600 dark:text-slate-400 font-medium cursor-pointer select-none">
                   Nhận tin tức dự án mới, ưu đãi qua email
@@ -313,8 +313,8 @@ export default function ProfileSection() {
           </div>
 
           <div className="pt-6 flex flex-col-reverse sm:flex-row items-center justify-end gap-3 sm:gap-4 border-t border-slate-100 dark:border-slate-800 mt-8">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => {
                 if (user) {
                   setFormData({
@@ -332,8 +332,8 @@ export default function ProfileSection() {
             >
               Hủy bỏ
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={isSubmitting}
               className="w-full sm:w-auto px-8 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >

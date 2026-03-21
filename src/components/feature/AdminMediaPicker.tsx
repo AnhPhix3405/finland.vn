@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { X, UploadCloud } from "lucide-react";
 import { uploadAdminAttachments } from "@/src/app/modules/upload.service";
 import { useAdminStore } from "@/src/store/adminStore";
+import { useNotificationStore } from "@/src/store/notificationStore";
 
 interface AdminMediaPickerProps {
     isOpen: boolean;
@@ -21,6 +22,7 @@ export function AdminMediaPicker({ isOpen, onClose, onSelect }: AdminMediaPicker
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const adminAccessToken = useAdminStore((state) => state.accessToken);
+    const addToast = useNotificationStore((state) => state.addToast);
 
     const fetchAdminImages = React.useCallback(async () => {
         if (!adminAccessToken) return;
@@ -69,9 +71,19 @@ export function AdminMediaPicker({ isOpen, onClose, onSelect }: AdminMediaPicker
     };
 
     const handleFiles = (files: File[]) => {
-        const newImageUrls = files.map((file) => URL.createObjectURL(file));
+        const MAX_SIZE = 3 * 1024 * 1024; // 3MB
+        const validFiles = files.filter(file => file.size <= MAX_SIZE);
+        const oversizedFiles = files.filter(file => file.size > MAX_SIZE);
+
+        if (oversizedFiles.length > 0) {
+            addToast(`${oversizedFiles.length} ảnh bị loại bỏ vì vượt quá 3MB`, "error");
+        }
+
+        if (validFiles.length === 0) return;
+
+        const newImageUrls = validFiles.map((file) => URL.createObjectURL(file));
         const newFileMap = { ...fileMap };
-        files.forEach((file, index) => {
+        validFiles.forEach((file, index) => {
             newFileMap[newImageUrls[index]] = file;
         });
         setFileMap(newFileMap);
