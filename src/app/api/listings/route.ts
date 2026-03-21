@@ -343,13 +343,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (body.price_per_m2 !== undefined && body.price_per_m2 !== null && body.price_per_m2 !== "") {
-      const pricePerM2Num = parseFloat(body.price_per_m2);
-      if (isNaN(pricePerM2Num) || pricePerM2Num <= 0) {
-        errors.pricePerM2 = "Giá/m² phải lớn hơn 0";
-      }
-    }
-
     if (body.price_per_frontage_meter !== undefined && body.price_per_frontage_meter !== null && body.price_per_frontage_meter !== "") {
       const pricePerFrontageMeterNum = parseFloat(body.price_per_frontage_meter);
       if (isNaN(pricePerFrontageMeterNum) || pricePerFrontageMeterNum <= 0) {
@@ -385,7 +378,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { title, description, transaction_type_id, property_type_id, province, ward, address, area, price, price_per_m2, price_per_frontage_meter, direction, tags, feature_hashtag_ids, contact_name: rawContactName, contact_phone: rawContactPhone, floor_count, bedroom_count, latitude, longitude } = body;
+    const { title, description, transaction_type_id, property_type_id, province, ward, address, area, price, price_per_frontage_meter, direction, tags, feature_hashtag_ids, contact_name: rawContactName, contact_phone: rawContactPhone, floor_count, bedroom_count, latitude, longitude } = body;
 
     const currentYearStr = new Date().getFullYear().toString().substring(2, 4);
     const prefix = `FIN${currentYearStr}`;
@@ -456,7 +449,7 @@ export async function POST(request: NextRequest) {
         address,
         area: area ?? null,
         price: priceBigInt,
-        price_per_m2: price_per_m2 ? parseFloat(price_per_m2) : null,
+        price_per_m2: (priceBigInt !== null && area ? Math.round(Number(priceBigInt) / parseFloat(area)) : null),
         price_per_frontage_meter: price_per_frontage_meter ? parseFloat(price_per_frontage_meter) : null,
         direction,
         slug,

@@ -366,18 +366,6 @@ export async function PATCH(
       );
     }
 
-    // Validate price_per_m2 > 0
-    const pricePerM2 = body.price_per_m2;
-    if (pricePerM2 !== undefined && pricePerM2 !== null && pricePerM2 !== "") {
-      const pricePerM2Num = parseFloat(pricePerM2);
-      if (isNaN(pricePerM2Num) || pricePerM2Num <= 0) {
-        return NextResponse.json(
-          { success: false, error: "Giá/m² phải lớn hơn 0" },
-          { status: 400 }
-        );
-      }
-    }
-
     // Validate price_per_frontage_meter > 0
     const pricePerFrontageMeter = body.price_per_frontage_meter;
     if (pricePerFrontageMeter !== undefined && pricePerFrontageMeter !== null && pricePerFrontageMeter !== "") {
@@ -414,6 +402,21 @@ export async function PATCH(
           console.error("Error converting price to BigInt:", e);
         }
       }
+    }
+
+    const finalPrice = updateData.price !== undefined ? updateData.price : existingListing.price;
+    const finalArea = updateData.area !== undefined ? updateData.area : existingListing.area;
+
+    if (finalPrice !== null && finalPrice !== undefined && finalArea !== null && finalArea !== undefined) {
+      const p = Number(finalPrice);
+      const a = parseFloat(String(finalArea));
+      if (a > 0) {
+        updateData.price_per_m2 = Math.round(p / a);
+      } else {
+        updateData.price_per_m2 = null;
+      }
+    } else {
+      updateData.price_per_m2 = null;
     }
 
     // Update the listing

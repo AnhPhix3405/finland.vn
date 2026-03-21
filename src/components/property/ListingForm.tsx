@@ -57,8 +57,8 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
   }, []);
 
   const toggleFeatureHashtag = (id: string) => {
-    setSelectedFeatureHashtags(prev => 
-      prev.includes(id) 
+    setSelectedFeatureHashtags(prev =>
+      prev.includes(id)
         ? prev.filter(h => h !== id)
         : [...prev, id]
     );
@@ -71,7 +71,7 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
   const [address, setAddress] = useState("");
   const [area, setArea] = useState("");
   const [price, setPrice] = useState("");
-  const [pricePerM2, setPricePerM2] = useState("");
+  // removed pricePerM2
   const [pricePerFrontageMeter, setPricePerFrontageMeter] = useState("");
   const [direction, setDirection] = useState("");
   const [contactName, setContactName] = useState("");
@@ -126,15 +126,6 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
 
     return () => clearTimeout(delayDebounceFn);
   }, [province, ward, address]);
-
-  // Auto-calculate price per m2
-  useEffect(() => {
-    const priceValue = price.replace(/\D/g, '');
-    if (priceValue && area && parseFloat(area) > 0) {
-      const calculated = Math.round(parseInt(priceValue) / parseFloat(area));
-      setPricePerM2(calculated.toString());
-    }
-  }, [price, area]);
 
   // File handling functions
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -227,12 +218,6 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
       }
     }
 
-    if (pricePerM2) {
-      const pricePerM2Num = parseFloat(pricePerM2);
-      if (isNaN(pricePerM2Num) || pricePerM2Num <= 0) {
-        newErrors.pricePerM2 = "Giá/m² phải lớn hơn 0";
-      }
-    }
 
     if (pricePerFrontageMeter) {
       const pricePerFrontageMeterNum = parseFloat(pricePerFrontageMeter);
@@ -322,7 +307,7 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
         address,
         area: area ? parseFloat(area) : undefined,
         price: price ? price.replace(/\D/g, '') : undefined,
-        price_per_m2: pricePerM2 ? parseFloat(pricePerM2) : undefined,
+        // omitted price_per_m2
         price_per_frontage_meter: pricePerFrontageMeter ? parseFloat(pricePerFrontageMeter) : undefined,
         direction,
         broker_id: user.id,
@@ -590,18 +575,6 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="pricePerM2" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Giá/m² (VNĐ)</label>
-            <input
-              id="pricePerM2"
-              type="number"
-              value={pricePerM2}
-              onChange={(e) => { setPricePerM2(e.target.value); setErrors(prev => ({ ...prev, pricePerM2: '' })); }}
-              className={`w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white ${errors.pricePerM2 ? 'border-red-500 ring-2 ring-red-500' : ''}`}
-            />
-            {errors.pricePerM2 && <p className="text-red-500 text-xs mt-1">{errors.pricePerM2}</p>}
-          </div>
-
-          <div className="space-y-2">
             <label htmlFor="pricePerFrontageMeter" className="text-sm font-semibold text-slate-700 dark:text-slate-300">Giá/mặt tiền (VNĐ)</label>
             <input
               id="pricePerFrontageMeter"
@@ -674,11 +647,10 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
                   key={feature.id}
                   type="button"
                   onClick={() => toggleFeatureHashtag(feature.id)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    selectedFeatureHashtags.includes(feature.id)
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${selectedFeatureHashtags.includes(feature.id)
                       ? 'bg-emerald-600 text-white shadow-md'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
-                  }`}
+                    }`}
                 >
                   {feature.name}
                 </button>

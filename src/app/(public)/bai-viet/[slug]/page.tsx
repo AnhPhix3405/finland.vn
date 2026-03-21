@@ -56,7 +56,6 @@ export default function EditListingPage() {
   const [address, setAddress] = useState("");
   const [area, setArea] = useState("");
   const [price, setPrice] = useState("");
-  const [pricePerM2, setPricePerM2] = useState("");
   const [pricePerFrontageMeter, setPricePerFrontageMeter] = useState("");
   const [direction, setDirection] = useState("");
   const [contactName, setContactName] = useState("");
@@ -135,7 +134,6 @@ export default function EditListingPage() {
           setAddress(l.address || "");
           setArea(l.area?.toString() || "");
           setPrice(l.price ? Number(l.price).toLocaleString('vi-VN') : "");
-          setPricePerM2(l.price_per_m2?.toString() || "");
           setPricePerFrontageMeter(l.price_per_frontage_meter?.toString() || "");
           setDirection(l.direction || "");
           setContactName(l.contact_name || "");
@@ -267,10 +265,6 @@ export default function EditListingPage() {
     }
     if (!listingId) return;
 
-    if (pricePerM2 && parseFloat(pricePerM2) <= 0) {
-      addToast("Giá/m² phải lớn hơn 0", "error");
-      return;
-    }
     if (pricePerFrontageMeter && parseFloat(pricePerFrontageMeter) <= 0) {
       addToast("Giá/mặt tiền phải lớn hơn 0", "error");
       return;
@@ -291,7 +285,6 @@ export default function EditListingPage() {
         address,
         area: area ? parseFloat(area) : null,
         price: price ? price.replace(/\D/g, '') : null,
-        price_per_m2: pricePerM2 ? parseFloat(pricePerM2) : null,
         price_per_frontage_meter: pricePerFrontageMeter ? parseFloat(pricePerFrontageMeter) : null,
         direction,
         contact_name: contactName.trim() || null,
@@ -494,10 +487,6 @@ export default function EditListingPage() {
                     <input type="text" required value={price} onChange={handlePriceChange} className="w-full bg-slate-50 dark:bg-slate-800 border rounded-lg py-2.5 px-4 text-sm pr-12" />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">VNĐ</span>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold">Giá/m² (VNĐ)</label>
-                  <input type="number" value={pricePerM2} onChange={(e) => setPricePerM2(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border rounded-lg py-2.5 px-4 text-sm" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">Giá/mặt tiền (VNĐ)</label>
