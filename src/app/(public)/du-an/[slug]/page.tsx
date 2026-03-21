@@ -5,9 +5,11 @@ import { useProjectContext } from "@/src/context/ProjectContext";
 import { getProject, incrementProjectViews } from "@/src/app/modules/projects.service";
 import { getAttachmentsByTarget } from "@/src/app/modules/attachments.service";
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import MapPicker from "@/src/components/feature/MapPicker";
+import { MapPin } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useParams } from "next/navigation";
 
 interface Project {
   id: string;
@@ -27,6 +29,8 @@ interface Project {
   content?: string;
   project_code?: string;
   thumbnail_url?: string;
+  latitude?: number;
+  longitude?: number;
   project_tags?: Array<{
     tags: {
       id: string;
@@ -358,6 +362,13 @@ export default function ProjectDetail() {
               {project.content ? (
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
+                  components={{
+                    img: (props: any) => {
+                      const { node, ...rest } = props;
+                      if (!rest.src) return null;
+                      return <img {...rest} alt={rest.alt || 'Hình ảnh dự án'} />;
+                    }
+                  }}
                 >
                   {project.content}
                 </ReactMarkdown>
@@ -367,18 +378,26 @@ export default function ProjectDetail() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-800 p-6 border border-gray-200 dark:border-slate-700 shadow-sm">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 uppercase tracking-wide border-b border-gray-100 dark:border-slate-700 pb-3">Vị trí bản đồ</h2>
-            <div className="relative w-full h-[300px] border border-gray-200 dark:border-slate-700 overflow-hidden bg-slate-100 dark:bg-slate-900">
-              <div className="absolute inset-0 blurry-map"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm px-6 py-3 border border-gray-200 dark:border-slate-700 shadow-md">
-                  <div className="flex items-center space-x-2">
-                    <span className="material-symbols-outlined text-emerald-600 animate-pulse">explore</span>
-                    <span className="font-medium text-slate-900 dark:text-white">Đang cập nhật dữ liệu bản đồ...</span>
+          <div className="bg-white dark:bg-slate-800 p-6 border border-gray-200 dark:border-slate-700 shadow-sm space-y-4">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white border-l-4 border-emerald-600 pl-3">Vị trí trên bản đồ</h3>
+            <div className="w-full">
+              {(project?.latitude !== undefined && project?.latitude !== null) && 
+               (project?.longitude !== undefined && project?.longitude !== null) ? (
+                <MapPicker
+                  initialLat={parseFloat(project.latitude.toString())}
+                  initialLng={parseFloat(project.longitude.toString())}
+                  readOnly={true}
+                />
+              ) : (
+                <div className="w-full h-[300px] rounded-xl border border-slate-200 dark:border-slate-800 relative bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
+                  <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm px-6 py-3 border border-gray-200 dark:border-slate-700 shadow-md">
+                    <div className="flex items-center space-x-2">
+                      <span className="material-symbols-outlined text-amber-600 animate-pulse">explore</span>
+                      <span className="font-medium text-slate-900 dark:text-white uppercase text-xs tracking-wider">Đang cập nhật dữ liệu bản đồ...</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

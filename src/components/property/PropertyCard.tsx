@@ -29,6 +29,8 @@ export interface PropertyCardProps {
   isBookmarked?: boolean;
   onBookmarkToggle?: (isBookmarked: boolean) => void;
   showBookmark?: boolean;
+  latitude?: number;
+  longitude?: number;
 }
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
@@ -65,7 +67,9 @@ export function PropertyCard({
   status = null,
   isBookmarked = false,
   onBookmarkToggle,
-  showBookmark = true
+  showBookmark = true,
+  latitude,
+  longitude
 }: PropertyCardProps) {
   const [bookmarked, setBookmarked] = useState(isBookmarked);
   const [isLoading, setIsLoading] = useState(false);

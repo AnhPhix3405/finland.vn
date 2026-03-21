@@ -11,11 +11,12 @@ mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
 interface MapPickerProps {
   initialLat?: number;
   initialLng?: number;
-  onLocationChange: (lat: number, lng: number) => void;
+  onLocationChange?: (lat: number, lng: number) => void;
   className?: string;
+  readOnly?: boolean;
 }
 
-export default function MapPicker({ initialLat, initialLng, onLocationChange, className }: MapPickerProps) {
+export default function MapPicker({ initialLat, initialLng, onLocationChange, className, readOnly = false }: MapPickerProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const marker = useRef<mapboxgl.Marker | null>(null);
@@ -40,25 +41,27 @@ export default function MapPicker({ initialLat, initialLng, onLocationChange, cl
     });
 
     marker.current = new mapboxgl.Marker({
-      draggable: true,
+      draggable: !readOnly,
       color: "#f97316"
     })
       .setLngLat([startLng, startLat])
       .addTo(map.current);
 
-    marker.current.on('dragend', () => {
-      if (marker.current) {
-        const lngLat = marker.current.getLngLat();
-        onLocationChange(lngLat.lat, lngLat.lng);
-      }
-    });
+    if (!readOnly) {
+      marker.current.on('dragend', () => {
+        if (marker.current) {
+          const lngLat = marker.current.getLngLat();
+          onLocationChange?.(lngLat.lat, lngLat.lng);
+        }
+      });
 
-    map.current.on('click', (e) => {
-      if (marker.current) {
-        marker.current.setLngLat(e.lngLat);
-        onLocationChange(e.lngLat.lat, e.lngLat.lng);
-      }
-    });
+      map.current.on('click', (e) => {
+        if (marker.current) {
+          marker.current.setLngLat(e.lngLat);
+          onLocationChange?.(e.lngLat.lat, e.lngLat.lng);
+        }
+      });
+    }
 
     map.current.on('load', () => {
       setIsReady(true);
@@ -90,7 +93,7 @@ export default function MapPicker({ initialLat, initialLng, onLocationChange, cl
       <div className="absolute top-3 left-3 z-10 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm pointer-events-none">
         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
           <MapPin className="w-3 h-3 text-orange-500" />
-          Kéo ghim để chọn vị trí chính xác
+          {readOnly ? "Vị trí dự án" : "Kéo ghim để chọn vị trí chính xác"}
         </p>
       </div>
       {!isReady && (
