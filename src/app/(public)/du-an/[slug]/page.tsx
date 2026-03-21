@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useProjectContext } from "@/src/context/ProjectContext";
-import { getProject, incrementProjectViews } from "@/src/app/modules/projects.service";
+import { getProject, incrementProjectViews, getProjects } from "@/src/app/modules/projects.service";
 import { getAttachmentsByTarget } from "@/src/app/modules/attachments.service";
 import { useState, useEffect } from "react";
 import MapPicker from "@/src/components/feature/MapPicker";
@@ -57,6 +57,7 @@ export default function ProjectDetail() {
   const slug = params?.slug as string;
   const { projectSlug, setProjectSlug, activeProjectId, setActiveProjectId } = useProjectContext();
   const [project, setProject] = useState<Project | null>(null);
+  const [relatedProjects, setRelatedProjects] = useState<Project[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingAttachments, setLoadingAttachments] = useState(false);
@@ -109,8 +110,56 @@ export default function ProjectDetail() {
         const result = await getProject(slugToUse);
 
         if (result.success) {
-          setProject(result.data);
-          setActiveProjectId(result.data.id);
+          const currentProject = result.data;
+          setProject(currentProject);
+          setActiveProjectId(currentProject.id);
+
+          // Lấy 3 dự án lân cận
+          try {
+            let related: Project[] = [];
+            
+            // 1. Ưu tiên cùng phường/xã
+            if (currentProject.province && currentProject.ward) {
+              const wardRes = await getProjects({ 
+                province: currentProject.province, 
+                ward: currentProject.ward, 
+                limit: 10 
+              });
+              if (wardRes.success) related = [...related, ...wardRes.data];
+            }
+            
+            // Lọc bớt kết quả trùng và trừ dự án hiện tại
+            related = related.filter((p, index, self) => 
+              p.id !== currentProject.id && index === self.findIndex((t) => t.id === p.id)
+            );
+
+            // 2. Nếu thiếu, bổ sung thêm dự án cùng Tỉnh/Thành phố
+            if (related.length < 3 && currentProject.province) {
+              const provRes = await getProjects({ 
+                province: currentProject.province, 
+                limit: 10 
+              });
+              if (provRes.success) related = [...related, ...provRes.data];
+            }
+            
+            related = related.filter((p, index, self) => 
+              p.id !== currentProject.id && index === self.findIndex((t) => t.id === p.id)
+            );
+
+            // 3. Nếu vẫn không đủ lấy random (không có filter loc)
+            if (related.length < 3) {
+              const anyRes = await getProjects({ limit: 10 });
+              if (anyRes.success) related = [...related, ...anyRes.data];
+            }
+            
+            related = related.filter((p, index, self) => 
+              p.id !== currentProject.id && index === self.findIndex((t) => t.id === p.id)
+            ).slice(0, 3);
+
+            setRelatedProjects(related);
+          } catch (err) {
+            console.warn("Failed to fetch related projects", err);
+          }
 
           // Increment view count
           if (result.data.id) {
@@ -251,7 +300,10 @@ export default function ProjectDetail() {
                 className="w-full h-full object-cover border border-gray-200 dark:border-slate-700 cursor-pointer"
                 src={attachments.length > 0 ? attachments[selectedImageIndex]?.secure_url : (project.thumbnail_url || 'https://via.placeholder.com/800x400?text=No+Image')}
                 onError={(e) => {
-                  e.currentTarget.src = 'https://via.placeholder.com/800x400?text=No+Image';
+                  const target = e.currentTarget;
+                  if (!target.src.includes('placeholder.com')) {
+                    target.src = 'https://via.placeholder.com/800x400?text=No+Image';
+                  }
                 }}
               />
               {getStatusBadge(project.status)}
@@ -295,7 +347,10 @@ export default function ProjectDetail() {
                             }`}
                           src={attachment.secure_url}
                           onError={(e) => {
-                            e.currentTarget.src = 'https://via.placeholder.com/200x200?text=Error';
+                            const target = e.currentTarget;
+                            if (!target.src.includes('placeholder.com')) {
+                              target.src = 'https://via.placeholder.com/200x200?text=Error';
+                            }
                           }}
                         />
                         {isLast && (
@@ -406,42 +461,33 @@ export default function ProjectDetail() {
           <div className="bg-white dark:bg-slate-800 p-6 border border-gray-200 dark:border-slate-700 shadow-sm">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 uppercase tracking-wide border-b border-gray-100 dark:border-slate-700 pb-2">Dự án lân cận</h3>
             <div className="space-y-4">
-              <a className="group flex items-start space-x-3 pb-4 border-b border-gray-100 dark:border-slate-700 last:border-0 last:pb-0" href="#">
-                <div className="w-20 h-20 shrink-0">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img alt="Ecopark" className="w-full h-full object-cover border border-gray-200 dark:border-slate-700 group-hover:opacity-80 transition-opacity" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHzmEXG2sDZyn4SdqZJ1-EyGjXGTyWCq29yCI2iEeCUNqHYkw8keeSH5RgbENtU-QS3W74N3-k8xSWvD3xMLO_QUeK7bJYi1SIltN8TJgTLYlN1MXNkQgLiVMLDN3CzzOhPVq4ekYCEhB5OhGIfR_nxQm1GB2Xieu9zIrH7Csila080yttQQ9gQYBbw-LrqmCxt1lA7CicymrWfx3N0FAXq6sZZjVMUIxEoa253DPIBu63Kz4VFBUOPKdj4iqUUh-PIwEAV88wuLhS" />
-                </div>
-                <div className="flex-grow">
-                  <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors line-clamp-2 mb-1">Khu đô thị sinh thái Ecopark</h4>
-                  <div className="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center">
-                    <span className="material-symbols-outlined text-[14px] mr-1">location_on</span> Văn Giang, Hưng Yên
+              {relatedProjects.length > 0 ? relatedProjects.map((p) => (
+                <Link key={p.id} href={`/du-an/${p.slug}`} className="group flex items-start space-x-3 pb-4 border-b border-gray-100 dark:border-slate-700 last:border-0 last:pb-0">
+                  <div className="w-20 h-20 shrink-0">
+                    <img 
+                      alt={p.name} 
+                      className="w-full h-full object-cover border border-gray-200 dark:border-slate-700 group-hover:opacity-80 transition-opacity" 
+                      src={p.thumbnail_url || 'https://via.placeholder.com/200x200?text=No+Image'} 
+                      onError={(e) => { 
+                        const target = e.currentTarget;
+                        if (!target.src.includes('placeholder.com')) {
+                          target.src = 'https://via.placeholder.com/200x200?text=No+Image'; 
+                        }
+                      }}
+                    />
                   </div>
-                </div>
-              </a>
-              <a className="group flex items-start space-x-3 pb-4 border-b border-gray-100 dark:border-slate-700 last:border-0 last:pb-0" href="#">
-                <div className="w-20 h-20 shrink-0">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img alt="Vinhomes Smart City" className="w-full h-full object-cover border border-gray-200 dark:border-slate-700 group-hover:opacity-80 transition-opacity" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAEHeX0wlmiUedADnYJ2J7WMsXD0OEsL5OHz4yobcvs1HkGHhx_84Ua76VbDul9PImaL9OFfaI3EvRVdfIb61PUIO1wMqKmBQQD9bCjnbzOSdID0Wlq7QcS7pzuKkr148HWr9IKKfoEN5A7iAJY6ynlFJ87ug12X0U2f7mykNdOOd344xwndtzc193QYtbXnmaB5EVXHE_Q91V7wc5fQGhGQaYeSUOwQ-3I0teDwmPdviL-SCuk7dRLb7FsPaPblh_esNcpOr8IKFuo" />
-                </div>
-                <div className="flex-grow">
-                  <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors line-clamp-2 mb-1">Vinhomes Smart City</h4>
-                  <div className="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center">
-                    <span className="material-symbols-outlined text-[14px] mr-1">location_on</span> Nam Từ Liêm, HN
+                  <div className="flex-grow">
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors line-clamp-2 mb-1">
+                      {p.name}
+                    </h4>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center">
+                      <span className="material-symbols-outlined text-[14px] mr-1">location_on</span> {formatLocation(p.province, p.ward)}
+                    </div>
                   </div>
-                </div>
-              </a>
-              <a className="group flex items-start space-x-3 pb-4 border-b border-gray-100 dark:border-slate-700 last:border-0 last:pb-0" href="#">
-                <div className="w-20 h-20 shrink-0">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img alt="Masteri" className="w-full h-full object-cover border border-gray-200 dark:border-slate-700 group-hover:opacity-80 transition-opacity" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXQmiXmsmrmjQw8Dx0S5hFABOnuOfc1l_XvIXtSJRSuMJ2F-3xVIzZKGDEMgS1DcxLqvKgjT33ImLR_0Lf_IFOujQaJ63aR_dA7GgyUau-atktO4fwE3Sy0cgaUS5HgTIiPE3olNEqbR_ccjiMyEx3Edno5o-VBadt6UIz5PP4p0-PPFye7CmrSOJYFIXPkZ4GtnGV6XUeeStgMnKWbieJGqH_lOe8kW1sAEa3SwSKVXdva-15ZncE-PL_6ke65I0Wn_fRXUjuP_m8" />
-                </div>
-                <div className="flex-grow">
-                  <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors line-clamp-2 mb-1">Masteri Waterfront</h4>
-                  <div className="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center">
-                    <span className="material-symbols-outlined text-[14px] mr-1">location_on</span> Gia Lâm, HN
-                  </div>
-                </div>
-              </a>
+                </Link>
+              )) : (
+                <div className="text-sm text-slate-500 dark:text-slate-400 italic">Đang tải dự án lân cận...</div>
+              )}
             </div>
           </div>
         </div>

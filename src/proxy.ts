@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server';
 const requests = new Map<string, { count: number; start: number }>();
 
 const WINDOW_MS = 60 * 1000;
-const LIMIT = 30;
+const LIMIT = 40;
 
 function rateLimit(ip: string): { allowed: boolean; remaining: number; resetIn: number } {
   const now = Date.now();
