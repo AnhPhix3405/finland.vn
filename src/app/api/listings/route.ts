@@ -197,7 +197,9 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      orderBy
+      orderBy: {
+        created_at: 'desc'
+      }
     });
 
     console.log('🔍 [SEARCH] Found listings:', listings.length);
@@ -482,7 +484,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create feature hashtags
-    let processedFeatureHashtags: string[] = [];
+    const processedFeatureHashtags: string[] = [];
     if (feature_hashtag_ids && Array.isArray(feature_hashtag_ids) && feature_hashtag_ids.length > 0) {
       try {
         for (const featureHashtagId of feature_hashtag_ids) {
