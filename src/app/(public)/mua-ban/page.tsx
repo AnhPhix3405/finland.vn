@@ -26,7 +26,7 @@ function MuaBanContent() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const isHydrated = useAuthStore((state) => state.isHydrated);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || "");
-  
+
   const componentStartTime = useRef<number>(0);
   const apiStartTime = useRef<number>(0);
   const renderStartTime = useRef<number>(0);
@@ -147,13 +147,13 @@ function MuaBanContent() {
 
       console.log('📦 mappedProperties[0]:', mappedProperties[0]?.featureTags);
       setProperties(mappedProperties);
-      
+
       // Check state immediately after set
       console.log('📦 setProperties called with mappedProperties[0].featureTags:', mappedProperties[0]?.featureTags);
-      
+
       // Track render time
       renderStartTime.current = performance.now();
-      
+
       setPagination({
         page: (result.pagination as Record<string, unknown>).page as number,
         limit: (result.pagination as Record<string, unknown>).limit as number,
@@ -177,7 +177,7 @@ function MuaBanContent() {
         }
       });
       setBookmarkedMap(initialBookmarkMap);
-      
+
       // Track total render time (from API response to DOM update)
       const renderTime = (performance.now() - renderStartTime.current) / 1000;
       const totalTime = (performance.now() - componentStartTime.current) / 1000;

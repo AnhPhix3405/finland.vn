@@ -221,12 +221,12 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
       const numPrice = Number(price);
       if (type === "mua-ban") {
         if (numPrice >= 1000000000) return `${(numPrice / 1000000000).toFixed(2)} Tỷ`;
-        if (numPrice >= 1000000) return `${(numPrice / 1000000).toFixed(0)} Triệu`;
+        if (numPrice >= 1000000) return `${(numPrice / 1000000).toFixed(2)} Triệu`;
         if (numPrice >= 1000) return `${(numPrice / 1000).toFixed(0)} Nghìn`;
         return `${numPrice.toLocaleString("vi-VN")} VND`;
       } else {
         if (numPrice >= 1000000000) return `${(numPrice / 1000000000).toFixed(2)} Tỷ/tháng`;
-        if (numPrice >= 1000000) return `${(numPrice / 1000000).toFixed(1)} Triệu/tháng`;
+        if (numPrice >= 1000000) return `${(numPrice / 1000000).toFixed(2)} Triệu/tháng`;
         if (numPrice >= 1000) return `${(numPrice / 1000).toFixed(0)} Nghìn/tháng`;
         return `${numPrice.toLocaleString("vi-VN")} VND/tháng`;
       }
@@ -238,16 +238,18 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
         value = Number(listing.price) / Number(listing.area);
       }
 
-      if (!value) return "Không xác định";
+      if (!value || value <= 0) return "Không xác định";
+
       if (value >= 1000000000) return `${(value / 1000000000).toFixed(2)} Tỷ/m²`;
-      if (value >= 1000000) return `${(value / 1000000).toFixed(1)} Triệu/m²`;
-      return `${(value / 1000).toFixed(0)} Nghìn/m²`;
+      if (value >= 1000000) return `${(value / 1000000).toFixed(2)} Triệu/m²`;
+      if (value >= 1000) return `${(value / 1000).toFixed(0)} Nghìn/m²`;
+      return `${Math.round(value)} VND/m²`;
     };
 
     const formatPricePerFrontage = (pricePerFrontageMeter?: number | null) => {
       if (!pricePerFrontageMeter) return "Không xác định";
       if (pricePerFrontageMeter >= 1000000000) return `${(pricePerFrontageMeter / 1000000000).toFixed(2)} Tỷ/m`;
-      if (pricePerFrontageMeter >= 1000000) return `${(pricePerFrontageMeter / 1000000).toFixed(1)} Triệu/m`;
+      if (pricePerFrontageMeter >= 1000000) return `${(pricePerFrontageMeter / 1000000).toFixed(2)} Triệu/m`;
       return `${(pricePerFrontageMeter / 1000).toFixed(0)} Nghìn/m`;
     };
 
