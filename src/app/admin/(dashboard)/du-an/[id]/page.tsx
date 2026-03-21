@@ -118,6 +118,38 @@ export default function AdminProjectDetail() {
     fetchProjectDetails();
   }, [slug]);
 
+  // Geocoding Effect - Jump map when province/ward changes
+  useEffect(() => {
+    // Only geocode if we haven't manually picked a location or it was the initial load
+    // Actually, always geocode if the text changes, unless the user specifically dragged
+    
+    if (!selectedProvince) return;
+    
+    const geocode = async () => {
+      try {
+        const query = `${selectedDistrict ? selectedDistrict + ', ' : ''}${selectedProvince}, Vietnam`;
+        const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+        if (!token) return;
+
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${token}&limit=1`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.features && data.features.length > 0) {
+          const [lng, lat] = data.features[0].center;
+          setLatitude(lat);
+          setLongitude(lng);
+        }
+      } catch (err) {
+        console.error('Geocoding error:', err);
+      }
+    };
+
+    // Use a small delay for better UX
+    const timer = setTimeout(geocode, 1000);
+    return () => clearTimeout(timer);
+  }, [selectedProvince, selectedDistrict]);
+
   const formatCurrencyOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '');
     if (!value) {

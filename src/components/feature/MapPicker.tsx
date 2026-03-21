@@ -65,6 +65,7 @@ export default function MapPicker({ initialLat, initialLng, onLocationChange, cl
 
     map.current.on('load', () => {
       setIsReady(true);
+      map.current?.resize();
     });
 
     return () => {
@@ -73,14 +74,18 @@ export default function MapPicker({ initialLat, initialLng, onLocationChange, cl
     };
   }, []);
 
-  // Update map and marker when initial coordinates change from outside (geocoding)
+  // Update map and marker when initial coordinates change from outside (e.g., geocoding)
   useEffect(() => {
-    if (!map.current || !marker.current || !initialLat || !initialLng) return;
+    if (!map.current || !marker.current || initialLat === undefined || initialLng === undefined) return;
     
-    // Only move if the difference is significant to avoid infinite loops or jitter
-    const currentLoc = marker.current.getLngLat();
-    const dist = Math.sqrt(Math.pow(currentLoc.lat - initialLat, 2) + Math.pow(currentLoc.lng - initialLng, 2));
+    // Get current marker location and calculate distance to new initial coordinates
+    const currentMarkerLoc = marker.current.getLngLat();
+    const dist = Math.sqrt(
+      Math.pow(currentMarkerLoc.lat - initialLat, 2) +
+      Math.pow(currentMarkerLoc.lng - initialLng, 2)
+    );
     
+    // Only move if the difference is significant to avoid jitter
     if (dist > 0.0001) {
       marker.current.setLngLat([initialLng, initialLat]);
       map.current.flyTo({ center: [initialLng, initialLat], zoom: 16 });
