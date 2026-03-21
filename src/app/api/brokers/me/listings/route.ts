@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
         }
       },
       orderBy: {
-        id: 'desc'
+        created_at: 'desc'
       }
     });
 

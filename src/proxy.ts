@@ -64,9 +64,9 @@ export function proxy(request: NextRequest) {
       );
     }
 
-    let response = NextResponse.next();
+    const response = NextResponse.next();
 
-    if (request.method === 'GET' && !pathname.startsWith('/api/property_types')) {
+    if (request.method === 'GET' && !pathname.startsWith('/api/property_types') && !pathname.startsWith('/api/transaction_types') && !pathname.startsWith('/api/feature_hashtags')) {
       const limitParams = request.nextUrl.searchParams.getAll('limit');
       const isLimitExceeded = limitParams.some(val => {
         const parsed = parseInt(val, 10);
