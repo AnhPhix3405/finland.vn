@@ -14,6 +14,7 @@ interface UserMediaPickerProps {
 }
 
 interface BrokerImage {
+    id?: string;
     url: string;
     createdAt: Date | null;
 }
@@ -47,6 +48,7 @@ export function UserMediaPicker({ isOpen, onClose, onSelect }: UserMediaPickerPr
 
             if (attachmentsJson.success && attachmentsJson.data) {
                 const mappedImages: BrokerImage[] = attachmentsJson.data.map((att: Record<string, unknown>) => ({
+                    id: att.id as string,
                     url: att.secure_url as string,
                     createdAt: att.created_at as Date | null
                 }));
@@ -130,6 +132,42 @@ export function UserMediaPicker({ isOpen, onClose, onSelect }: UserMediaPickerPr
         }
     };
 
+    const handleDeleteImage = async (e: React.MouseEvent, imgId: string | undefined, imgUrl: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (window.confirm("Bạn có chắc chắn muốn xóa hình ảnh này không? Hành động này không thể hoàn tác.")) {
+            if (imgId) {
+                try {
+                    const res = await fetch(`/api/attachments/${imgId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`
+                        }
+                    });
+                    const json = await res.json();
+                    if (!json.success) {
+                        addToast(json.error || "Xóa ảnh thất bại", "error");
+                        return;
+                    }
+                    addToast("Xóa ảnh thành công", "success");
+                } catch (err) {
+                    console.error("Lỗi xóa ảnh:", err);
+                    addToast("Lỗi khi xóa ảnh", "error");
+                    return;
+                }
+            } else {
+                // Xóa ảnh local mới thêm
+                const newFileMap = { ...fileMap };
+                delete newFileMap[imgUrl];
+                setFileMap(newFileMap);
+                URL.revokeObjectURL(imgUrl);
+            }
+            // Cập nhật state
+            setUserImages(prev => prev.filter(img => img.url !== imgUrl));
+            setSelectedImages(prev => prev.filter(url => url !== imgUrl));
+        }
+    };
+
     const handleConfirm = async () => {
         if (selectedImages.length === 0) return;
 
@@ -181,6 +219,7 @@ export function UserMediaPicker({ isOpen, onClose, onSelect }: UserMediaPickerPr
                 <div className="flex items-center justify-between p-5 border-b border-slate-100">
                     <h2 className="text-[22px] text-slate-700">Ảnh từ tin đăng của bạn</h2>
                     <button
+                        type="button"
                         onClick={onClose}
                         className="text-slate-400 hover:text-slate-600 transition-colors"
                     >
@@ -250,6 +289,14 @@ export function UserMediaPicker({ isOpen, onClose, onSelect }: UserMediaPickerPr
                                                 alt={`Ảnh ${index + 1}`}
                                                 className="w-full h-full object-cover"
                                             />
+                                            <button
+                                                type="button"
+                                                onClick={(e) => handleDeleteImage(e, img.id, img.url)}
+                                                className="absolute top-1.5 left-1.5 bg-red-500 hover:bg-red-600 text-white p-1 rounded-full shadow-md transition-colors z-10"
+                                                title="Xóa hình ảnh"
+                                            >
+                                                <X className="w-3.5 h-3.5" />
+                                            </button>
                                             {isSelected && (
                                                 <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
                                                     <div className="bg-blue-500 text-white rounded-full p-1 border-2 border-white shadow-sm">
@@ -280,6 +327,7 @@ export function UserMediaPicker({ isOpen, onClose, onSelect }: UserMediaPickerPr
 
                 <div className="p-4 flex items-center justify-end gap-3 bg-white">
                     <button
+                        type="button"
                         onClick={onClose}
                         disabled={isUploading}
                         className="px-6 py-[6px] border border-slate-200 rounded text-slate-600 hover:bg-slate-50 transition-colors text-[15px] disabled:opacity-50 disabled:cursor-not-allowed"
@@ -288,6 +336,7 @@ export function UserMediaPicker({ isOpen, onClose, onSelect }: UserMediaPickerPr
                     </button>
                     {selectedImages.length > 0 && (
                         <button
+                            type="button"
                             onClick={handleConfirm}
                             disabled={isUploading}
                             className="px-6 py-[6px] bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-[15px] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -311,7 +360,7 @@ export function UserMediaPicker({ isOpen, onClose, onSelect }: UserMediaPickerPr
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
                     <span>{error}</span>
-                    <button onClick={() => setError(null)} className="ml-2 hover:bg-red-600 p-1 rounded-full transition-colors">
+                    <button type="button" onClick={() => setError(null)} className="ml-2 hover:bg-red-600 p-1 rounded-full transition-colors">
                         <X className="w-4 h-4" />
                     </button>
                 </div>

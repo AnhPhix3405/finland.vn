@@ -94,7 +94,20 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
     }
   };
 
-  const handleCreate = async () => {
+  const handleEditClick = (item: HashtagItem) => {
+    setEditingItem(item);
+    setNewItemName(item.name);
+    setNewItemHashtag(item.hashtag || '');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingItem(null);
+    setNewItemName('');
+    setNewItemHashtag('');
+    setHashtagPreview('');
+  };
+
+  const handleSubmit = async () => {
     if (!newItemName.trim()) {
       setToast({ message: `Vui lòng nhập tên ${getTypeName()}`, type: 'error' });
       return;
@@ -102,77 +115,39 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
 
     const finalHashtag = newItemHashtag.trim() || hashtagPreview;
     const typeName = getTypeName();
+    setLoading(true);
 
     try {
       let result;
-      if (currentType === 'property') {
-        result = await createPropertyType({ 
-          name: newItemName.trim(),
-          hashtag: finalHashtag
-        });
-      } else if (currentType === 'transaction') {
-        result = await createTransactionType({ 
-          name: newItemName.trim(),
-          hashtag: finalHashtag
-        });
+      if (editingItem) {
+        if (currentType === 'property') {
+          result = await updatePropertyType({ id: editingItem.id, name: newItemName.trim(), hashtag: finalHashtag });
+        } else if (currentType === 'transaction') {
+          result = await updateTransactionType({ id: editingItem.id, name: newItemName.trim(), hashtag: finalHashtag });
+        } else {
+          result = await updateFeatureHashtag({ id: editingItem.id, name: newItemName.trim(), hashtag: finalHashtag });
+        }
       } else {
-        result = await createFeatureHashtag({ 
-          name: newItemName.trim(),
-          hashtag: finalHashtag
-        });
+        if (currentType === 'property') {
+          result = await createPropertyType({ name: newItemName.trim(), hashtag: finalHashtag });
+        } else if (currentType === 'transaction') {
+          result = await createTransactionType({ name: newItemName.trim(), hashtag: finalHashtag });
+        } else {
+          result = await createFeatureHashtag({ name: newItemName.trim(), hashtag: finalHashtag });
+        }
       }
       
       if (result.success) {
-        setToast({ message: `Tạo ${typeName} thành công`, type: 'success' });
-        setNewItemName('');
-        setNewItemHashtag('');
-        setHashtagPreview('');
+        setToast({ message: `${editingItem ? 'Cập nhật' : 'Tạo'} ${typeName} thành công`, type: 'success' });
+        handleCancelEdit();
         fetchItems();
       } else {
-        setToast({ message: result.error || `Lỗi khi tạo ${typeName}`, type: 'error' });
+        setToast({ message: result.error || `Lỗi khi ${editingItem ? 'cập nhật' : 'tạo'} ${typeName}`, type: 'error' });
       }
     } catch (error) {
-      setToast({ message: `Lỗi khi tạo ${typeName}`, type: 'error' });
-    }
-  };
-
-  const handleUpdate = async (id: string, name: string, hashtag?: string) => {
-    if (!name.trim()) {
-      setToast({ message: `Vui lòng nhập tên ${getTypeName()}`, type: 'error' });
-      return;
-    }
-
-    try {
-      let result;
-      if (currentType === 'property') {
-        result = await updatePropertyType({ 
-          id, 
-          name: name.trim(),
-          hashtag: hashtag?.trim() || generateHashtag(name.trim())
-        });
-      } else if (currentType === 'transaction') {
-        result = await updateTransactionType({ 
-          id, 
-          name: name.trim(),
-          hashtag: hashtag?.trim() || generateHashtag(name.trim())
-        });
-      } else {
-        result = await updateFeatureHashtag({ 
-          id, 
-          name: name.trim(),
-          hashtag: hashtag?.trim() || generateHashtag(name.trim())
-        });
-      }
-      
-      if (result.success) {
-        setToast({ message: 'Cập nhật thành công', type: 'success' });
-        setEditingItem(null);
-        fetchItems();
-      } else {
-        setToast({ message: result.error || 'Lỗi khi cập nhật', type: 'error' });
-      }
-    } catch (error) {
-      setToast({ message: `Lỗi khi cập nhật ${getTypeName()}`, type: 'error' });
+      setToast({ message: `Lỗi khi ${editingItem ? 'cập nhật' : 'tạo'} ${typeName}`, type: 'error' });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -287,8 +262,14 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
                 autoComplete="off"
                 placeholder={currentType === 'property' ? "VD: Nhà phố, Chung cư..." : currentType === 'transaction' ? "VD: Mua bán, Cho thuê..." : "VD: Mặt tiền, Sân vườn..."}
                 value={newItemName}
-                onChange={(e) => setNewItemName(e.target.value)}
-                onKeyPress={(e) => handleKeyPress(e, handleCreate)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setNewItemName(val);
+                  if (editingItem) {
+                    setNewItemHashtag(generateHashtag(val));
+                  }
+                }}
+                onKeyPress={(e) => handleKeyPress(e, handleSubmit)}
                 className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-sm text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:border-emerald-500 dark:text-white"
               />
             </div>
@@ -302,7 +283,7 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
                 placeholder={hashtagPreview || "Để trống để tự tạo..."}
                 value={newItemHashtag}
                 onChange={(e) => setNewItemHashtag(e.target.value)}
-                onKeyPress={(e) => handleKeyPress(e, handleCreate)}
+                onKeyPress={(e) => handleKeyPress(e, handleSubmit)}
                 className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-sm text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:border-emerald-500 dark:text-white"
               />
             </div>
@@ -315,13 +296,24 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
               </span>
             </div>
           )}
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            {editingItem && (
+              <button 
+                type="button"
+                onClick={handleCancelEdit}
+                disabled={loading}
+                className="bg-slate-200 hover:bg-slate-300 disabled:bg-slate-100 text-slate-700 px-4 py-2 rounded-sm text-sm font-bold transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+              >
+                Hủy
+              </button>
+            )}
             <button 
-              onClick={handleCreate}
+              type="button"
+              onClick={handleSubmit}
               disabled={loading}
-              className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white px-4 py-2 rounded-sm text-sm font-bold transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
+              className={`${editingItem ? 'bg-blue-600 hover:bg-blue-700 focus-visible:ring-blue-500' : 'bg-emerald-600 hover:bg-emerald-700 focus-visible:ring-emerald-500'} disabled:opacity-50 text-white px-4 py-2 rounded-sm text-sm font-bold transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1`}
             >
-              {loading ? 'Đang tạo...' : 'Thêm mới'}
+              {loading ? 'Đang xử lý...' : editingItem ? 'Cập nhật' : 'Thêm mới'}
             </button>
           </div>
         </div>
@@ -356,41 +348,18 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
                 items.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="px-4 py-3 text-sm">
-                      {editingItem?.id === item.id ? (
-                        <input
-                          type="text"
-                          value={editingItem.name}
-                          onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
-                          onKeyPress={(e) => handleKeyPress(e, () => handleUpdate(editingItem.id, editingItem.name, editingItem.hashtag || ''))}
-                          onBlur={() => setEditingItem(null)}
-                          autoFocus
-                          className="w-full px-2 py-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:text-white"
-                        />
-                      ) : (
                         <span className="font-medium text-slate-900 dark:text-slate-100">{item.name}</span>
-                      )}
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      {editingItem?.id === item.id ? (
-                        <input
-                          type="text"
-                          value={editingItem.hashtag || ''}
-                          onChange={(e) => setEditingItem({ ...editingItem, hashtag: e.target.value })}
-                          onKeyPress={(e) => handleKeyPress(e, () => handleUpdate(editingItem.id, editingItem.name, editingItem.hashtag || ''))}
-                          onBlur={() => setEditingItem(null)}
-                          className="w-full px-2 py-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:text-white"
-                          placeholder="Hashtag..."
-                        />
-                      ) : (
                         <span className="text-slate-600 dark:text-slate-400 font-mono text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">#{item.hashtag || 'N/A'}</span>
-                      )}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">
                       {item.created_at ? new Date(item.created_at).toLocaleDateString('vi-VN') : '-'}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button 
-                        onClick={() => setEditingItem({ ...item, hashtag: item.hashtag || '' })}
+                        type="button"
+                        onClick={() => handleEditClick(item)}
                         aria-label={`Sửa ${currentType === 'property' ? 'loại hình BĐS' : 'loại hình giao dịch'}`}
                         title="Sửa"
                         className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 p-1 transition-colors rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"

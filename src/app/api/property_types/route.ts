@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
             where,
             skip,
             take: limit,
-            orderBy: { name: 'asc' }
+            orderBy: { created_at: 'desc' }
         });
 
         console.log('📦 [PROPERTY_TYPES] Found:', propertyTypes.length, 'total:', totalCount);

@@ -12,12 +12,18 @@ interface AdminMediaPickerProps {
     onSelect: (images: string[]) => void;
 }
 
+interface AdminImage {
+    id?: string;
+    url: string;
+}
+
 export function AdminMediaPicker({ isOpen, onClose, onSelect }: AdminMediaPickerProps) {
     const [selectedImages, setSelectedImages] = useState<string[]>([]);
-    const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+    const [uploadedImages, setUploadedImages] = useState<AdminImage[]>([]);
     const [fileMap, setFileMap] = useState<Record<string, File>>({});
     const [isDragging, setIsDragging] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -27,6 +33,7 @@ export function AdminMediaPicker({ isOpen, onClose, onSelect }: AdminMediaPicker
     const fetchAdminImages = React.useCallback(async () => {
         if (!adminAccessToken) return;
 
+        setIsLoading(true);
         try {
             const res = await fetch(`/api/admin/attachments?limit=100`, {
                 headers: {
@@ -35,13 +42,18 @@ export function AdminMediaPicker({ isOpen, onClose, onSelect }: AdminMediaPicker
             });
             const json = await res.json();
             if (json.success && json.data) {
-                const fetchedUrls = json.data
-                    .map((item: Record<string, unknown>) => (item as Record<string, unknown>).secure_url)
-                    .filter(Boolean) as string[];
-                setUploadedImages(fetchedUrls);
+                const fetched: AdminImage[] = json.data
+                    .map((item: Record<string, unknown>) => ({
+                        id: item.id as string,
+                        url: item.secure_url as string
+                    }))
+                    .filter((img: AdminImage) => img.url);
+                setUploadedImages(fetched);
             }
         } catch (err) {
             console.error("Error fetching admin images:", err);
+        } finally {
+            setIsLoading(false);
         }
     }, [adminAccessToken]);
 
@@ -87,7 +99,8 @@ export function AdminMediaPicker({ isOpen, onClose, onSelect }: AdminMediaPicker
             newFileMap[newImageUrls[index]] = file;
         });
         setFileMap(newFileMap);
-        setUploadedImages((prev) => [...newImageUrls, ...prev]);
+        const newImages: AdminImage[] = newImageUrls.map(url => ({ url }));
+        setUploadedImages((prev) => [...newImages, ...prev]);
         setSelectedImages((prev) => [...prev, ...newImageUrls]);
     };
 
@@ -105,6 +118,40 @@ export function AdminMediaPicker({ isOpen, onClose, onSelect }: AdminMediaPicker
         setIsDragging(false);
         if (e.dataTransfer.files) {
             handleFiles(Array.from(e.dataTransfer.files));
+        }
+    };
+
+    const handleDeleteImage = async (e: React.MouseEvent, imgId: string | undefined, imgUrl: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (window.confirm("Bạn có chắc chắn muốn xóa hình ảnh này không? Hành động này không thể hoàn tác.")) {
+            if (imgId) {
+                try {
+                    const res = await fetch(`/api/attachments/${imgId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${adminAccessToken}`
+                        }
+                    });
+                    const json = await res.json();
+                    if (!json.success) {
+                        addToast(json.error || "Xóa ảnh thất bại", "error");
+                        return;
+                    }
+                    addToast("Xóa ảnh thành công", "success");
+                } catch (err) {
+                    console.error("Lỗi xóa ảnh:", err);
+                    addToast("Lỗi khi xóa ảnh", "error");
+                    return;
+                }
+            } else {
+                const newFileMap = { ...fileMap };
+                delete newFileMap[imgUrl];
+                setFileMap(newFileMap);
+                URL.revokeObjectURL(imgUrl);
+            }
+            setUploadedImages(prev => prev.filter(img => img.url !== imgUrl));
+            setSelectedImages(prev => prev.filter(url => url !== imgUrl));
         }
     };
 
@@ -159,6 +206,7 @@ export function AdminMediaPicker({ isOpen, onClose, onSelect }: AdminMediaPicker
                 <div className="flex items-center justify-between p-5 border-b border-slate-100">
                     <h2 className="text-[22px] text-slate-700">Thư viện ảnh (Admin)</h2>
                     <button
+                        type="button"
                         onClick={onClose}
                         className="text-slate-400 hover:text-slate-600 transition-colors"
                     >
@@ -195,24 +243,36 @@ export function AdminMediaPicker({ isOpen, onClose, onSelect }: AdminMediaPicker
 
                     <div>
                         <h3 className="mt-6 text-xl text-slate-400 mb-4">Ảnh đã tải lên</h3>
-                        {uploadedImages.length === 0 ? (
+                        {isLoading ? (
+                            <div className="flex items-center justify-center py-8">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                            </div>
+                        ) : uploadedImages.length === 0 ? (
                             <p className="text-slate-400 text-sm">Chưa có ảnh nào. Hãy tải lên!</p>
                         ) : (
                             <div className="grid grid-cols-4 md:grid-cols-6 gap-4">
                                 {uploadedImages.map((img, index) => {
-                                    const isSelected = selectedImages.includes(img);
+                                    const isSelected = selectedImages.includes(img.url);
                                     return (
                                         <div
                                             key={index}
                                             className={`relative aspect-square cursor-pointer rounded-sm overflow-hidden box-border border-2 transition-all ${isSelected ? "border-blue-500" : "border-transparent"
                                                 }`}
-                                            onClick={() => toggleImageSelection(img)}
+                                            onClick={() => toggleImageSelection(img.url)}
                                         >
                                             <img
-                                                src={img}
+                                                src={img.url}
                                                 alt={`Img ${index}`}
                                                 className="w-full h-full object-cover"
                                             />
+                                            <button
+                                                type="button"
+                                                onClick={(e) => handleDeleteImage(e, img.id, img.url)}
+                                                className="absolute top-1.5 left-1.5 bg-red-500 hover:bg-red-600 text-white p-1 rounded-full shadow-md transition-colors z-10"
+                                                title="Xóa hình ảnh"
+                                            >
+                                                <X className="w-3.5 h-3.5" />
+                                            </button>
                                             {isSelected && (
                                                 <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
                                                     <div className="bg-blue-500 text-white rounded-full p-1 border-2 border-white shadow-sm">
@@ -243,6 +303,7 @@ export function AdminMediaPicker({ isOpen, onClose, onSelect }: AdminMediaPicker
 
                 <div className="p-4 flex items-center justify-end gap-3 bg-white">
                     <button
+                        type="button"
                         onClick={onClose}
                         disabled={isUploading}
                         className="px-6 py-[6px] border border-slate-200 rounded text-slate-600 hover:bg-slate-50 transition-colors text-[15px] disabled:opacity-50 disabled:cursor-not-allowed"
@@ -251,6 +312,7 @@ export function AdminMediaPicker({ isOpen, onClose, onSelect }: AdminMediaPicker
                     </button>
                     {selectedImages.length > 0 && (
                         <button
+                            type="button"
                             onClick={handleConfirm}
                             disabled={isUploading}
                             className="px-6 py-[6px] bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-[15px] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -274,7 +336,7 @@ export function AdminMediaPicker({ isOpen, onClose, onSelect }: AdminMediaPicker
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
                     <span>{error}</span>
-                    <button onClick={() => setError(null)} className="ml-2 hover:bg-red-600 p-1 rounded-full transition-colors">
+                    <button type="button" onClick={() => setError(null)} className="ml-2 hover:bg-red-600 p-1 rounded-full transition-colors">
                         <X className="w-4 h-4" />
                     </button>
                 </div>

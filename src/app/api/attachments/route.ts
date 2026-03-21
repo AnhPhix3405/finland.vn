@@ -13,23 +13,23 @@ function serializeAttachments(attachments: Array<Record<string, unknown>>) {
 async function verifyAuth(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
-    
+
     if (!token) {
         return { valid: false, error: 'Vui lòng đăng nhập', status: 401 };
     }
-    
+
     try {
         const payload = await verifyToken(token);
         if (!payload || !(payload as Record<string, unknown>).id) {
             return { valid: false, error: 'Token không hợp lệ', status: 401 };
         }
-        
+
         const role = (payload as Record<string, unknown>).role as string;
-        
+
         if (role === 'admin') {
             return { valid: true };
         }
-        
+
         const brokerId = (payload as Record<string, unknown>).id as string;
         const broker = await prisma.brokers.findUnique({
             where: { id: brokerId },
@@ -94,9 +94,6 @@ export async function GET(request: NextRequest) {
             orderBy: { created_at: 'desc' }
         });
 
-        console.log('attachments:', attachments);
-
-
         return NextResponse.json({
             success: true,
             data: serializeAttachments(attachments as unknown as Array<Record<string, unknown>>),
@@ -133,7 +130,7 @@ export async function POST(request: NextRequest) {
                 { status: 400 }
             );
         }
-        
+
         if (target_type !== 'admin' && !target_id) {
             return NextResponse.json(
                 { success: false, error: 'target_id là bắt buộc' },
