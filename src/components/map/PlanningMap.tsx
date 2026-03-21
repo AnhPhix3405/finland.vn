@@ -80,6 +80,7 @@ export function PlanningMap() {
   const [isStyleSwitching, setIsStyleSwitching] = useState(false);
   const [showInfo, setShowInfo] = useState(true);
   const [listings, setListings] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
   const [hoveredListing, setHoveredListing] = useState<any>(null);
   const [hoverPosition, setHoverPosition] = useState<{ x: number, y: number } | null>(null);
 
@@ -268,8 +269,12 @@ export function PlanningMap() {
         const feature = e.features?.[0];
         if (feature) {
           const props = feature.properties;
-          const prefix = props?.transaction_type_hashtag === 'cho-thue' ? 'cho-thue' : 'mua-ban';
-          router.push(`/${prefix}/bai-dang/${props?.slug}`);
+          if (props?.objectType === 'project') {
+            router.push(`/du-an/${props?.slug}`);
+          } else {
+            const prefix = props?.transaction_type_hashtag === 'cho-thue' ? 'cho-thue' : 'mua-ban';
+            router.push(`/${prefix}/bai-dang/${props?.slug}`);
+          }
         }
       };
 
@@ -365,8 +370,8 @@ export function PlanningMap() {
         }
       });
 
-      // 6. Update Listings Source (NEW)
-      const mapFeatures = listings.map(l => ({
+      // 6. Update Map Objects Source (Listings & Projects)
+      const listingFeatures = listings.map(l => ({
         type: 'Feature' as const,
         geometry: {
           type: 'Point' as const,
@@ -374,6 +379,7 @@ export function PlanningMap() {
         },
         properties: {
           ...l,
+          objectType: 'listing',
           transaction_type_hashtag: l.transaction_types?.hashtag || 'mua-ban',
           price_label: (() => {
             const p = l.price_per_m2 ? Number(l.price_per_m2) : (l.price && l.area ? Number(l.price) / Number(l.area) : null);
@@ -381,6 +387,23 @@ export function PlanningMap() {
           })()
         }
       }));
+
+      const projectFeatures = projects.map(p => ({
+        type: 'Feature' as const,
+        geometry: {
+          type: 'Point' as const,
+          coordinates: [p.longitude, p.latitude]
+        },
+        properties: {
+          ...p,
+          objectType: 'project',
+          title: p.name,
+          transaction_type_hashtag: 'du-an',
+          price_label: p.price ? `${(Number(p.price) / 1000000).toFixed(1)} tr/m²` : 'Liên hệ'
+        }
+      }));
+
+      const mapFeatures = [...listingFeatures, ...projectFeatures];
 
       if (!m.getSource('listings-source')) {
         m.addSource('listings-source', {
@@ -406,7 +429,12 @@ export function PlanningMap() {
           source: 'listings-source',
           paint: {
             'circle-radius': 6,
-            'circle-color': '#f97316',
+            'circle-color': [
+              'match',
+              ['get', 'objectType'],
+              'project', '#0284c7', // Sky blue for projects
+              '#f97316' // Orange for listings
+            ],
             'circle-stroke-width': 2,
             'circle-stroke-color': '#ffffff'
           }
@@ -434,7 +462,12 @@ export function PlanningMap() {
           },
           paint: {
             'text-color': '#ffffff',
-            'text-halo-color': '#f97316',
+            'text-halo-color': [
+              'match',
+              ['get', 'objectType'],
+              'project', '#0284c7',
+              '#f97316'
+            ],
             'text-halo-width': 2
           }
         });
@@ -448,27 +481,31 @@ export function PlanningMap() {
     }
   }, [historyFeatures, selectedInfo, showSelectedHighlight, mapStyle, reconcileTrigger, listings]);
 
-  // Special effect to catch edge cases where map is ready but reconcile didn't run for listings
+  // Special effect to catch edge cases where map is ready but reconcile didn't run for objects
   useEffect(() => {
-    if (map.current?.isStyleLoaded() && listings.length > 0) {
+    if (map.current?.isStyleLoaded() && (listings.length > 0 || projects.length > 0)) {
       setReconcileTrigger(prev => prev + 1);
     }
-  }, [listings.length]);
+  }, [listings.length, projects.length]);
 
-  // Fetch listings for the map
+  // Fetch listings and projects for the map
   useEffect(() => {
-    const fetchMapListings = async () => {
+    const fetchMapObjects = async () => {
       try {
-        const response = await fetch('/api/listings?onMap=true&limit=100');
-        const result = await response.json();
-        if (result.success) {
-          setListings(result.data);
-        }
+        const [lRes, pRes] = await Promise.all([
+          fetch('/api/listings?onMap=true&limit=100'),
+          fetch('/api/projects?onMap=true&limit=100')
+        ]);
+        const lData = await lRes.json();
+        const pData = await pRes.json();
+        
+        if (lData.success) setListings(lData.data);
+        if (pData.success) setProjects(pData.data);
       } catch (err) {
-        console.error('Error fetching map listings:', err);
+        console.error('Error fetching map objects:', err);
       }
     };
-    fetchMapListings();
+    fetchMapObjects();
   }, []);
 
 
@@ -969,8 +1006,11 @@ export function PlanningMap() {
               {hoveredListing.thumbnail_url && (
                 <div className="relative aspect-video w-full">
                   <img src={hoveredListing.thumbnail_url} alt="" className="w-full h-full object-cover" />
-                  <div className="absolute top-2 left-2 bg-emerald-500 text-white text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-wider">
-                    {hoveredListing.transaction_type_hashtag === 'cho-thue' ? 'Cho thuê' : 'Đang bán'}
+                  <div className={cn(
+                    "absolute top-2 left-2 text-white text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-wider",
+                    hoveredListing.objectType === 'project' ? "bg-sky-600" : "bg-emerald-500"
+                  )}>
+                    {hoveredListing.objectType === 'project' ? 'Dự án' : (hoveredListing.transaction_type_hashtag === 'cho-thue' ? 'Cho thuê' : 'Đang bán')}
                   </div>
                 </div>
               )}
@@ -979,12 +1019,15 @@ export function PlanningMap() {
                   <span className="text-xl font-black text-red-600">
                     {(() => {
                       const price = Number(hoveredListing.price);
+                      if (!price || price === 0) return 'Liên hệ';
                       if (price >= 1000000000) return `${(price / 1000000000).toFixed(2)} Tỷ`;
                       if (price >= 1000000) return `${(price / 1000000).toFixed(0)} Triệu`;
                       return `${price.toLocaleString()} đ`;
                     })()}
                   </span>
-                  <span className="text-slate-500 font-bold text-xs">• {hoveredListing.area}m²</span>
+                  {hoveredListing.area && (
+                    <span className="text-slate-500 font-bold text-xs">• {hoveredListing.area}m²</span>
+                  )}
                 </div>
                 <h3 className="text-slate-900 dark:text-white font-bold text-sm line-clamp-2 leading-tight">
                   {hoveredListing.title}
@@ -992,14 +1035,14 @@ export function PlanningMap() {
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-700 space-y-1.5">
                   <div className="flex items-center gap-2 text-slate-500 text-[10px]">
                     <MapPin className="size-3 text-emerald-500" />
-                    <span className="truncate">{hoveredListing.address}</span>
+                    <span className="truncate">{[hoveredListing.ward, hoveredListing.province].filter(Boolean).join(', ')}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-orange-600 dark:text-orange-400 font-black text-[10px] uppercase">
                        {hoveredListing.price_label}
                     </span>
                     <span className="text-slate-400 text-[9px] font-medium italic">
-                       {hoveredListing.listing_code}
+                       {hoveredListing.listing_code || hoveredListing.project_code}
                     </span>
                   </div>
                 </div>

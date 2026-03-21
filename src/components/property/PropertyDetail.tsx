@@ -19,7 +19,8 @@ import {
   ChevronRight as ChevronRightIcon,
   Home,
   Tag,
-  Hash
+  Hash,
+  Building2
 } from "lucide-react";
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -30,6 +31,12 @@ import remarkGfm from "remark-gfm";
 import { toggleBookmark } from "@/src/app/modules/bookmarks.service";
 import { useNotificationStore } from "@/src/store/notificationStore";
 import { useAuthStore } from "@/src/store/authStore";
+
+interface Tag {
+  id: string;
+  name: string;
+  slug: string;
+}
 
 interface Attachment {
   id: string;
@@ -81,22 +88,27 @@ interface Listing {
     name: string;
     hashtag: string;
   } | null;
-  listing_code?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  developer?: string | null;
+  project_code?: string | null;
+  name?: string | null;
+  thumbnail_url?: string | null;
 }
 
 interface PropertyDetailProps {
-  type: "mua-ban" | "cho-thue";
+  type: "mua-ban" | "cho-thue" | "du-an";
   listing?: Listing | null;
+  project?: any | null;
   attachments?: Attachment[];
   isBookmarked?: boolean;
   onBookmarkToggle?: (isBookmarked: boolean) => void;
   isDemo?: boolean;
 }
 
-export function PropertyDetail({ type, listing, attachments: propsAttachments, isBookmarked: propIsBookmarked, onBookmarkToggle, isDemo = false }: PropertyDetailProps) {
+export function PropertyDetail({ type, listing, project, attachments: propsAttachments, isBookmarked: propIsBookmarked, onBookmarkToggle, isDemo = false }: PropertyDetailProps) {
   const router = useRouter();
+  const markerColor = type === "du-an" ? "#0ea5e9" : "#f97316";
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [startIndex, setStartIndex] = useState(0);
@@ -108,7 +120,11 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
   const map = useRef<mapboxgl.Map | null>(null);
 
   useEffect(() => {
-    if (!listing?.latitude || !listing?.longitude || !mapContainer.current) return;
+    const lat = project?.latitude || listing?.latitude;
+    const lng = project?.longitude || listing?.longitude;
+    const hasCoords = (lat !== undefined && lat !== null) && (lng !== undefined && lng !== null);
+
+    if (!hasCoords || !mapContainer.current) return;
     if (map.current) return;
 
     mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
@@ -116,20 +132,20 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/streets-v12',
-      center: [listing.longitude, listing.latitude],
+      center: [lng, lat],
       zoom: 15,
-      interactive: true // Allow zooming but maybe disable if pure static is better
+      interactive: true
     });
 
-    new mapboxgl.Marker({ color: "#f97316" })
-      .setLngLat([listing.longitude, listing.latitude])
+    new mapboxgl.Marker({ color: markerColor })
+      .setLngLat([lng, lat])
       .addTo(map.current);
 
     return () => {
       map.current?.remove();
       map.current = null;
     };
-  }, [listing?.latitude, listing?.longitude]);
+  }, [listing?.latitude, listing?.longitude, project?.latitude, project?.longitude, markerColor]);
 
   // Use props attachments if provided, otherwise fetch from API
   useEffect(() => {
@@ -141,7 +157,8 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
     if (!listing?.id) return;
     const fetchAttachments = async () => {
       try {
-        const res = await fetch(`/api/attachments?target_id=${listing.id}&target_type=listing&limit=20`);
+        const targetType = type === 'du-an' ? 'project' : 'listing';
+        const res = await fetch(`/api/attachments?target_id=${listing?.id || project?.id}&target_type=${targetType}&limit=20`);
         const json = await res.json();
         if (json.success && json.data?.length > 0) {
           const sorted = (json.data || []).sort((a: Attachment, b: Attachment) => (a.sort_order || 0) - (b.sort_order || 0));
@@ -160,6 +177,7 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
   }, [propIsBookmarked]);
 
   const handleBookmarkClick = async () => {
+    if (type === 'du-an') return;
     if (!accessToken) {
       addToast('Bạn cần đăng nhập để lưu bài đăng', 'error');
       return;
@@ -196,7 +214,7 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
 
   const formatRelativeTime = (dateString?: string | null): string => {
     if (!dateString) return 'Không xác định';
-    
+
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
@@ -206,7 +224,7 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
     const diffDays = Math.floor(diffHours / 24);
     const diffMonths = Math.floor(diffDays / 30);
     const diffYears = Math.floor(diffDays / 365);
-    
+
     if (diffSecs < 60) return 'Vừa mới';
     if (diffMins < 60) return `${diffMins} phút trước`;
     if (diffHours < 24) return `${diffHours} giờ trước`;
@@ -216,10 +234,10 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
   };
 
   const property = useMemo(() => {
-    const formatPrice = (price?: string | null) => {
+    const formatPrice = (price?: string | number | null) => {
       if (!price) return "Thỏa thuận";
       const numPrice = Number(price);
-      if (type === "mua-ban") {
+      if (type === "mua-ban" || type === "du-an") {
         if (numPrice >= 1000000000) return `${(numPrice / 1000000000).toFixed(2)} Tỷ`;
         if (numPrice >= 1000000) return `${(numPrice / 1000000).toFixed(2)} Triệu`;
         if (numPrice >= 1000) return `${(numPrice / 1000).toFixed(0)} Nghìn`;
@@ -234,8 +252,9 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
 
     const formatPricePerM2 = (pricePerM2?: number | null) => {
       let value = pricePerM2;
-      if (!value && listing?.price && listing?.area) {
-        value = Number(listing.price) / Number(listing.area);
+      const data = project || listing;
+      if (!value && data?.price && data?.area) {
+        value = Number(data.price) / Number(data.area);
       }
 
       if (!value || value <= 0) return "Không xác định";
@@ -253,33 +272,35 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
       return `${(pricePerFrontageMeter / 1000).toFixed(0)} Nghìn/m`;
     };
 
-    if (listing) {
+    const data = project || listing;
+    if (data) {
+      const isProject = !!project;
       return {
-        id: listing.id,
-        title: listing.title,
-        price: formatPrice(listing.price),
-        address: listing.address
-          ? `${listing.address}, ${listing.ward}, ${listing.province}`
-          : `${listing.ward}, ${listing.province}`,
-        area: listing.area || 0,
-        bedrooms: listing.bedroom_count || 0,
-        floors: listing.floor_count || 0,
-        pricePerM2: formatPricePerM2(listing.price_per_m2),
-        pricePerFrontage: formatPricePerFrontage(listing.price_per_frontage_meter),
-        direction: listing.direction || "Không xác định",
-        description: listing.description,
-        broker: listing.brokers,
-        // contact info: override if present, else fallback to broker
-        contactName: listing.contact_name || listing.brokers.full_name,
-        contactPhone: listing.contact_phone || listing.brokers.phone,
-        contactAvatar: listing.brokers.avatar_url,
-        tags: listing.tags || [],
-        propertyType: listing.property_types?.name || "Bất động sản",
-        transactionType: listing.transaction_types?.name || "Mua bán",
-        status: listing.status || "Đang hiển thị",
-        listingCode: listing.listing_code || "N/A",
+        id: data.id,
+        title: isProject ? (data.name || "Dự án") : (data.title || "Bài đăng"),
+        price: formatPrice(data.price),
+        address: data.address
+          ? (data.address.includes(data.ward || '') ? data.address : `${data.address}, ${data.ward}, ${data.province}`)
+          : `${data.ward || ''}, ${data.province || ''}`,
+        area: data.area || 0,
+        bedrooms: (data as any).bedroom_count || 0,
+        floors: (data as any).floor_count || 0,
+        pricePerM2: formatPricePerM2(isProject ? null : (data as any).price_per_m2),
+        pricePerFrontage: formatPricePerFrontage(isProject ? null : (data as any).price_per_frontage_meter),
+        direction: (data as any).direction || "Không xác định",
+        description: isProject ? (data.content || "") : (data.description || ""),
+        broker: (data as any).brokers || {},
+        contactName: isProject ? (data.brokers?.full_name || "Finland.vn Support") : (data.contact_name || data.brokers?.full_name),
+        contactPhone: isProject ? (data.brokers?.phone || "0916.126.333") : (data.contact_phone || data.brokers?.phone || "Liên hệ"),
+        contactAvatar: (data as any).brokers?.avatar_url,
+        tags: isProject ? (data.project_tags?.map((t: any) => t.tags) || []) : (data.tags || []),
+        propertyType: data.property_types?.name || (isProject ? "Dự án" : "Bất động sản"),
+        transactionType: isProject ? "Dự án" : (data.transaction_types?.name || "Mua bán"),
+        status: data.status || "Đang hiển thị",
+        listingCode: isProject ? (data.project_code || data.id?.slice(0, 8)) : (data.listing_code || "N/A"),
         postedAt: null,
-        updatedAt: listing.updated_at,
+        updatedAt: (data as any).updated_at || (data as any).created_at,
+        developer: isProject ? (data.developer || "") : ""
       };
     }
 
@@ -309,7 +330,8 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
       transactionType: "Mua bán",
       status: "Đang hiển thị",
       listingCode: "FIN26123456",
-      postedAt: "11/03/2026",      updatedAt: new Date().toISOString(),    };
+      postedAt: "11/03/2026", updatedAt: new Date().toISOString(),
+    };
   }, [type, isDemo, listing]);
 
   return (
@@ -328,7 +350,7 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
           <nav className="flex items-center gap-2 text-[11px] text-slate-400">
             <span>Trang chủ</span>
             <ChevronRight className="size-3" />
-            <span>{type === "mua-ban" ? "Mua bán" : "Cho thuê"}</span>
+            <span>{type === "mua-ban" ? "Mua bán" : type === "cho-thue" ? "Cho thuê" : "Dự án"}</span>
             <ChevronRight className="size-3" />
             <span className="text-slate-600 dark:text-slate-200 font-medium">Chi tiết tin đăng</span>
           </nav>
@@ -428,10 +450,14 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
           ) : (
             /* Placeholder khi chưa có ảnh */
             <div className="relative aspect-video rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700">
-              <div className="text-center text-slate-400">
-                <FileText className="size-12 mx-auto mb-2" />
-                <span className="text-sm">Chưa có hình ảnh</span>
-              </div>
+              {(project?.thumbnail_url || listing?.thumbnail_url) ? (
+                <Image src={project?.thumbnail_url || listing?.thumbnail_url} fill className="object-cover" alt="thumbnail" />
+              ) : (
+                <div className="text-center text-slate-400">
+                  <FileText className="size-12 mx-auto mb-2" />
+                  <span className="text-sm">Chưa có hình ảnh</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -466,18 +492,20 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
                 <button className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-colors">
                   <Share2 className="size-5 text-slate-600" />
                 </button>
-                <button
-                  onClick={handleBookmarkClick}
-                  disabled={isLoadingBookmark}
-                  className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
-                >
-                  <Heart
-                    className={`size-5 transition-all ${isBookmarked
+                {type !== "du-an" && (
+                  <button
+                    onClick={handleBookmarkClick}
+                    disabled={isLoadingBookmark}
+                    className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+                  >
+                    <Heart
+                      className={`size-5 transition-all ${isBookmarked
                         ? 'fill-red-500 text-red-500'
                         : 'text-slate-600'
-                      }`}
-                  />
-                </button>
+                        }`}
+                    />
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -486,7 +514,12 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
           <div className="space-y-3">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white border-l-4 border-emerald-600 pl-3">Thông tin mô tả</h3>
             <div className="markdown-content text-sm md:text-base">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  img: ({ node, ...props }) => <img {...props} src={props.src || undefined} />
+                }}
+              >
                 {property.description}
               </ReactMarkdown>
             </div>
@@ -508,6 +541,14 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
                 </div>
                 <span className="text-sm font-semibold">{property.bedrooms > 0 ? `${property.bedrooms} PN` : "---"}</span>
               </div>
+              {property.developer && (
+                <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 py-2">
+                  <div className="flex items-center gap-2 text-slate-500 text-sm">
+                    <Building2 className="size-4" /> Chủ đầu tư
+                  </div>
+                  <span className="text-sm font-semibold">{property.developer}</span>
+                </div>
+              )}
               <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 py-2">
                 <div className="flex items-center gap-2 text-slate-500 text-sm">
                   <Compass className="size-4" /> Hướng nhà
@@ -542,12 +583,12 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
               <div className="w-full h-[300px] rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 relative group shadow-sm transition-all hover:shadow-md">
                 <div ref={mapContainer} className="w-full h-full" />
                 <div className="absolute top-4 left-4 z-10">
-                   <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl flex items-center gap-2.5">
-                      <div className="bg-orange-500/10 p-1.5 rounded-lg">
-                        <MapPin className="size-4 text-orange-500" />
-                      </div>
-                      <span className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">Toạ độ chính xác</span>
-                   </div>
+                  <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl flex items-center gap-2.5">
+                    <div className="bg-orange-500/10 p-1.5 rounded-lg">
+                      <MapPin className="size-4 text-orange-500" />
+                    </div>
+                    <span className="text-[11px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-widest">Toạ độ chính xác</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -556,7 +597,7 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
           {/* Tags */}
           {property.tags && property.tags.length > 0 && (
             <div className="flex flex-wrap gap-2 pt-2">
-              {property.tags.map((tag) => {
+              {property.tags.map((tag: Tag) => {
                 const tagId = typeof tag === 'string' ? tag : tag.id;
                 const tagName = typeof tag === 'string' ? tag : tag.name;
                 return (
@@ -593,12 +634,14 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
                 )}
               </div>
               <div>
-                <p className="text-xs text-slate-500 mb-0.5">Đăng bởi</p>
+                <p className="text-xs text-slate-500 mb-0.5">{type === "du-an" ? "Quản lý bởi" : "Đăng bởi"}</p>
                 <h4 className="font-bold text-slate-900 dark:text-white leading-tight">{property.contactName}</h4>
-                <div className="flex items-center gap-1 mt-1">
-                  <ShieldCheck className="size-3 text-emerald-500" />
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Môi giới uy tín</span>
-                </div>
+                {type !== "du-an" && (
+                  <div className="flex items-center gap-1 mt-1">
+                    <ShieldCheck className="size-3 text-emerald-500" />
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Môi giới uy tín</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -619,7 +662,9 @@ export function PropertyDetail({ type, listing, attachments: propsAttachments, i
               <div className="flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-amber-700 dark:text-amber-400">
                 <Info className="size-4 shrink-0 mt-0.5" />
                 <p className="text-[11px] leading-relaxed font-medium">
-                  Khi giao dịch, hãy yêu cầu xem giấy tờ gốc và tuyệt đối không chuyển khoản trước khi xem nhà.
+                  {type === "du-an"
+                    ? "Dự án được phân phối chính thức bởi Finland.vn. Vui lòng liên hệ để nhận bảng giá và chính sách ưu đãi mới nhất."
+                    : "Khi giao dịch, hãy yêu cầu xem giấy tờ gốc và tuyệt đối không chuyển khoản trước khi xem nhà."}
                 </p>
               </div>
             </div>

@@ -12,6 +12,8 @@ export interface ProjectData {
     price?: number | string;
     property_type_id?: string;
     thumbnail_url?: string;
+    latitude?: number;
+    longitude?: number;
 }
 
 export const createProject = async (data: ProjectData) => {

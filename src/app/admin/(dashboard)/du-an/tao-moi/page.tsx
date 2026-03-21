@@ -9,6 +9,7 @@ import { useAdminStore } from "@/src/store/adminStore";
 import { useNotificationStore } from "@/src/store/notificationStore";
 import { useAdminAuth } from "@/src/hooks/useAdminAuth";
 import LocationSelector from "@/src/components/feature/LocationSelector";
+import MapPicker from "@/src/components/feature/MapPicker";
 import RichTextEditor from "@/src/components/ui/RichTextEditor";
 
 export default function AdminCreateProject() {
@@ -31,6 +32,9 @@ export default function AdminCreateProject() {
 
     const [selectedProvince, setSelectedProvince] = useState<string>('');
     const [selectedDistrict, setSelectedDistrict] = useState<string>('');
+
+    const [latitude, setLatitude] = useState<number | null>(null);
+    const [longitude, setLongitude] = useState<number | null>(null);
 
     const PROJECT_STATUS_OPTIONS = [
         { value: 'sắp mở bán', label: 'Sắp mở bán' },
@@ -61,6 +65,31 @@ export default function AdminCreateProject() {
         fetchPropertyTypes();
     }, []);
 
+    // Automatic geocoding effect
+    useEffect(() => {
+        const query = [selectedDistrict, selectedProvince].filter(Boolean).join(', ');
+        if (!query || query.length < 5) return;
+
+        const delayDebounceFn = setTimeout(async () => {
+            try {
+                const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
+                const res = await fetch(
+                    `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${token}&country=vn&limit=1`
+                );
+                const data = await res.json();
+                if (data.features && data.features.length > 0) {
+                    const [targetLng, targetLat] = data.features[0].center;
+                    setLatitude(targetLat);
+                    setLongitude(targetLng);
+                }
+            } catch (err) {
+                console.error('Geocoding error:', err);
+            }
+        }, 1000);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [selectedDistrict, selectedProvince]);
+
     const formatCurrencyOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value.replace(/\D/g, '');
         if (!value) {
@@ -73,7 +102,16 @@ export default function AdminCreateProject() {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const filesArray = Array.from(e.target.files);
-            setNewFiles(prev => [...prev, ...filesArray]);
+            const MAX_SIZE = 3 * 1024 * 1024; // 3MB
+            const validFiles = filesArray.filter(file => file.size <= MAX_SIZE);
+            const largeFiles = filesArray.filter(file => file.size > MAX_SIZE);
+
+            if (largeFiles.length > 0) {
+                addToast(`${largeFiles.length} ảnh bị bỏ qua do vượt quá 3MB`, 'error');
+            }
+
+            setNewFiles(prev => [...prev, ...validFiles]);
+            if (e.target) e.target.value = '';
         }
     };
 
@@ -166,6 +204,8 @@ export default function AdminCreateProject() {
                 property_type_id: selectedPropertyTypeId || undefined,
                 content: description,
                 status: projectStatus || undefined,
+                latitude: latitude || undefined,
+                longitude: longitude || undefined,
             });
 
             if (createRes.statusCode === 401) {
@@ -316,6 +356,21 @@ export default function AdminCreateProject() {
                             </div>
 
                             <div className="col-span-1 md:col-span-2">
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Vị trí trên bản đồ</label>
+                                <MapPicker
+                                    initialLat={latitude || undefined}
+                                    initialLng={longitude || undefined}
+                                    onLocationChange={(lat, lng) => {
+                                        setLatitude(lat);
+                                        setLongitude(lng);
+                                    }}
+                                />
+                                <p className="text-[10px] text-slate-500 mt-2">
+                                    * Kéo marker để chọn vị trí chính xác của dự án trên bản đồ
+                                </p>
+                            </div>
+
+                            <div className="col-span-1 md:col-span-2">
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Mô tả dự án</label>
                                 <div className="border border-slate-300 dark:border-slate-600 rounded-[3px] overflow-hidden bg-white dark:bg-slate-800">
                                     <RichTextEditor value={description} onChange={setDescription} />
@@ -342,7 +397,7 @@ export default function AdminCreateProject() {
                                             <span className="font-medium text-primary bg-transparent text-emerald-600">Chọn ảnh dự án</span>
                                             <p className="pl-1">hoặc kéo thả</p>
                                         </div>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">PNG, JPG tối đa 10MB</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">PNG, JPG, GIF tối đa 3MB</p>
                                     </div>
                                 </div>
 

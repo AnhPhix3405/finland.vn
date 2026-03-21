@@ -49,6 +49,13 @@ export async function GET(request: NextRequest) {
       where.ward = ward;
     }
 
+    const onMap = searchParams.get('onMap');
+
+    if (onMap === 'true') {
+      where.latitude = { not: null };
+      where.longitude = { not: null };
+    }
+
     if (priceMin || priceMax) {
       where.price = {};
       if (priceMin) {

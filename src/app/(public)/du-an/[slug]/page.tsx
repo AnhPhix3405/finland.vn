@@ -91,7 +91,7 @@ export default function ProjectDetail() {
       try {
         setLoading(true);
         const slugToUse = slug || projectSlug;
-        
+
         if (!slugToUse) {
           setError('Không tìm thấy thông tin dự án');
           return;
@@ -103,18 +103,18 @@ export default function ProjectDetail() {
         }
 
         const result = await getProject(slugToUse);
-        
+
         if (result.success) {
           setProject(result.data);
           setActiveProjectId(result.data.id);
-          
+
           // Increment view count
           if (result.data.id) {
             incrementProjectViews(result.data.id).catch(err => {
               console.error('Failed to increment views:', err);
             });
           }
-          
+
           // Fetch project attachments
           setLoadingAttachments(true);
           try {
@@ -206,8 +206,8 @@ export default function ProjectDetail() {
           <div className="text-red-600 dark:text-red-400 mb-4">
             {error || 'Không tìm thấy dự án'}
           </div>
-          <Link 
-            href="/du-an" 
+          <Link
+            href="/du-an"
             className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition-colors"
           >
             Quay lại danh sách
@@ -242,16 +242,16 @@ export default function ProjectDetail() {
         <div className="w-full lg:w-[70%] space-y-8">
           <div className="space-y-2">
             <div className="w-full h-[400px] relative">
-              <img 
-                alt={project.name} 
-                className="w-full h-full object-cover border border-gray-200 dark:border-slate-700 cursor-pointer" 
+              <img
+                alt={project.name}
+                className="w-full h-full object-cover border border-gray-200 dark:border-slate-700 cursor-pointer"
                 src={attachments.length > 0 ? attachments[selectedImageIndex]?.secure_url : (project.thumbnail_url || 'https://via.placeholder.com/800x400?text=No+Image')}
                 onError={(e) => {
                   e.currentTarget.src = 'https://via.placeholder.com/800x400?text=No+Image';
                 }}
               />
               {getStatusBadge(project.status)}
-              </div>
+            </div>
             {attachments.length > 0 ? (
               <div className="relative">
                 {/* Scroll Left Button */}
@@ -263,7 +263,7 @@ export default function ProjectDetail() {
                     <span className="material-symbols-outlined text-slate-600 dark:text-slate-400 text-xl">chevron_left</span>
                   </button>
                 )}
-                
+
                 {/* Scroll Right Button */}
                 {startIndex + 4 < attachments.length && (
                   <button
@@ -278,18 +278,17 @@ export default function ProjectDetail() {
                   {attachments.slice(startIndex, startIndex + 4).map((attachment, index) => {
                     const actualIndex = startIndex + index;
                     const isLast = index === 3 && startIndex + 4 < attachments.length;
-                    
+
                     return (
-                      <div 
-                        key={attachment.id} 
+                      <div
+                        key={attachment.id}
                         className={`h-24 ${isLast ? 'relative cursor-pointer group' : ''}`}
                         onClick={() => setSelectedImageIndex(actualIndex)}
                       >
-                        <img 
-                          alt={attachment.original_name || `Hình ảnh ${actualIndex + 1}`} 
-                          className={`w-full h-full object-cover border border-gray-200 dark:border-slate-700 hover:opacity-80 cursor-pointer transition-opacity ${
-                            selectedImageIndex === actualIndex ? 'ring-2 ring-emerald-500' : ''
-                          }`} 
+                        <img
+                          alt={attachment.original_name || `Hình ảnh ${actualIndex + 1}`}
+                          className={`w-full h-full object-cover border border-gray-200 dark:border-slate-700 hover:opacity-80 cursor-pointer transition-opacity ${selectedImageIndex === actualIndex ? 'ring-2 ring-emerald-500' : ''
+                            }`}
                           src={attachment.secure_url}
                           onError={(e) => {
                             e.currentTarget.src = 'https://via.placeholder.com/200x200?text=Error';
@@ -315,7 +314,7 @@ export default function ProjectDetail() {
               </div>
             )}
           </div>
-          
+
           <div className="bg-white dark:bg-slate-800 p-6 border border-gray-200 dark:border-slate-700 shadow-sm">
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">{project.name}</h1>
             <div className="flex items-center text-slate-500 dark:text-slate-400 mb-6">
@@ -391,7 +390,7 @@ export default function ProjectDetail() {
               <a className="group flex items-start space-x-3 pb-4 border-b border-gray-100 dark:border-slate-700 last:border-0 last:pb-0" href="#">
                 <div className="w-20 h-20 shrink-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img alt="Ecopark" className="w-full h-full object-cover border border-gray-200 dark:border-slate-700 group-hover:opacity-80 transition-opacity" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHzmEXG2sDZyn4SdqZJ1-EyGjXGTyWCq29yCI2iEeCUNqHYkw8keeSH5RgbENtU-QS3W74N3-k8xSWvD3xMLO_QUeK7bJYi1SIltN8TJgTLYlN1MXNkQgLiVMLDN3CzzOhPVq4ekYCEhB5OhGIfR_nxQm1GB2Xieu9zIrH7Csila080yttQQ9gQYBbw-LrqmCxt1lA7CicymrWfx3N0FAXq6sZZjVMUIxEoa253DPIBu63Kz4VFBUOPKdj4iqUUh-PIwEAV88wuLhS"/>
+                  <img alt="Ecopark" className="w-full h-full object-cover border border-gray-200 dark:border-slate-700 group-hover:opacity-80 transition-opacity" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHzmEXG2sDZyn4SdqZJ1-EyGjXGTyWCq29yCI2iEeCUNqHYkw8keeSH5RgbENtU-QS3W74N3-k8xSWvD3xMLO_QUeK7bJYi1SIltN8TJgTLYlN1MXNkQgLiVMLDN3CzzOhPVq4ekYCEhB5OhGIfR_nxQm1GB2Xieu9zIrH7Csila080yttQQ9gQYBbw-LrqmCxt1lA7CicymrWfx3N0FAXq6sZZjVMUIxEoa253DPIBu63Kz4VFBUOPKdj4iqUUh-PIwEAV88wuLhS" />
                 </div>
                 <div className="flex-grow">
                   <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors line-clamp-2 mb-1">Khu đô thị sinh thái Ecopark</h4>
@@ -403,7 +402,7 @@ export default function ProjectDetail() {
               <a className="group flex items-start space-x-3 pb-4 border-b border-gray-100 dark:border-slate-700 last:border-0 last:pb-0" href="#">
                 <div className="w-20 h-20 shrink-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img alt="Vinhomes Smart City" className="w-full h-full object-cover border border-gray-200 dark:border-slate-700 group-hover:opacity-80 transition-opacity" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAEHeX0wlmiUedADnYJ2J7WMsXD0OEsL5OHz4yobcvs1HkGHhx_84Ua76VbDul9PImaL9OFfaI3EvRVdfIb61PUIO1wMqKmBQQD9bCjnbzOSdID0Wlq7QcS7pzuKkr148HWr9IKKfoEN5A7iAJY6ynlFJ87ug12X0U2f7mykNdOOd344xwndtzc193QYtbXnmaB5EVXHE_Q91V7wc5fQGhGQaYeSUOwQ-3I0teDwmPdviL-SCuk7dRLb7FsPaPblh_esNcpOr8IKFuo"/>
+                  <img alt="Vinhomes Smart City" className="w-full h-full object-cover border border-gray-200 dark:border-slate-700 group-hover:opacity-80 transition-opacity" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAEHeX0wlmiUedADnYJ2J7WMsXD0OEsL5OHz4yobcvs1HkGHhx_84Ua76VbDul9PImaL9OFfaI3EvRVdfIb61PUIO1wMqKmBQQD9bCjnbzOSdID0Wlq7QcS7pzuKkr148HWr9IKKfoEN5A7iAJY6ynlFJ87ug12X0U2f7mykNdOOd344xwndtzc193QYtbXnmaB5EVXHE_Q91V7wc5fQGhGQaYeSUOwQ-3I0teDwmPdviL-SCuk7dRLb7FsPaPblh_esNcpOr8IKFuo" />
                 </div>
                 <div className="flex-grow">
                   <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors line-clamp-2 mb-1">Vinhomes Smart City</h4>
@@ -415,7 +414,7 @@ export default function ProjectDetail() {
               <a className="group flex items-start space-x-3 pb-4 border-b border-gray-100 dark:border-slate-700 last:border-0 last:pb-0" href="#">
                 <div className="w-20 h-20 shrink-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img alt="Masteri" className="w-full h-full object-cover border border-gray-200 dark:border-slate-700 group-hover:opacity-80 transition-opacity" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXQmiXmsmrmjQw8Dx0S5hFABOnuOfc1l_XvIXtSJRSuMJ2F-3xVIzZKGDEMgS1DcxLqvKgjT33ImLR_0Lf_IFOujQaJ63aR_dA7GgyUau-atktO4fwE3Sy0cgaUS5HgTIiPE3olNEqbR_ccjiMyEx3Edno5o-VBadt6UIz5PP4p0-PPFye7CmrSOJYFIXPkZ4GtnGV6XUeeStgMnKWbieJGqH_lOe8kW1sAEa3SwSKVXdva-15ZncE-PL_6ke65I0Wn_fRXUjuP_m8"/>
+                  <img alt="Masteri" className="w-full h-full object-cover border border-gray-200 dark:border-slate-700 group-hover:opacity-80 transition-opacity" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXQmiXmsmrmjQw8Dx0S5hFABOnuOfc1l_XvIXtSJRSuMJ2F-3xVIzZKGDEMgS1DcxLqvKgjT33ImLR_0Lf_IFOujQaJ63aR_dA7GgyUau-atktO4fwE3Sy0cgaUS5HgTIiPE3olNEqbR_ccjiMyEx3Edno5o-VBadt6UIz5PP4p0-PPFye7CmrSOJYFIXPkZ4GtnGV6XUeeStgMnKWbieJGqH_lOe8kW1sAEa3SwSKVXdva-15ZncE-PL_6ke65I0Wn_fRXUjuP_m8" />
                 </div>
                 <div className="flex-grow">
                   <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 transition-colors line-clamp-2 mb-1">Masteri Waterfront</h4>
@@ -428,6 +427,6 @@ export default function ProjectDetail() {
           </div>
         </div>
       </div>
-      </div>
+    </div>
   );
 }

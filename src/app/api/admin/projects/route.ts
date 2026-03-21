@@ -111,7 +111,9 @@ export async function POST(request: NextRequest) {
       area,
       property_type_id,
       province,
-      ward
+      ward,
+      latitude,
+      longitude
     } = body;
 
     // Validation - các field bắt buộc
@@ -166,6 +168,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const latNum = latitude ? parseFloat(latitude.toString()) : null;
+    const lngNum = longitude ? parseFloat(longitude.toString()) : null;
 
     // Generate project_code: FIN + 2 digits year + 6 digit sequence
     const currentYear = new Date().getFullYear().toString().slice(-2); // e.g., "26"
@@ -236,7 +241,9 @@ export async function POST(request: NextRequest) {
         area: areaNum,
         property_type_id,
         province,
-        ward
+        ward,
+        latitude: latNum,
+        longitude: lngNum
       }
     });
 
