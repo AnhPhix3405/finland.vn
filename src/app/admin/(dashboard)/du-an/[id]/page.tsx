@@ -2,7 +2,7 @@
 import Link from "next/link";
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { uploadProjectFile, deleteAttachment } from "@/src/app/modules/upload.service";
+import { uploadProjectFile, deleteAttachment, deleteAttachmentsBulk } from "@/src/app/modules/upload.service";
 import { getAdminProjects, updateAdminProject } from "@/src/app/modules/admin.projects.service";
 import { getPropertyTypes, PropertyType } from "@/src/app/modules/property.service";
 import { useAdminStore } from "@/src/store/adminStore";
@@ -12,6 +12,7 @@ import { useAdminAuth } from "@/src/hooks/useAdminAuth";
 import RichTextEditor from "@/src/components/ui/RichTextEditor";
 import LocationSelector from "@/src/components/feature/LocationSelector";
 import MapPicker from "@/src/components/feature/MapPicker";
+import { fetchWithRetry } from "@/src/lib/api/fetch-with-retry";
 
 interface Attachment {
   id: string;
@@ -25,11 +26,18 @@ interface Attachment {
   sort_order?: number;
 }
 
+interface ConfirmModalState {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  onConfirm: () => void;
+}
+
 export default function AdminProjectDetail() {
   const params = useParams();
   const slug = params?.id as string;
   const router = useRouter();
-  const { activeProjectId } = useProjectContext();
+  const { activeProjectId, setActiveProjectId, setProjectSlug } = useProjectContext();
   const addToast = useNotificationStore((state) => state.addToast);
 
   useAdminAuth(() => {
@@ -38,6 +46,12 @@ export default function AdminProjectDetail() {
 
   const [deletedImages, setDeletedImages] = useState<string[]>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
+  const [confirmModal, setConfirmModal] = useState<ConfirmModalState>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => { }
+  });
   const [description, setDescription] = useState<string>('');
 
   const [projectName, setProjectName] = useState<string>('');
@@ -99,7 +113,11 @@ export default function AdminProjectDetail() {
         }
         if (res.success && res.data && res.data.length > 0) {
           const p = res.data[0];
-          if (p.id) setProjectId(p.id);
+          if (p.id) {
+            setProjectId(p.id);
+            setActiveProjectId(p.id);
+            setProjectSlug(p.slug || null);
+          }
           setProjectName(p.name || '');
           setProjectArea(p.area?.toString() || '');
           setProjectPrice(p.price ? Number(p.price).toLocaleString('en-US') : '');
@@ -171,11 +189,11 @@ export default function AdminProjectDetail() {
   };
 
   useEffect(() => {
-    if (!activeProjectId) return;
+    if (!projectId) return;
     const fetchImages = async () => {
       setLoadingImages(true);
       try {
-        const res = await fetch(`/api/attachments/${activeProjectId}?target_type=project`);
+        const res = await fetch(`/api/attachments/${projectId}?target_type=project`);
         const json = await res.json() as Record<string, unknown>;
         if (json.success) {
           const sortedImages = ((json.data as Attachment[]) || []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
@@ -189,7 +207,7 @@ export default function AdminProjectDetail() {
       }
     };
     fetchImages();
-  }, [activeProjectId]);
+  }, [projectId]);
 
   // Drag & Drop handlers
   const handleDragStart = (index: number) => {
@@ -215,7 +233,18 @@ export default function AdminProjectDetail() {
   };
 
   const handleRemoveApiImage = (id: string) => {
-    setDeletedApiImages(prev => [...prev, id]);
+    setConfirmModal({
+      isOpen: true,
+      title: 'Xác nhận xóa',
+      message: 'Bạn có chắc chắn muốn xóa ảnh này vĩnh viễn không?',
+      onConfirm: () => {
+        // Add ID to the list of images to be deleted from the API
+        setDeletedApiImages(prev => [...prev, id]);
+        // Remove from the current display state immediately
+        setImages(prev => prev.filter(img => img.id !== id));
+        setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: () => { } });
+      }
+    });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -310,50 +339,63 @@ export default function AdminProjectDetail() {
         throw new Error(updateRes.error || 'Cập nhật database thất bại');
       }
 
-      // Upload tất cả file mới song song
-      if (newFiles.length > 0) {
-        const results = await Promise.all(
-          newFiles.map((file) => uploadProjectFile(file, projectId))
-        );
-        console.log('Upload results:', results);
+      const adminToken = useAdminStore.getState().accessToken;
 
-        // Update thumbnail_url with first image
-        if (results.length > 0 && results[0]?.secure_url) {
-          await updateAdminProject({
-            id: projectId,
-            thumbnail_url: results[0].secure_url
-          });
-        }
-
-        setNewFiles([]);
-      }
-
-      // Fire and forget: xóa các attachment API đã đánh dấu xóa
+      // 1. Xóa các attachment API đã đánh dấu xóa
       if (deletedApiImages.length > 0) {
-        deletedApiImages.forEach((public_id) => {
-          deleteAttachment(public_id)
-            .then((res) => console.log('Deleted:', public_id, res))
-            .catch((err) => console.error('Delete failed:', public_id, err));
-        });
-        setDeletedApiImages([]);
+        try {
+          await deleteAttachmentsBulk(deletedApiImages, adminToken || undefined, true);
+          setDeletedApiImages([]); // Clear the list after successful deletion
+        } catch (err) {
+          console.error('Bulk delete failed:', err);
+        }
       }
 
-      // Update sort_order for reordered images
-      if (originalImages.length > 0) {
-        const changedImages = images.filter(img => {
-          const original = originalImages.find(o => o.id === img.id);
-          return !original || original.sort_order !== img.sort_order;
-        });
+      // `images` state now only contains active images (those not marked for deletion)
+      // and their sort_order has been updated by drag & drop.
 
-        if (changedImages.length > 0) {
-          await Promise.all(changedImages.map(img =>
-            fetch(`/api/attachments/${img.id}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ sort_order: img.sort_order || 0 })
-            })
-          ));
-        }
+      // 2. Upload tất cả file mới song song (với sort_order tiếp nối)
+      let uploadResults: any[] = [];
+      if (newFiles.length > 0) {
+        uploadResults = await Promise.all(
+          newFiles.map((file, idx) =>
+            uploadProjectFile(file, projectId, adminToken || undefined, true, images.length + idx)
+          )
+        );
+        setNewFiles([]); // Clear new files after upload
+      }
+
+      // 3. Update các ảnh cũ (về sort_order) - `images` state already reflects the desired order
+      if (images.length > 0) {
+        await Promise.all(images.map(img =>
+          fetchWithRetry(`/api/attachments/${img.id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            token: adminToken || undefined,
+            isAdmin: true,
+            body: JSON.stringify({ sort_order: img.sort_order || 0 })
+          })
+        ));
+      }
+
+      // 4. Cập nhật thumbnail_url: Lấy ảnh đầu tiên trong danh sách (thứ tự 0)
+      let finalThumbnailUrl = '';
+      if (images.length > 0) {
+        // The `images` array is already sorted by `sort_order` and updated by drag & drop
+        // The first element in `images` should be the new thumbnail
+        finalThumbnailUrl = images[0].secure_url || images[0].url;
+      } else if (uploadResults.length > 0) {
+        // If no old images remain, and new images were uploaded, the first new image becomes thumbnail
+        finalThumbnailUrl = uploadResults[0].secure_url;
+      }
+
+      if (finalThumbnailUrl) {
+        await updateAdminProject({
+          id: projectId,
+          thumbnail_url: finalThumbnailUrl
+        });
       }
 
       addToast('Lưu dự án thành công!', 'success');
@@ -461,10 +503,9 @@ export default function AdminProjectDetail() {
                       <div key={i} className="rounded-sm overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-700 h-32 animate-pulse" />
                     ))}
                   </div>
-                ) : images.filter(img => !deletedApiImages.includes(img.id)).length > 0 && (
+                ) : images.length > 0 && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     {images
-                      .filter(img => !deletedApiImages.includes(img.id))
                       .map((img, index) => (
                         <div
                           key={img.id}
@@ -591,6 +632,34 @@ export default function AdminProjectDetail() {
           </form>
         </div>
       </div>
+      {/* Confirmation Modal */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full p-6 transform transition-all animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 mb-4 text-amber-600">
+              <span className="material-symbols-outlined text-3xl">warning</span>
+              <h3 className="text-xl font-bold dark:text-white">{confirmModal.title}</h3>
+            </div>
+            <p className="text-slate-600 dark:text-slate-300 mb-8 leading-relaxed">
+              {confirmModal.message}
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-sm transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={confirmModal.onConfirm}
+                className="px-6 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-sm shadow-sm transition-all active:transform active:scale-95"
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

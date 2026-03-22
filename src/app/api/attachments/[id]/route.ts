@@ -68,7 +68,10 @@ export async function GET(
 
         const attachments = await prisma.attachments.findMany({
             where: { target_id, target_type },
-            orderBy: { created_at: 'desc' }
+            orderBy: [
+                { sort_order: 'asc' },
+                { created_at: 'desc' }
+            ]
         });
 
         const serializedAttachments = attachments.map(item => ({

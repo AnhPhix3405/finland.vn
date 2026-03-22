@@ -17,15 +17,15 @@ function validateImageFile(file: File) {
   }
 }
 
-export async function uploadProjectFile(file: File, projectId: string) {
+export async function uploadProjectFile(file: File, projectId: string, token?: string, isAdmin: boolean = false, sortOrder: number = 0) {
   validateImageFile(file);
-  const accessToken = useAuthStore.getState().accessToken;
+  const accessToken = token || useAuthStore.getState().accessToken;
 
   // lấy chữ ký
   const signRes = await fetchWithRetry("/api/upload/projects/sign", {
     method: "POST",
     token: accessToken || undefined,
-    isAdmin: false
+    isAdmin: isAdmin
   });
 
   if (!signRes.ok) {
@@ -60,7 +60,8 @@ export async function uploadProjectFile(file: File, projectId: string) {
     original_name: uploadData.original_filename,
     public_id: uploadData.public_id,
     target_id: projectId,
-    target_type: "project"
+    target_type: "project",
+    sort_order: sortOrder
   };
   console.log("attachmentData", attachmentData);
   await createAttachment(attachmentData, accessToken || undefined);
@@ -87,6 +88,17 @@ async function createAttachment(data: AttachmentData, accessToken?: string) {
     token: accessToken,
     isAdmin: isAdmin,
     body: JSON.stringify(data)
+  });
+  return await res.json();
+}
+
+export async function deleteAttachmentsBulk(ids: string[], accessToken?: string, isAdmin: boolean = false) {
+  const res = await fetchWithRetry('/api/attachments', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    token: accessToken,
+    isAdmin: isAdmin,
+    body: JSON.stringify({ ids })
   });
   return await res.json();
 }

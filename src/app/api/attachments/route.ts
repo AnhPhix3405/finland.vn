@@ -86,7 +86,10 @@ export async function GET(request: NextRequest) {
             where,
             skip: (page - 1) * limit,
             take: limit,
-            orderBy: { created_at: 'desc' }
+            orderBy: [
+                { sort_order: 'asc' },
+                { created_at: 'desc' }
+            ]
         });
 
         return NextResponse.json({
@@ -209,13 +212,50 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
         }
 
+        // Try to get ids from body for bulk delete
+        let ids: string[] = [];
+        try {
+            const body = await request.json();
+            if (body && Array.isArray(body.ids)) {
+                ids = body.ids;
+            }
+        } catch (e) {
+            // Ignore if body is empty or not JSON
+        }
+
+        if (ids.length > 0) {
+            const attachments = await prisma.attachments.findMany({
+                where: { id: { in: ids } }
+            });
+
+            if (attachments.length > 0) {
+                const publicIds = attachments
+                    .filter(img => img.public_id)
+                    .map(img => img.public_id as string);
+
+                if (publicIds.length > 0) {
+                    await Promise.all(publicIds.map(pid => cloudinary.uploader.destroy(pid)));
+                }
+
+                await prisma.attachments.deleteMany({ 
+                    where: { id: { in: ids } } 
+                });
+            }
+
+            return NextResponse.json({
+                success: true,
+                message: `Đã xóa ${attachments.length} attachments`
+            });
+        }
+
+        // Fallback to target_id and target_type logic
         const { searchParams } = new URL(request.url);
         const target_id = searchParams.get('target_id');
         const target_type = searchParams.get('target_type');
 
         if (!target_id || !target_type) {
             return NextResponse.json(
-                { success: false, error: 'target_id và target_type là bắt buộc' },
+                { success: false, error: 'target_id và target_type hoặc danh sách ids là bắt buộc' },
                 { status: 400 }
             );
         }

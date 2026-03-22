@@ -3,7 +3,7 @@ import Link from "next/link";
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { uploadProjectFile } from "@/src/app/modules/upload.service";
-import { createAdminProject } from "@/src/app/modules/admin.projects.service";
+import { createAdminProject, updateAdminProject } from "@/src/app/modules/admin.projects.service";
 import { getPropertyTypes, PropertyType } from "@/src/app/modules/property.service";
 import { useAdminStore } from "@/src/store/adminStore";
 import { useNotificationStore } from "@/src/store/notificationStore";
@@ -233,9 +233,18 @@ export default function AdminCreateProject() {
             const newId = createRes.data?.id;
 
             if (newFiles.length > 0 && newId) {
-                await Promise.all(
-                    newFiles.map((file) => uploadProjectFile(file, newId))
+                const adminToken = useAdminStore.getState().accessToken;
+                const results = await Promise.all(
+                    newFiles.map((file, idx) => uploadProjectFile(file, newId, adminToken || undefined, true, idx))
                 );
+
+                // Update thumbnail_url with first image
+                if (results.length > 0 && results[0]?.secure_url) {
+                    await updateAdminProject({
+                        id: newId,
+                        thumbnail_url: results[0].secure_url
+                    });
+                }
             }
 
             addToast('Tạo dự án thành công!', 'success');
