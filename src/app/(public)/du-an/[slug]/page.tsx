@@ -308,7 +308,7 @@ export default function ProjectDetail() {
               />
               {getStatusBadge(project.status)}
             </div>
-            {attachments.length > 0 ? (
+            {attachments.length > 0 && (
               <div className="relative">
                 {/* Scroll Left Button */}
                 {startIndex > 0 && (
@@ -330,7 +330,7 @@ export default function ProjectDetail() {
                   </button>
                 )}
 
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-4 gap-2 mt-2">
                   {attachments.slice(startIndex, startIndex + 4).map((attachment, index) => {
                     const actualIndex = startIndex + index;
                     const isLast = index === 3 && startIndex + 4 < attachments.length;
@@ -362,14 +362,6 @@ export default function ProjectDetail() {
                     );
                   })}
                 </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-4 gap-2">
-                {[...Array(4)].map((_, index) => (
-                  <div key={index} className="h-24 bg-gray-100 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 flex items-center justify-center">
-                    <span className="text-gray-400 text-xs">Không có ảnh</span>
-                  </div>
-                ))}
               </div>
             )}
           </div>

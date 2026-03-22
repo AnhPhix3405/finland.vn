@@ -150,7 +150,6 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      console.log('🔍 [SEARCH] Search query:', search);
       andConditions.push({
         OR: [
           { title: { contains: search, mode: 'insensitive' } },
@@ -173,7 +172,6 @@ export async function GET(request: NextRequest) {
       whereClause = { AND: andConditions };
     }
 
-    console.log('🔍 [SEARCH] Where clause:', JSON.stringify(whereClause, null, 2));
 
     let orderBy: Record<string, unknown> = { created_at: 'desc' };
     if (sortBy === 'price_asc') orderBy = { price: 'asc' };
@@ -201,15 +199,6 @@ export async function GET(request: NextRequest) {
         created_at: 'desc'
       }
     });
-
-    console.log('🔍 [SEARCH] Found listings:', listings.length);
-    if (listings.length > 0) {
-      console.log('🔍 [SEARCH] Sample listing:', {
-        id: listings[0].id,
-        title: listings[0].title,
-        brokerName: listings[0].brokers?.full_name
-      });
-    }
 
     const listingIds = listings.map(l => l.id);
     const attachments = await prisma.attachments.findMany({
@@ -246,8 +235,6 @@ export async function GET(request: NextRequest) {
       // Extract feature tags from listing_feature_hashtags
       const featureTags = (listing.listing_feature_hashtags || []).map((lfh: { feature_hashtags: { id: string; name: string; hashtag: string } }) => lfh.feature_hashtags);
 
-      console.log('🔍 [SEARCH] featureTags for listing', listing.id, ':', JSON.stringify(featureTags));
-
       return {
         ...listing,
         is_bookmarked: bookmarkMap[listing.id] || false,
@@ -255,12 +242,6 @@ export async function GET(request: NextRequest) {
         featureTags: featureTags
       };
     });
-
-    console.log('🔍 [SEARCH] Returning response with', listingsWithBookmarks.length, 'listings');
-    if (search && listingsWithBookmarks.length > 0) {
-      console.log('🔍 [SEARCH] First result broker:', listingsWithBookmarks[0].brokers?.full_name);
-    }
-    console.log('🔍 [SEARCH] First listing featureTags:', JSON.stringify(listingsWithBookmarks[0]?.featureTags));
 
     return NextResponse.json(serializeData({
       success: true,
