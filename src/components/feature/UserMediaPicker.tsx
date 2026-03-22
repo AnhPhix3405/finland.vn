@@ -28,6 +28,12 @@ export function UserMediaPicker({ isOpen, onClose, onSelect }: UserMediaPickerPr
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [confirmModal, setConfirmModal] = useState<{
+        open: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+    } | null>(null);
 
     const accessToken = useAuthStore((state) => state.accessToken);
     const addToast = useNotificationStore((state) => state.addToast);
@@ -132,40 +138,46 @@ export function UserMediaPicker({ isOpen, onClose, onSelect }: UserMediaPickerPr
         }
     };
 
-    const handleDeleteImage = async (e: React.MouseEvent, imgId: string | undefined, imgUrl: string) => {
+    const handleDeleteImage = (e: React.MouseEvent, imgId: string | undefined, imgUrl: string) => {
         e.preventDefault();
         e.stopPropagation();
-        if (window.confirm("Bạn có chắc chắn muốn xóa hình ảnh này không? Hành động này không thể hoàn tác.")) {
-            if (imgId) {
-                try {
-                    const res = await fetch(`/api/attachments/${imgId}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'Authorization': `Bearer ${accessToken}`
+        
+        setConfirmModal({
+            open: true,
+            title: 'Xóa hình ảnh',
+            message: 'Bạn có chắc chắn muốn xóa hình ảnh này không? Hành động này không thể hoàn tác.',
+            onConfirm: async () => {
+                if (imgId) {
+                    try {
+                        const res = await fetch(`/api/attachments/${imgId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Authorization': `Bearer ${accessToken}`
+                            }
+                        });
+                        const json = await res.json();
+                        if (!json.success) {
+                            addToast(json.error || "Xóa ảnh thất bại", "error");
+                            return;
                         }
-                    });
-                    const json = await res.json();
-                    if (!json.success) {
-                        addToast(json.error || "Xóa ảnh thất bại", "error");
+                        addToast("Xóa ảnh thành công", "success");
+                    } catch (err) {
+                        console.error("Lỗi xóa ảnh:", err);
+                        addToast("Lỗi khi xóa ảnh", "error");
                         return;
                     }
-                    addToast("Xóa ảnh thành công", "success");
-                } catch (err) {
-                    console.error("Lỗi xóa ảnh:", err);
-                    addToast("Lỗi khi xóa ảnh", "error");
-                    return;
+                } else {
+                    // Xóa ảnh local mới thêm
+                    const newFileMap = { ...fileMap };
+                    delete newFileMap[imgUrl];
+                    setFileMap(newFileMap);
+                    URL.revokeObjectURL(imgUrl);
                 }
-            } else {
-                // Xóa ảnh local mới thêm
-                const newFileMap = { ...fileMap };
-                delete newFileMap[imgUrl];
-                setFileMap(newFileMap);
-                URL.revokeObjectURL(imgUrl);
+                // Cập nhật state
+                setUserImages(prev => prev.filter(img => img.url !== imgUrl));
+                setSelectedImages(prev => prev.filter(url => url !== imgUrl));
             }
-            // Cập nhật state
-            setUserImages(prev => prev.filter(img => img.url !== imgUrl));
-            setSelectedImages(prev => prev.filter(url => url !== imgUrl));
-        }
+        });
     };
 
     const handleConfirm = async () => {
@@ -363,6 +375,39 @@ export function UserMediaPicker({ isOpen, onClose, onSelect }: UserMediaPickerPr
                     <button type="button" onClick={() => setError(null)} className="ml-2 hover:bg-red-600 p-1 rounded-full transition-colors">
                         <X className="w-4 h-4" />
                     </button>
+                </div>
+            )}
+
+            {/* Confirmation Modal */}
+            {confirmModal?.open && (
+                <div className="fixed inset-0 z-[110] flex items-start justify-center pt-20">
+                    <div className="fixed inset-0 bg-black/50" onClick={() => setConfirmModal(null)}></div>
+                    <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6 border border-red-500">
+                        <div className="flex items-center gap-3 mb-4">
+                            <span className="material-symbols-outlined text-red-500 text-2xl">warning</span>
+                            <h3 className="text-lg font-semibold text-slate-900">{confirmModal.title}</h3>
+                        </div>
+                        <p className="text-slate-600 mb-6">{confirmModal.message}</p>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                type="button"
+                                onClick={() => setConfirmModal(null)}
+                                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md font-medium transition-colors"
+                            >
+                                Thoát
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    confirmModal.onConfirm();
+                                    setConfirmModal(null);
+                                }}
+                                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-md font-medium transition-colors"
+                            >
+                                Xác nhận
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

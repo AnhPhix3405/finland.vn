@@ -79,8 +79,8 @@ export function PropertyCard({
   // Use slug for URL, fallback to id if no slug
   const basePath =
     type === "cho-thue" ? "/cho-thue"
-    : type === "du-an" ? "/du-an"
-    : "/mua-ban";
+      : type === "du-an" ? "/du-an"
+        : "/mua-ban";
   const detailUrl =
     type === "du-an"
       ? `${basePath}/${slug || id}`
@@ -129,13 +129,12 @@ export function PropertyCard({
             className="absolute top-3 right-3 bg-white/80 dark:bg-slate-900/50 p-1.5 rounded-full hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-colors group disabled:opacity-50"
             aria-label={bookmarked ? "Bỏ lưu tin bất động sản" : "Lưu tin bất động sản"}
           >
-            <Heart 
-              className={`w-5 h-5 transition-all ${
-                bookmarked 
-                  ? 'fill-red-500 text-red-500' 
+            <Heart
+              className={`w-5 h-5 transition-all ${bookmarked
+                  ? 'fill-red-500 text-red-500'
                   : 'text-slate-400 group-hover:text-red-500'
-              }`} 
-              aria-hidden="true" 
+                }`}
+              aria-hidden="true"
             />
           </button>
         )}
@@ -188,7 +187,7 @@ export function PropertyCard({
             </span>
           ))}
         </div>
-        <Link 
+        <Link
           href={detailUrl}
           className="w-full mt-auto py-2 border border-slate-300 dark:border-slate-600 text-sm font-semibold hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 dark:hover:bg-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-colors rounded-sm uppercase tracking-tight text-center block"
         >

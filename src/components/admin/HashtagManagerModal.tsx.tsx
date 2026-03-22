@@ -25,6 +25,14 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
   const [editingItem, setEditingItem] = useState<HashtagItem | null>(null);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
 
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
+
   // Hàm tạo hashtag từ name
   const generateHashtag = (name: string): string => {
     return name
@@ -151,29 +159,35 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     const typeName = getTypeName();
-    if (!confirm(`Bạn có chắc chắn muốn xóa ${typeName} này?`)) return;
-
-    try {
-      let result;
-      if (currentType === 'property') {
-        result = await deletePropertyType(id);
-      } else if (currentType === 'transaction') {
-        result = await deleteTransactionType(id);
-      } else {
-        result = await deleteFeatureHashtag(id);
+    
+    setConfirmModal({
+      open: true,
+      title: `Xóa ${typeName}`,
+      message: `Bạn có chắc chắn muốn xóa ${typeName} này? Hành động này không thể hoàn tác.`,
+      onConfirm: async () => {
+        try {
+          let result;
+          if (currentType === 'property') {
+            result = await deletePropertyType(id);
+          } else if (currentType === 'transaction') {
+            result = await deleteTransactionType(id);
+          } else {
+            result = await deleteFeatureHashtag(id);
+          }
+          
+          if (result.success) {
+            setToast({ message: 'Xóa thành công', type: 'success' });
+            fetchItems();
+          } else {
+            setToast({ message: result.error || 'Lỗi khi xóa', type: 'error' });
+          }
+        } catch (error) {
+          setToast({ message: `Lỗi khi xóa ${typeName}`, type: 'error' });
+        }
       }
-      
-      if (result.success) {
-        setToast({ message: 'Xóa thành công', type: 'success' });
-        fetchItems();
-      } else {
-        setToast({ message: result.error || 'Lỗi khi xóa', type: 'error' });
-      }
-    } catch (error) {
-      setToast({ message: `Lỗi khi xóa ${typeName}`, type: 'error' });
-    }
+    });
   };
 
   // Reset form when changing type
@@ -394,6 +408,39 @@ export default function HashtagSystemManagerModal({ isOpen, onClose }: HashtagSy
             {toast.type === 'success' ? 'check_circle' : 'error'}
           </span>
           {toast.message}
+        </div>
+      )}
+      
+      {/* Confirmation Modal */}
+      {confirmModal?.open && (
+        <div className="fixed inset-0 z-[60] flex items-start justify-center pt-20">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setConfirmModal(null)}></div>
+          <div className="relative bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6 border border-red-500">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="material-symbols-outlined text-red-500 text-2xl">warning</span>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{confirmModal.title}</h3>
+            </div>
+            <p className="text-slate-600 dark:text-slate-300 mb-6">{confirmModal.message}</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setConfirmModal(null)}
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md font-medium transition-colors"
+              >
+                Thoát
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  confirmModal.onConfirm();
+                  setConfirmModal(null);
+                }}
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-md font-medium transition-colors"
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

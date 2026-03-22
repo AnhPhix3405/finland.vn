@@ -52,12 +52,6 @@ async function verifyAuth(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
     try {
-        // Verify authentication
-        const auth = await verifyAuth(request);
-        if (!auth.valid) {
-            return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
-        }
-
         const { searchParams } = new URL(request.url);
         const page = parseInt(searchParams.get('page') || '1');
         const limit = parseInt(searchParams.get('limit') || '100');
