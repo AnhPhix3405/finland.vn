@@ -202,7 +202,7 @@ export default function Home() {
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute inset-0 bg-black/50 z-10"></div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img alt="Professional urban background" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBeqzBaJOHIc8BHASzk_oyBJnP_tcXTf_Hp41fclK9xZmTwCv9SWG8_99fgWKtQ-1c7oLk6IaMylAsHWFhumNGK6n7FJs2UGkikJYapJ_CvbYpNEBDkrI4gMtlCztA9Q2u542XIWnRKRiITPhA8Ct3gt9PJmd5kn1Ekoh1uXLDt3J7PYRgtcKvjhFbb3xdxxvaSLp2io9jLMwsiHF12S5k5pMMunsBuVeCmBW3s38422BZTdcNcC1o7fzf3m3ITD5dRPdFtk6Ze9OEQ" />
+          <img alt="Professional urban background" className="w-full h-full object-cover" src="/imgs/home-banner.jpg" />
         </div>
         <div className="relative z-20 text-center px-4 w-full flex flex-col justify-center items-center gap-8">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white leading-tight drop-shadow-lg">
