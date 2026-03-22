@@ -6,7 +6,12 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           <div>
-            <h3 className="text-xl font-bold text-white mb-4">finland.vn</h3>
+            <Link href="/" aria-label="Trang chủ finland.vn" className="inline-block mb-4 hover:opacity-80 transition-opacity">
+              <div
+                className="w-[125px] h-[50px] lg:w-[150px] lg:h-[60px] transition-all bg-[url('/imgs/logo.png')] bg-[length:100%_auto] bg-center bg-no-repeat drop-shadow-[0_0_4px_rgba(251,146,60,0.6)]"
+                aria-label="finland.vn Logo"
+              />
+            </Link>
             <p className="text-slate-400 mb-4 leading-relaxed text-sm">
               Nền tảng tra cứu thông tin quy hoạch và dự án bất động sản uy tín hàng đầu tại Việt Nam.
             </p>

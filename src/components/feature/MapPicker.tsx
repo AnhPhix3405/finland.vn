@@ -77,14 +77,14 @@ export default function MapPicker({ initialLat, initialLng, onLocationChange, cl
   // Update map and marker when initial coordinates change from outside (e.g., geocoding)
   useEffect(() => {
     if (!map.current || !marker.current || initialLat === undefined || initialLng === undefined) return;
-    
+
     // Get current marker location and calculate distance to new initial coordinates
     const currentMarkerLoc = marker.current.getLngLat();
     const dist = Math.sqrt(
       Math.pow(currentMarkerLoc.lat - initialLat, 2) +
       Math.pow(currentMarkerLoc.lng - initialLng, 2)
     );
-    
+
     // Only move if the difference is significant to avoid jitter
     if (dist > 0.0001) {
       marker.current.setLngLat([initialLng, initialLat]);

@@ -16,7 +16,7 @@ export default function AdminCreateProject() {
     const router = useRouter();
     const formRef = useRef<HTMLFormElement>(null);
     const addToast = useNotificationStore((state) => state.addToast);
-    
+
     useAdminAuth(() => {
         router.push('/admin/login');
     });
@@ -218,7 +218,7 @@ export default function AdminCreateProject() {
             if (!createRes.success) {
                 const errorMsg = createRes.error || 'Tạo dự án thất bại';
                 addToast(errorMsg, 'error');
-                
+
                 // Scroll to first required field on validation error
                 if (errorMsg.includes('bắt buộc') || errorMsg.includes('Tên dự án')) {
                     const element = document.getElementById('projectName');
@@ -268,22 +268,22 @@ export default function AdminCreateProject() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="col-span-1 md:col-span-2">
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="projectName">Tên dự án <span className="text-red-500">*</span></label>
-                                <input 
-                                    value={projectName} 
-                                    onChange={(e) => { setProjectName(e.target.value); clearError('projectName'); }} 
-                                    className={`w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white placeholder-slate-400 ${errors.projectName ? 'border-red-500 ring-2 ring-red-500' : ''}`} 
-                                    id="projectName" 
-                                    placeholder="Nhập tên dự án..." 
-                                    type="text" 
+                                <input
+                                    value={projectName}
+                                    onChange={(e) => { setProjectName(e.target.value); clearError('projectName'); }}
+                                    className={`w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white placeholder-slate-400 ${errors.projectName ? 'border-red-500 ring-2 ring-red-500' : ''}`}
+                                    id="projectName"
+                                    placeholder="Nhập tên dự án..."
+                                    type="text"
                                 />
                                 {errors.projectName && <p className="text-red-500 text-xs mt-1">{errors.projectName}</p>}
                             </div>
 
                             <div className="col-span-1">
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="propertyType">Loại hình <span className="text-red-500">*</span></label>
-                                <select 
-                                    value={selectedPropertyTypeId} 
-                                    onChange={(e) => { setSelectedPropertyTypeId(e.target.value); clearError('propertyType'); }} 
+                                <select
+                                    value={selectedPropertyTypeId}
+                                    onChange={(e) => { setSelectedPropertyTypeId(e.target.value); clearError('propertyType'); }}
                                     className={`w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white text-slate-700 ${errors.propertyType ? 'border-red-500 ring-2 ring-red-500' : ''}`}
                                     id="propertyType"
                                     disabled={loadingPropertyTypes}
@@ -303,9 +303,9 @@ export default function AdminCreateProject() {
 
                             <div className="col-span-1">
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="projectStatus">Trạng thái</label>
-                                <select 
-                                    value={projectStatus} 
-                                    onChange={(e) => setProjectStatus(e.target.value)} 
+                                <select
+                                    value={projectStatus}
+                                    onChange={(e) => setProjectStatus(e.target.value)}
                                     className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white text-slate-700"
                                     id="projectStatus"
                                 >
@@ -320,26 +320,26 @@ export default function AdminCreateProject() {
 
                             <div className="col-span-1">
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="projectPrice">Giá (VND) <span className="text-red-500">*</span></label>
-                                <input 
-                                    value={projectPrice} 
-                                    onChange={(e) => { formatCurrencyOnChange(e); clearError('projectPrice'); }} 
-                                    className={`w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white placeholder-slate-400 ${errors.projectPrice ? 'border-red-500 ring-2 ring-red-500' : ''}`} 
-                                    id="projectPrice" 
-                                    placeholder="Ví dụ: 2,500,000,000" 
-                                    type="text" 
+                                <input
+                                    value={projectPrice}
+                                    onChange={(e) => { formatCurrencyOnChange(e); clearError('projectPrice'); }}
+                                    className={`w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white placeholder-slate-400 ${errors.projectPrice ? 'border-red-500 ring-2 ring-red-500' : ''}`}
+                                    id="projectPrice"
+                                    placeholder="Ví dụ: 2,500,000,000"
+                                    type="text"
                                 />
                                 {errors.projectPrice && <p className="text-red-500 text-xs mt-1">{errors.projectPrice}</p>}
                             </div>
 
                             <div className="col-span-1">
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="projectArea">Diện tích (m²) <span className="text-red-500">*</span></label>
-                                <input 
-                                    value={projectArea} 
-                                    onChange={(e) => { setProjectArea(e.target.value); clearError('projectArea'); }} 
-                                    className={`w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white placeholder-slate-400 ${errors.projectArea ? 'border-red-500 ring-2 ring-red-500' : ''}`} 
-                                    id="projectArea" 
-                                    placeholder="Ví dụ: 500" 
-                                    type="number" 
+                                <input
+                                    value={projectArea}
+                                    onChange={(e) => { setProjectArea(e.target.value); clearError('projectArea'); }}
+                                    className={`w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white placeholder-slate-400 ${errors.projectArea ? 'border-red-500 ring-2 ring-red-500' : ''}`}
+                                    id="projectArea"
+                                    placeholder="Ví dụ: 500"
+                                    type="number"
                                 />
                                 {errors.projectArea && <p className="text-red-500 text-xs mt-1">{errors.projectArea}</p>}
                             </div>

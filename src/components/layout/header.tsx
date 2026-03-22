@@ -46,17 +46,20 @@ export default function Header() {
     const isActive = href === "/" ? pathname === "/" : pathname?.startsWith(href) && href !== "#";
 
     return isActive
-      ? "text-primary font-medium border-b-2 border-primary py-4.5 h-14 flex items-center"
-      : "text-gray-700 dark:text-slate-300 hover:text-primary dark:hover:text-primary font-medium py-4.5 h-14 flex items-center transition-colors";
+      ? "text-primary font-medium border-b-2 border-primary py-4.5 h-[80px] flex items-center"
+      : "text-gray-700 dark:text-slate-300 hover:text-primary dark:hover:text-primary font-medium py-4.5 h-[80px] flex items-center transition-colors";
   };
 
   return (
     <header className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-14">
+        <div className="flex justify-between items-center h-[80px]">
           <div className="flex-shrink-0 flex items-center">
-            <Link className="text-2xl font-bold text-emerald-700 tracking-tight" href="/">
-              finland.vn
+            <Link href="/" className="flex items-center" aria-label="Trang chủ finland.vn">
+              <div
+                className="w-[125px] h-[50px] lg:w-[150px] lg:h-[60px] transition-all bg-[url('/imgs/logo.png')] bg-[length:100%_auto] bg-center bg-no-repeat mix-blend-multiply dark:mix-blend-normal"
+                aria-label="finland.vn Logo"
+              />
             </Link>
           </div>
           <nav className="hidden md:flex space-x-6 text-sm">
@@ -107,9 +110,9 @@ export default function Header() {
             )}
           </div>
           <div className="flex items-center md:hidden">
-            <button 
+            <button
               onClick={() => setIsMenuOpen(true)}
-              className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 p-2" 
+              className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 p-2"
               type="button"
             >
               <Menu className="size-6" />
@@ -122,16 +125,19 @@ export default function Header() {
       {isMenuOpen && (
         <div className="fixed inset-0 z-[60] md:hidden">
           {/* Backdrop */}
-          <div 
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" 
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
             onClick={() => setIsMenuOpen(false)}
           />
-          
+
           {/* Drawer Content */}
           <div className="absolute top-0 right-0 bottom-0 w-[280px] bg-white dark:bg-slate-900 shadow-xl flex flex-col animate-in slide-in-from-right duration-300">
             <div className="flex items-center justify-between p-4 border-b dark:border-slate-800">
-              <span className="font-bold text-emerald-700">finland.vn</span>
-              <button 
+              <div
+                className="w-[125px] h-[50px] bg-[url('/imgs/logo.jpg')] bg-[length:100%_auto] bg-center bg-no-repeat mix-blend-multiply dark:mix-blend-normal"
+                aria-label="finland.vn Logo"
+              />
+              <button
                 onClick={() => setIsMenuOpen(false)}
                 className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full"
               >
@@ -144,14 +150,13 @@ export default function Header() {
                 {navLinks.map((link, index) => {
                   const isActive = link.href === "/" ? pathname === "/" : pathname?.startsWith(link.href) && link.href !== "#";
                   return (
-                    <Link 
-                      key={index} 
+                    <Link
+                      key={index}
                       href={link.href}
-                      className={`px-6 py-4 text-sm font-semibold transition-colors ${
-                        isActive 
-                          ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20" 
-                          : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                      }`}
+                      className={`px-6 py-4 text-sm font-semibold transition-colors ${isActive
+                        ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20"
+                        : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        }`}
                     >
                       {link.label}
                     </Link>
@@ -163,7 +168,7 @@ export default function Header() {
             <div className="p-6 border-t dark:border-slate-800 space-y-3">
               {isAuthenticated ? (
                 <>
-                  <Link 
+                  <Link
                     href="/tai-khoan"
                     className="flex items-center justify-center gap-2 w-full py-3 text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg"
                   >
@@ -180,14 +185,14 @@ export default function Header() {
                 </>
               ) : (
                 <>
-                  <Link 
+                  <Link
                     href="/dang-nhap"
                     className="flex items-center justify-center gap-2 w-full py-3 text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg"
                   >
                     <LogIn className="size-4" />
                     Đăng nhập
                   </Link>
-                  <Link 
+                  <Link
                     href="/dang-ky"
                     className="flex items-center justify-center gap-2 w-full py-3 text-sm font-bold text-white bg-emerald-600 rounded-lg text-center"
                   >

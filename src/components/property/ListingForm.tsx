@@ -499,16 +499,16 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
           <div className="w-120">
             <LocationSelector
               selectedProvince={province}
-              onProvinceChange={(val) => { 
+              onProvinceChange={(val) => {
                 isManualMarkerRef.current = false;
-                setProvince(val); 
-                setErrors(prev => ({ ...prev, province: '' })); 
+                setProvince(val);
+                setErrors(prev => ({ ...prev, province: '' }));
               }}
               selectedWard={ward}
-              onWardChange={(val) => { 
+              onWardChange={(val) => {
                 isManualMarkerRef.current = false;
-                setWard(val); 
-                setErrors(prev => ({ ...prev, ward: '' })); 
+                setWard(val);
+                setErrors(prev => ({ ...prev, ward: '' }));
               }}
               requiredProvince={true}
               requiredWard={true}

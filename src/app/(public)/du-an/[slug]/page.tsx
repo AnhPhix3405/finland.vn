@@ -117,32 +117,32 @@ export default function ProjectDetail() {
           // Lấy 3 dự án lân cận
           try {
             let related: Project[] = [];
-            
+
             // 1. Ưu tiên cùng phường/xã
             if (currentProject.province && currentProject.ward) {
-              const wardRes = await getProjects({ 
-                province: currentProject.province, 
-                ward: currentProject.ward, 
-                limit: 10 
+              const wardRes = await getProjects({
+                province: currentProject.province,
+                ward: currentProject.ward,
+                limit: 10
               });
               if (wardRes.success) related = [...related, ...wardRes.data];
             }
-            
+
             // Lọc bớt kết quả trùng và trừ dự án hiện tại
-            related = related.filter((p, index, self) => 
+            related = related.filter((p, index, self) =>
               p.id !== currentProject.id && index === self.findIndex((t) => t.id === p.id)
             );
 
             // 2. Nếu thiếu, bổ sung thêm dự án cùng Tỉnh/Thành phố
             if (related.length < 3 && currentProject.province) {
-              const provRes = await getProjects({ 
-                province: currentProject.province, 
-                limit: 10 
+              const provRes = await getProjects({
+                province: currentProject.province,
+                limit: 10
               });
               if (provRes.success) related = [...related, ...provRes.data];
             }
-            
-            related = related.filter((p, index, self) => 
+
+            related = related.filter((p, index, self) =>
               p.id !== currentProject.id && index === self.findIndex((t) => t.id === p.id)
             );
 
@@ -151,8 +151,8 @@ export default function ProjectDetail() {
               const anyRes = await getProjects({ limit: 10 });
               if (anyRes.success) related = [...related, ...anyRes.data];
             }
-            
-            related = related.filter((p, index, self) => 
+
+            related = related.filter((p, index, self) =>
               p.id !== currentProject.id && index === self.findIndex((t) => t.id === p.id)
             ).slice(0, 3);
 
@@ -436,8 +436,8 @@ export default function ProjectDetail() {
           <div className="bg-white dark:bg-slate-800 p-6 border border-gray-200 dark:border-slate-700 shadow-sm space-y-4">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white border-l-4 border-emerald-600 pl-3">Vị trí trên bản đồ</h3>
             <div className="w-full">
-              {(project?.latitude !== undefined && project?.latitude !== null) && 
-               (project?.longitude !== undefined && project?.longitude !== null) ? (
+              {(project?.latitude !== undefined && project?.latitude !== null) &&
+                (project?.longitude !== undefined && project?.longitude !== null) ? (
                 <MapPicker
                   initialLat={parseFloat(project.latitude.toString())}
                   initialLng={parseFloat(project.longitude.toString())}
@@ -464,14 +464,14 @@ export default function ProjectDetail() {
               {relatedProjects.length > 0 ? relatedProjects.map((p) => (
                 <Link key={p.id} href={`/du-an/${p.slug}`} className="group flex items-start space-x-3 pb-4 border-b border-gray-100 dark:border-slate-700 last:border-0 last:pb-0">
                   <div className="w-20 h-20 shrink-0">
-                    <img 
-                      alt={p.name} 
-                      className="w-full h-full object-cover border border-gray-200 dark:border-slate-700 group-hover:opacity-80 transition-opacity" 
-                      src={p.thumbnail_url || 'https://via.placeholder.com/200x200?text=No+Image'} 
-                      onError={(e) => { 
+                    <img
+                      alt={p.name}
+                      className="w-full h-full object-cover border border-gray-200 dark:border-slate-700 group-hover:opacity-80 transition-opacity"
+                      src={p.thumbnail_url || 'https://via.placeholder.com/200x200?text=No+Image'}
+                      onError={(e) => {
                         const target = e.currentTarget;
                         if (!target.src.includes('placeholder.com')) {
-                          target.src = 'https://via.placeholder.com/200x200?text=No+Image'; 
+                          target.src = 'https://via.placeholder.com/200x200?text=No+Image';
                         }
                       }}
                     />

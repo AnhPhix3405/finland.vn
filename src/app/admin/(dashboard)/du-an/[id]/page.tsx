@@ -133,9 +133,9 @@ export default function AdminProjectDetail() {
 
     // 3. Nếu người dùng đã chủ động kéo ghim bản đồ, không tự động geocode đè lên nữa
     if (isManualMarkerRef.current) return;
-    
+
     if (!selectedProvince) return;
-    
+
     const geocode = async () => {
       try {
         const query = `${selectedDistrict ? selectedDistrict + ', ' : ''}${selectedProvince}, Vietnam`;
