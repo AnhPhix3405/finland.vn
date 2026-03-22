@@ -43,6 +43,7 @@ export default function AdminCreateProject() {
     ];
 
     const [newFiles, setNewFiles] = useState<File[]>([]);
+    const [draggedItem, setDraggedItem] = useState<number | null>(null);
 
     const [isUploading, setIsUploading] = useState(false);
 
@@ -113,6 +114,25 @@ export default function AdminCreateProject() {
             setNewFiles(prev => [...prev, ...validFiles]);
             if (e.target) e.target.value = '';
         }
+    };
+    
+    // Drag & Drop handlers for new files
+    const handleDragStart = (index: number) => {
+        setDraggedItem(index);
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+    };
+
+    const handleDrop = (index: number) => {
+        if (draggedItem === null) return;
+        const reorderedFiles = [...newFiles];
+        const [movedFile] = reorderedFiles.splice(draggedItem, 1);
+        reorderedFiles.splice(index, 0, movedFile);
+        
+        setNewFiles(reorderedFiles);
+        setDraggedItem(null);
     };
 
     const handleRemoveNewFile = (index: number) => {
@@ -411,17 +431,29 @@ export default function AdminCreateProject() {
                                 </div>
 
                                 {newFiles.length > 0 && (
-                                    <div className="mt-4">
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                             {newFiles.map((file, idx) => {
                                                 const previewUrl = URL.createObjectURL(file);
                                                 return (
-                                                    <div key={idx} className="relative group rounded-sm overflow-hidden border border-slate-200 dark:border-slate-700">
+                                                    <div
+                                                        key={idx}
+                                                        className="relative group rounded-sm overflow-hidden border-2 border-slate-200 dark:border-slate-700 cursor-move"
+                                                        draggable
+                                                        onDragStart={() => handleDragStart(idx)}
+                                                        onDragOver={handleDragOver}
+                                                        onDrop={() => handleDrop(idx)}
+                                                    >
+                                                        {idx === 0 && (
+                                                            <span className="absolute top-2 left-2 bg-emerald-500 text-white text-[10px] uppercase font-bold px-2 py-1 rounded z-10">Ảnh bìa</span>
+                                                        )}
                                                         <img src={previewUrl} alt={file.name} className="w-full h-32 object-cover" onLoad={() => URL.revokeObjectURL(previewUrl)} />
+                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                                            <span className="material-symbols-outlined text-white">drag_indicator</span>
+                                                        </div>
                                                         <button
                                                             type="button"
                                                             onClick={() => handleRemoveNewFile(idx)}
-                                                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 flex items-center justify-center w-6 h-6"
+                                                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 flex items-center justify-center w-6 h-6 z-20"
                                                         >
                                                             <span className="material-symbols-outlined text-[16px]">close</span>
                                                         </button>
@@ -429,7 +461,6 @@ export default function AdminCreateProject() {
                                                 );
                                             })}
                                         </div>
-                                    </div>
                                 )}
                             </div>
                         </div>

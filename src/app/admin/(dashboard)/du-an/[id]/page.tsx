@@ -138,34 +138,41 @@ export default function AdminProjectDetail() {
   const isManualMarkerRef = React.useRef(false);
   const isInitialDataLoaded = React.useRef(false);
 
-  // Geocoding Effect - Jump map when province/ward changes
+  // Geocoding Effect
   useEffect(() => {
-    // 1. Nếu chưa tải xong dữ liệu gốc, không làm gì cả
+    // 1. Nếu chưa có thông tin dự án, bỏ qua
     if (!projectId) return;
 
-    // 2. Nếu đây là lần đầu tiên dữ liệu được load vào state, đánh dấu đã load và không geocode
+    // 2. Nếu đây là lần load dữ liệu đầu tiên, ta bỏ qua để không ghi đè tọa độ chính xác từ DB
     if (!isInitialDataLoaded.current) {
       isInitialDataLoaded.current = true;
       return;
     }
 
-    // 3. Nếu người dùng đã chủ động kéo ghim bản đồ, không tự động geocode đè lên nữa
+    // 3. Nếu người dùng vừa tự kéo marker, không tự động geocode đè lên
     if (isManualMarkerRef.current) return;
 
+    // 4. Nếu không có tỉnh/thành, không làm gì
     if (!selectedProvince) return;
 
     const geocode = async () => {
       try {
-        const query = `${selectedDistrict ? selectedDistrict + ', ' : ''}${selectedProvince}, Vietnam`;
         const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-        if (!token) return;
+        if (!token) {
+          console.warn('Mapbox Token missing');
+          return;
+        }
 
-        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${token}&limit=1`;
+        const query = [selectedDistrict, selectedProvince, "Vietnam"].filter(Boolean).join(', ');
+        console.log('Geocoding search query:', query);
+
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${token}&country=vn&limit=1`;
         const res = await fetch(url);
         const data = await res.json();
 
         if (data.features && data.features.length > 0) {
           const [lng, lat] = data.features[0].center;
+          console.log('Geocoding result:', { lat, lng });
           setLatitude(lat);
           setLongitude(lng);
         }
@@ -174,7 +181,6 @@ export default function AdminProjectDetail() {
       }
     };
 
-    // Use a small delay for better UX
     const timer = setTimeout(geocode, 1000);
     return () => clearTimeout(timer);
   }, [selectedProvince, selectedDistrict, projectId]);
