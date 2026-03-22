@@ -25,12 +25,13 @@ async function verifyAuth(request: NextRequest) {
         }
 
         const role = (payload as Record<string, unknown>).role as string;
+        const userId = (payload as Record<string, unknown>).id as string;
 
         if (role === 'admin') {
-            return { valid: true };
+            return { valid: true, role: 'admin', userId };
         }
 
-        const brokerId = (payload as Record<string, unknown>).id as string;
+        const brokerId = userId;
         const broker = await prisma.brokers.findUnique({
             where: { id: brokerId },
             select: { is_active: true }
@@ -44,7 +45,7 @@ async function verifyAuth(request: NextRequest) {
             return { valid: false, error: 'Tài khoản của bạn đã bị khóa', status: 403 };
         }
 
-        return { valid: true };
+        return { valid: true, role: 'broker', userId };
     } catch {
         return { valid: false, error: 'Token không hợp lệ', status: 401 };
     }
@@ -130,6 +131,44 @@ export async function POST(request: NextRequest) {
                 { success: false, error: 'target_id là bắt buộc' },
                 { status: 400 }
             );
+        }
+
+        // Permission check cho User (Broker)
+        if (auth.role !== 'admin') {
+            if (target_type !== 'listing' && target_type !== 'broker') {
+                return NextResponse.json(
+                    { success: false, error: 'Loại tệp không hợp lệ hoặc bạn không có quyền thêm' },
+                    { status: 403 }
+                );
+            }
+
+            if (target_type === 'listing') {
+                const listing = await prisma.listings.findUnique({
+                    where: { id: target_id },
+                    select: { broker_id: true }
+                });
+
+                if (!listing) {
+                    return NextResponse.json(
+                        { success: false, error: 'Bài viết không tồn tại' },
+                        { status: 404 }
+                    );
+                }
+
+                if (listing.broker_id !== auth.userId) {
+                    return NextResponse.json(
+                        { success: false, error: 'Bạn không có quyền sửa/thêm ảnh vào Bài đăng của người khác' },
+                        { status: 403 }
+                    );
+                }
+            } else if (target_type === 'broker') {
+                if (target_id !== auth.userId) {
+                    return NextResponse.json(
+                        { success: false, error: 'Bạn không có quyền thay đổi thông tin của tài khoản khác' },
+                        { status: 403 }
+                    );
+                }
+            }
         }
 
         const newAttachment = await prisma.attachments.create({

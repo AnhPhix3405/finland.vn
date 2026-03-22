@@ -14,8 +14,10 @@ async function verifyAuth(request: NextRequest) {
   if (!payload || !(payload as Record<string, unknown>).id) {
     return { valid: false, error: 'Token không hợp lệ', status: 401 };
   }
+  const role = (payload as Record<string, unknown>).role as string;
+  const isAdmin = role === 'admin';
 
-  return { valid: true, brokerId: (payload as Record<string, unknown>).id as string };
+  return { valid: true, brokerId: (payload as Record<string, unknown>).id as string, isAdmin };
 }
 
 // POST - Thêm feature hashtag vào listing
@@ -47,7 +49,7 @@ export async function POST(
       return NextResponse.json({ success: false, error: 'Listing không tồn tại' }, { status: 404 });
     }
 
-    if (listing.broker_id !== auth.brokerId) {
+    if (!auth.isAdmin && listing.broker_id !== auth.brokerId) {
       return NextResponse.json({ success: false, error: 'Bạn không có quyền thêm đặc điểm vào listing này' }, { status: 403 });
     }
 
@@ -101,7 +103,7 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'Listing không tồn tại' }, { status: 404 });
     }
 
-    if (listing.broker_id !== auth.brokerId) {
+    if (!auth.isAdmin && listing.broker_id !== auth.brokerId) {
       return NextResponse.json({ success: false, error: 'Bạn không có quyền xóa đặc điểm của listing này' }, { status: 403 });
     }
 

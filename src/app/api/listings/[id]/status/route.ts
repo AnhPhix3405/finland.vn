@@ -115,8 +115,8 @@ export async function PATCH(
       );
     }
 
-    // Permission check - only owner can update status
-    if (existingListing.broker_id !== auth.brokerId) {
+    // Permission check - only owner can update status (unless Admin)
+    if (!auth.isAdmin && existingListing.broker_id !== auth.brokerId) {
       return NextResponse.json(
         { success: false, error: 'Bạn không có quyền cập nhật trạng thái bài đăng này' },
         { status: 403 }

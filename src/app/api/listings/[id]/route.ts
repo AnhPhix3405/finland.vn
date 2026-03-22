@@ -302,7 +302,7 @@ export async function DELETE(
       );
     }
 
-    if (existingListing.broker_id !== auth.brokerId) {
+    if (!auth.isAdmin && existingListing.broker_id !== auth.brokerId) {
       return NextResponse.json({ success: false, error: 'Bạn không có quyền xóa bài đăng này' }, { status: 403 });
     }
 
@@ -349,7 +349,7 @@ export async function PATCH(
       return NextResponse.json({ success: false, error: 'Listing not found' }, { status: 404 });
     }
 
-    if (existingListing.broker_id !== auth.brokerId) {
+    if (!auth.isAdmin && existingListing.broker_id !== auth.brokerId) {
       return NextResponse.json({ success: false, error: 'Bạn không có quyền sửa bài đăng này' }, { status: 403 });
     }
 
