@@ -18,10 +18,10 @@ export default function AdminSidebar() {
         setCollapsed(true);
       }
     };
-    
+
     checkWidth();
     window.addEventListener('resize', checkWidth);
-    
+
     return () => window.removeEventListener('resize', checkWidth);
   }, []);
 
@@ -53,14 +53,23 @@ export default function AdminSidebar() {
 
   return (
     <aside className={`${collapsed ? "w-16" : "w-64"} bg-slate-900 flex flex-col h-full flex-shrink-0 transition-all duration-300`}>
-      <div className={`h-16 ${collapsed ? "px-3 justify-center" : "px-6"} flex items-center border-b border-slate-800 flex-shrink-0 overflow-hidden`}>
+      <div className={`h-16 ${collapsed ? "px-3 justify-center" : "px-6"} flex items-center gap-2 border-b border-slate-800 flex-shrink-0 overflow-hidden`}>
         {collapsed ? (
-          <span className="text-emerald-700 font-bold text-lg">F</span>
+          <div
+            className="w-[40px] h-[40px] bg-[url('/imgs/logo.png')] bg-[length:100%_auto] bg-center bg-no-repeat mix-blend-screen dark:mix-blend-screen"
+            aria-label="finland.vn Logo"
+          />
         ) : (
-          <h1 className="text-emerald-700 font-bold text-lg tracking-tight whitespace-nowrap">finland.vn <span className="text-slate-400 font-medium">Admin</span></h1>
+          <>
+            <div
+              className="w-[40px] h-[40px] bg-[url('/imgs/logo.png')] bg-[length:100%_auto] bg-center bg-no-repeat mix-blend-screen dark:mix-blend-screen"
+              aria-label="finland.vn Logo"
+            />
+            <span className="text-emerald-400 font-bold text-lg">Admin</span>
+          </>
         )}
       </div>
-      
+
       <nav className="flex-1 overflow-y-auto py-4 px-2 flex flex-col gap-1">
         {navLinks.map((link) => {
           const isActive = link.exact
@@ -72,11 +81,10 @@ export default function AdminSidebar() {
               key={link.href}
               href={link.href}
               title={collapsed ? link.label : undefined}
-              className={`flex items-center ${collapsed ? "justify-center" : "gap-3"} py-2.5 transition-colors ${
-                isActive
-                  ? `${collapsed ? "px-0 rounded-sm" : "pl-2 pr-3 rounded-r-sm border-l-4 border-emerald-400"} bg-emerald-900/40 text-emerald-400 font-medium`
-                  : `${collapsed ? "px-0 rounded-sm" : "px-3 rounded-sm"} text-slate-300 hover:bg-slate-800 hover:text-white`
-              }`}
+              className={`flex items-center ${collapsed ? "justify-center" : "gap-3"} py-2.5 transition-colors ${isActive
+                ? `${collapsed ? "px-0 rounded-sm" : "pl-2 pr-3 rounded-r-sm border-l-4 border-emerald-400"} bg-emerald-900/40 text-emerald-400 font-medium`
+                : `${collapsed ? "px-0 rounded-sm" : "px-3 rounded-sm"} text-slate-300 hover:bg-slate-800 hover:text-white`
+                }`}
             >
               <span className="material-symbols-outlined text-xl">{link.icon}</span>
               {!collapsed && <span className="whitespace-nowrap">{link.label}</span>}

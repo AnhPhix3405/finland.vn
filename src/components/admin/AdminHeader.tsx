@@ -18,9 +18,12 @@ export default function AdminHeader() {
 
   return (
     <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 flex-shrink-0">
-      <div className="flex items-center text-sm font-medium text-slate-500 dark:text-slate-400 h-full">
-        <Link className="hover:text-primary transition-colors flex items-center h-full" href="/admin">
-          Admin
+      <div className="flex items-center text-sm font-medium text-slate-500 dark:text-slate-400 h-full gap-4">
+        <Link className="flex items-center h-full" href="/admin">
+          <div
+            className="w-[40px] h-[40px] bg-[url('/imgs/logo.png')] bg-[length:100%_auto] bg-center bg-no-repeat mix-blend-multiply dark:mix-blend-normal"
+            aria-label="finland.vn Logo"
+          />
         </Link>
         <span className="material-symbols-outlined text-sm mx-2">chevron_right</span>
         <span className="text-slate-900 dark:text-slate-100 flex items-center h-full">{pageName}</span>

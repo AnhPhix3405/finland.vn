@@ -57,7 +57,7 @@ export default function Header() {
           <div className="flex-shrink-0 flex items-center">
             <Link href="/" className="flex items-center" aria-label="Trang chủ finland.vn">
               <div
-                className="w-[125px] h-[50px] lg:w-[150px] lg:h-[60px] transition-all bg-[url('/imgs/logo.png')] bg-[length:100%_auto] bg-center bg-no-repeat mix-blend-multiply dark:mix-blend-normal"
+                className="w-[40px] h-[40px] lg:w-[60px] lg:h-[60px] transition-all bg-[url('/imgs/logo.png')] bg-[length:100%_auto] bg-center bg-no-repeat mix-blend-multiply dark:mix-blend-normal"
                 aria-label="finland.vn Logo"
               />
             </Link>
@@ -134,7 +134,7 @@ export default function Header() {
           <div className="absolute top-0 right-0 bottom-0 w-[280px] bg-white dark:bg-slate-900 shadow-xl flex flex-col animate-in slide-in-from-right duration-300">
             <div className="flex items-center justify-between p-4 border-b dark:border-slate-800">
               <div
-                className="w-[125px] h-[50px] bg-[url('/imgs/logo.jpg')] bg-[length:100%_auto] bg-center bg-no-repeat mix-blend-multiply dark:mix-blend-normal"
+                className="w-[125px] h-[50px] bg-[url('/imgs/logo.png')] bg-[length:100%_auto] bg-center bg-no-repeat mix-blend-multiply dark:mix-blend-normal"
                 aria-label="finland.vn Logo"
               />
               <button
