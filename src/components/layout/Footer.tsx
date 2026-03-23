@@ -8,7 +8,7 @@ export default function Footer() {
           <div>
             <Link href="/" aria-label="Trang chủ finland.vn" className="inline-block mb-4 hover:opacity-80 transition-opacity">
               <div
-                className="w-[125px] h-[50px] lg:w-[150px] lg:h-[60px] transition-all bg-[url('/imgs/logo.png')] bg-[length:100%_auto] bg-center bg-no-repeat drop-shadow-[0_0_4px_rgba(251,146,60,0.6)]"
+                className="w-[40px] h-[40px] lg:w-[60px] lg:h-[60px] transition-all bg-[url('/imgs/logo.png')] bg-[length:100%_auto] bg-center bg-no-repeat drop-shadow-[0_0_4px_rgba(251,146,60,0.6)]"
                 aria-label="finland.vn Logo"
               />
             </Link>
