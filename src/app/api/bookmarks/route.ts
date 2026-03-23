@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     const bookmark = await prisma.bookmarks.create({
       data: {
         listing_id,
-        broker_id: brokerId
+        broker_id: brokerId!
       }
     });
 
