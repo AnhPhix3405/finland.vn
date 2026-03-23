@@ -225,7 +225,7 @@ export default function ChoThuePropertyTypePage() {
         </div>
       </form>
 
-      <PropertyFilter onFilterChange={handleFilterChange} />
+      <PropertyFilter onFilterChange={handleFilterChange} initialPropertyType={propertyType} transactionType="cho-thue" />
 
       {loading && (
         <div className="flex justify-center items-center py-12">

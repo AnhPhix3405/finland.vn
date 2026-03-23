@@ -289,7 +289,7 @@ export default function ChoThueDetailOrFilterPage() {
           </p>
         </div>
 
-        <PropertyFilter onFilterChange={handleFilterChange} />
+        <PropertyFilter onFilterChange={handleFilterChange} transactionType="cho-thue" />
 
         {loading && (
           <div className="flex justify-center items-center py-12">

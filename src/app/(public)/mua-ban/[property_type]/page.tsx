@@ -229,7 +229,7 @@ export default function MuaBanPropertyTypePage() {
         </div>
       </form>
 
-      <PropertyFilter onFilterChange={handleFilterChange} />
+      <PropertyFilter onFilterChange={handleFilterChange} initialPropertyType={propertyType} />
 
       {loading && (
         <div className="flex justify-center items-center py-12">

@@ -240,7 +240,7 @@ function ChoThueContent() {
         </div>
       </form>
 
-      <PropertyFilter onFilterChange={handleFilterChange} />
+      <PropertyFilter onFilterChange={handleFilterChange} transactionType="cho-thue" />
 
       {/* Error State */}
       {error && (

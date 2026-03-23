@@ -2,11 +2,15 @@
 
 import { ChevronDown, ArrowUpDown, Filter } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import LocationSelector from "../feature/LocationSelector";
+import { useNotificationStore } from "@/src/store/notificationStore";
 
 interface PropertyFilterProps {
   hidePrice?: boolean;
   onFilterChange?: (filters: FilterState) => void;
+  initialPropertyType?: string;
+  transactionType?: 'mua-ban' | 'cho-thue';
 }
 
 export interface FilterState {
@@ -30,13 +34,15 @@ const sortOptions = [
   { id: "price-desc", name: "Giá: Cao → Thấp", value: "price_desc" },
 ];
 
-export function PropertyFilter({ hidePrice = false, onFilterChange }: PropertyFilterProps) {
-  const [filters, setFilters] = useState<FilterState>({});
+export function PropertyFilter({ hidePrice = false, onFilterChange, initialPropertyType, transactionType = 'mua-ban' }: PropertyFilterProps) {
+  const router = useRouter();
+  const [filters, setFilters] = useState<FilterState>({ propertyType: initialPropertyType || '' });
   const [propertyTypes, setPropertyTypes] = useState<PropertyType[]>([]);
   const [showPropertyTypes, setShowPropertyTypes] = useState(false);
   const [showSort, setShowSort] = useState(false);
   const propertyTypeRef = useRef<HTMLDivElement>(null);
   const sortRef = useRef<HTMLDivElement>(null);
+  const addToast = useNotificationStore((state) => state.addToast);
 
   // Fetch property types from API
   useEffect(() => {
@@ -82,6 +88,11 @@ export function PropertyFilter({ hidePrice = false, onFilterChange }: PropertyFi
   const handlePropertyTypeChange = (hashtag: string) => {
     setFilters(prev => ({ ...prev, propertyType: hashtag }));
     setShowPropertyTypes(false);
+    if (!hashtag) {
+      router.push(`/${transactionType}`);
+    } else {
+      router.push(`/${transactionType}/${hashtag}`);
+    }
   };
 
   const handleSortChange = (sortValue: string) => {
@@ -101,7 +112,7 @@ export function PropertyFilter({ hidePrice = false, onFilterChange }: PropertyFi
       const min = parseFloat(filters.priceMin);
       const max = parseFloat(filters.priceMax);
       if (min > max) {
-        alert('Giá tối thiểu không thể lớn hơn giá tối đa');
+        addToast('Giá tối thiểu không thể lớn hơn giá tối đa', 'error');
         return false;
       }
     }
