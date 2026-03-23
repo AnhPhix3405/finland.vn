@@ -1,3 +1,12 @@
+import { NextResponse } from 'next/server';
+
+export async function POST() {
+    return NextResponse.json(
+        { success: false, message: 'Endpoint is disabled' },
+        { status: 404 }
+    );
+}
+
 // import { NextRequest, NextResponse } from 'next/server';
 // import { prisma } from '@/src/lib/prisma';
 // import { hashPassword } from '@/src/app/modules/auth/passwordHasher';
