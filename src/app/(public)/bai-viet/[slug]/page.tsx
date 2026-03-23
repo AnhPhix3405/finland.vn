@@ -291,7 +291,8 @@ export default function EditListingPage() {
 
   // Files
   const handleRemoveApiImage = (id: string) => {
-    setDeletedApiImages(prev => [...prev, id]);
+    setDeletedApiImages(prev => prev.includes(id) ? prev : [...prev, id]);
+    setInitialImages(prev => prev.filter(img => img.id !== id));
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -311,8 +312,7 @@ export default function EditListingPage() {
       addToast(`${invalidFiles.length} file không hợp lệ (chỉ nhận ảnh/video)`, "error");
     }
 
-    const totalRemainingAPI = initialImages.length - deletedApiImages.length;
-    const newTotal = totalRemainingAPI + selectedFiles.length + validFiles.length;
+    const newTotal = initialImages.length + selectedFiles.length + validFiles.length;
 
     if (newTotal > 20) {
       addToast(`Bạn chỉ được giữ tối đa 20 file. Vui lòng xóa bớt.`, "error");
@@ -497,14 +497,8 @@ export default function EditListingPage() {
       // 3. FILE UPLOAD + UPDATE THUMBNAIL
       let newThumbnailUrl = '';
       if (selectedFiles.length > 0) {
-        // Check if all old images are deleted or no old images exist
-        const remainingOldImages = initialImages.filter(img => !deletedApiImages.includes(img.id));
-        
-        // If no old images remain, first uploaded image will be the thumbnail
-        const shouldSetThumbnail = remainingOldImages.length === 0;
-        
-        // Calculate starting sort_order for new files (after existing images)
-        const startingSortOrder = remainingOldImages.length;
+        const shouldSetThumbnail = initialImages.length === 0;
+        const startingSortOrder = initialImages.length;
         
         const uploadResults = await Promise.all(selectedFiles.map((file, idx) =>
           uploadListingAttachments(file, listingId, accessToken || undefined, startingSortOrder + idx)
@@ -783,7 +777,7 @@ export default function EditListingPage() {
               </h4>
               <div className="space-y-4">
                 <div className="flex justify-between">
-                  <span className="text-sm text-slate-600 dark:text-slate-400">Tổng: {(initialImages.length - deletedApiImages.length) + selectedFiles.length}/20 file</span>
+                  <span className="text-sm text-slate-600 dark:text-slate-400">Tổng: {initialImages.length + selectedFiles.length}/20 file</span>
                   <button type="button" onClick={() => fileInputRef.current?.click()} className="px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg text-sm font-bold hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors">+ Thêm ảnh/video</button>
                   <input ref={fileInputRef} type="file" multiple accept="image/*,video/*" onChange={handleFileSelect} className="hidden" />
                 </div>
@@ -791,12 +785,11 @@ export default function EditListingPage() {
                 <div className="space-y-4">
                   {/* Cũ (API) - Kéo để sắp xếp */}
                   {(() => {
-                    const visibleImages = initialImages.filter(img => !deletedApiImages.includes(img.id));
-                    return visibleImages.length > 0 ? (
+                    return initialImages.length > 0 ? (
                       <div>
                         <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3">Ảnh hiện tại (kéo để sắp xếp)</p>
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                          {visibleImages.map((img, idx) => {
+                          {initialImages.map((img, idx) => {
                             const realIndex = initialImages.indexOf(img);
                             const isFirstImage = idx === 0;
                             return (
