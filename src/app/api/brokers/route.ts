@@ -136,6 +136,11 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { id, phone, avatar_url, full_name, email, province, ward, address, bio } = body;
 
+    // phone is only used for lookup, not for updating
+    if (phone !== undefined) {
+      delete (body as Record<string, unknown>).phone;
+    }
+
     // Use id if provided, otherwise find broker by phone
     let brokerId = id;
 

@@ -250,7 +250,7 @@ export default function ProfileSection() {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 md:col-span-2">
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
                 Khu vực
               </label>
