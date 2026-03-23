@@ -64,10 +64,11 @@ export async function GET(request: NextRequest) {
       where,
       skip,
       take: limit,
-      orderBy: [{ created_at: 'desc' }, { name: 'asc' }],
+      orderBy: [{ updated_at: 'desc' }, { name: 'asc' }],
       include: {
         property_types: true,
       },
+
     });
 
     return NextResponse.json({
