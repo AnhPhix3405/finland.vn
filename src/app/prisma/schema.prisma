@@ -6,33 +6,26 @@ datasource db {
   provider = "postgresql"
 }
 
-model activity_logs {
-  id          String  @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
-  action      String  @db.VarChar(50)
-  target_type String  @db.VarChar(50)
-  target_id   String? @db.Uuid
-  detail      String?
-}
-
 model attachments {
-  id            String    @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  id            String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   url           String
   secure_url    String
   size_bytes    BigInt?
   original_name String?   @db.VarChar(255)
   created_at    DateTime? @default(now()) @db.Timestamptz(6)
-  public_id     String?
+  public_id     String?   @unique(map: "unique_attachments_public_id")
   target_type   String?   @db.VarChar(50)
   target_id     String?   @db.Uuid
   sort_order    Int?      @default(0)
 
   @@index([target_id, target_type], map: "idx_attachments_target_id_type")
+  @@index([target_id, target_type, sort_order], map: "idx_attachments_target_sort")
 }
 
 model brokers {
-  id             String      @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  id             String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   full_name      String      @db.VarChar(255)
-  phone          String      @db.VarChar(20)
+  phone          String      @unique(map: "idx_brokers_phone") @db.VarChar(20)
   email          String?     @db.VarChar(255)
   avatar_url     String?
   bio            String?
@@ -46,6 +39,8 @@ model brokers {
   address        String?
   bookmarks      bookmarks[]
   listings       listings[]
+
+  @@index([province], map: "idx_brokers_province")
 }
 
 model project_tags {
@@ -59,7 +54,7 @@ model project_tags {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model projects {
-  id               String          @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  id               String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   project_code     String?         @unique @db.VarChar(50)
   name             String
   slug             String          @unique @db.VarChar(255)
@@ -86,7 +81,7 @@ model projects {
 }
 
 model tags {
-  id           String         @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  id           String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   name         String         @unique @db.VarChar(100)
   slug         String         @unique @db.VarChar(120)
   created_at   DateTime?      @default(now()) @db.Timestamptz(6)
@@ -110,10 +105,10 @@ model listings {
   status                   String?
   property_type_id         String?                    @db.Uuid
   transaction_type_id      String?                    @db.Uuid
-  slug                     String?                    @unique(map: "idx_listings_slug_unique")
+  slug                     String                     @unique(map: "idx_listings_slug_unique")
   contact_name             String?                    @db.VarChar(255)
   contact_phone            String?                    @db.VarChar(50)
-  listing_code             String?                    @unique @db.VarChar(20)
+  listing_code             String                     @unique @db.VarChar(20)
   floor_count              Int?
   bedroom_count            Int?
   thumbnail_url            String?
@@ -126,7 +121,7 @@ model listings {
   longitude                Float?
   bookmarks                bookmarks[]
   listing_feature_hashtags listing_feature_hashtags[]
-  brokers                  brokers                    @relation(fields: [broker_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_listings_broker")
+  brokers                  brokers                    @relation(fields: [broker_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_listings_broker")
   property_types           property_types?            @relation(fields: [property_type_id], references: [id], onUpdate: NoAction, map: "fk_listings_property_type")
   transaction_types        transaction_types?         @relation(fields: [transaction_type_id], references: [id], onUpdate: NoAction, map: "fk_listings_transaction_type")
   tags                     tags[]
@@ -135,11 +130,12 @@ model listings {
   @@index([price], map: "idx_listings_price")
   @@index([province, ward], map: "idx_listings_province_ward")
   @@index([status], map: "idx_listings_status")
-  @@index([slug], map: "idx_listings_slug")
+  @@index([property_type_id], map: "idx_listings_property_type_id")
+  @@index([transaction_type_id], map: "idx_listings_transaction_type_id")
 }
 
 model property_types {
-  id         String     @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  id         String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   name       String     @unique @db.VarChar(255)
   created_at DateTime?  @default(now()) @db.Timestamptz(6)
   updated_at DateTime?  @default(now()) @db.Timestamptz(6)
@@ -149,7 +145,7 @@ model property_types {
 }
 
 model transaction_types {
-  id         String     @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  id         String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   name       String     @unique @db.VarChar(255)
   hashtag    String     @unique @db.VarChar(255)
   created_at DateTime?  @default(now()) @db.Timestamptz(6)
@@ -158,7 +154,7 @@ model transaction_types {
 }
 
 model admins {
-  id            String    @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  id            String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   email         String    @unique
   name          String
   password_hash String
@@ -166,25 +162,28 @@ model admins {
 }
 
 model bookmarks {
-  id         String    @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   listing_id String    @db.Uuid
   created_at DateTime? @default(now()) @db.Timestamptz(6)
-  broker_id  String?   @db.Uuid
-  brokers    brokers?  @relation(fields: [broker_id], references: [id], onUpdate: NoAction, map: "fk_bookmarks_brokers")
+  broker_id  String    @db.Uuid
+  brokers    brokers   @relation(fields: [broker_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_bookmarks_brokers")
   listings   listings  @relation(fields: [listing_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_listing")
+
+  @@unique([broker_id, listing_id], map: "unique_broker_listing")
+  @@index([broker_id], map: "idx_bookmarks_broker_id")
+  @@index([listing_id], map: "idx_bookmarks_listing_id")
 }
 
 model news {
-  id            String      @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  id            String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   title         String      @db.VarChar(255)
   slug          String      @unique @db.VarChar(255)
   content       String
   description   String?
   thumbnail_url String?
   created_at    DateTime?   @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime?   @default(now()) @db.Timestamptz(6)
   news_tags     news_tags[]
-
-  @@index([slug], map: "idx_news_slug")
 }
 
 model news_tags {
@@ -198,7 +197,7 @@ model news_tags {
 }
 
 model feature_hashtags {
-  id                       String                     @id @default(dbgenerated("public.uuid_generate_v4()")) @db.Uuid
+  id                       String                     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   name                     String                     @unique @db.VarChar(255)
   hashtag                  String                     @unique @db.VarChar(255)
   created_at               DateTime?                  @default(now()) @db.Timestamptz(6)
@@ -213,6 +212,7 @@ model listing_feature_hashtags {
   listings           listings         @relation(fields: [listing_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_listing_feature_listing")
 
   @@id([listing_id, feature_hashtag_id])
+  @@index([feature_hashtag_id], map: "idx_listing_feature_hashtags_feature_hashtag_id")
 }
 
 enum post_status {
