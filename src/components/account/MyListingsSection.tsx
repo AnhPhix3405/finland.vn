@@ -137,6 +137,16 @@ export default function MyListingsSection() {
     loadListings(1);
   }, [accessToken, filter, transactionType, clearAuth, addToast, router]);
 
+  // Reload when navigating back from edit page
+  useEffect(() => {
+    const handlePopState = () => {
+      loadListings(1);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [accessToken]);
+
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
     loadListings(newPage);

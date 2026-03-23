@@ -71,7 +71,12 @@ export default function EditListingPage() {
   const [deletedApiImages, setDeletedApiImages] = useState<string[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [draggedItem, setDraggedItem] = useState<number | null>(null);
+  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Drag state for new files
+  const [draggedNewFileIndex, setDraggedNewFileIndex] = useState<number | null>(null);
+  const [dropTargetNewFileIndex, setDropTargetNewFileIndex] = useState<number | null>(null);
 
   // Derive property type for conditional rendering
   const selectedPropertyType = propertyTypes.find(pt => pt.id === propertyTypeId);
@@ -168,6 +173,70 @@ export default function EditListingPage() {
     fetchData();
   }, [slug, router, addToast]);
 
+  // Fallback: Re-fetch when accessToken becomes available
+  useEffect(() => {
+    if (!slug || !accessToken || listingId) return;
+    
+    const fetchListingWithToken = async () => {
+      try {
+        const listingRes = await fetchWithRetry(`/api/listings/${slug}`, { token: accessToken || undefined, isAdmin: false });
+        const result = await listingRes.json();
+
+        if (result.success && result.data) {
+          const l = result.data;
+
+          if (l.status === 'Đang chờ duyệt' || l.status === 'Đã Ẩn') {
+            addToast(`Tin đăng đang ở trạng thái "${l.status}", không thể chỉnh sửa.`, "error");
+            router.push("/tai-khoan");
+            return;
+          }
+
+          if (!listingId) {
+            setListingId(l.id);
+            setTitle(l.title || "");
+            setListingSlug(l.slug || "");
+            setDescription(l.description || "");
+            setTransactionTypeId(l.transaction_type_id || "");
+            setPropertyTypeId(l.property_type_id || "");
+            setProvince(l.province || "");
+            setWard(l.ward || "");
+            setAddress(l.address || "");
+            setArea(l.area?.toString() || "");
+            setPrice(l.price ? Number(l.price).toLocaleString('vi-VN') : "");
+            setPricePerFrontageMeter(l.price_per_frontage_meter?.toString() || "");
+            setDirection(l.direction || "");
+            setContactName(l.contact_name || "");
+            setContactPhone(l.contact_phone || "");
+            setFloorCount(l.floor_count?.toString() || "");
+            setBedroomCount(l.bedroom_count?.toString() || "");
+            setLatitude(l.latitude ?? null);
+            setLongitude(l.longitude ?? null);
+            if (l.listing_feature_hashtags) {
+              setSelectedFeatureHashtags(l.listing_feature_hashtags.map((fh: { feature_hashtag_id: string }) => fh.feature_hashtag_id));
+            }
+          }
+
+          const imgRes = await fetchWithRetry(`/api/attachments/${l.id}?target_type=listing`, {
+            token: accessToken || undefined,
+            isAdmin: false
+          });
+          const imgJson = await imgRes.json();
+          if (imgJson.success && initialImages.length === 0) {
+            const images = (imgJson.data || []).sort((a: Attachment, b: Attachment) => (a.sort_order || 0) - (b.sort_order || 0));
+            setInitialImages(images);
+            setOriginalImages(JSON.parse(JSON.stringify(images)));
+          }
+        }
+      } catch (_error) {
+        console.error('Lỗi lấy thông tin bài viết:', _error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchListingWithToken();
+  }, [accessToken, slug, router, addToast, listingId]);
+
   const slugify = (text: string) => {
     return text.toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').replace(/([^0-9a-z-\s])/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
   };
@@ -261,22 +330,29 @@ export default function EditListingPage() {
     setDraggedItem(index);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
+    setDropTargetIndex(index);
   };
 
-  const handleDrop = (dropIndex: number) => {
-    if (draggedItem === null || draggedItem === dropIndex) {
+  const handleDragLeave = () => {
+    setDropTargetIndex(null);
+  };
+
+  const handleDrop = (targetIndex: number) => {
+    if (draggedItem === null || draggedItem === targetIndex) {
       setDraggedItem(null);
+      setDropTargetIndex(null);
       return;
     }
 
+    // Simple swap
     const newImages = [...initialImages];
-    const draggedImage = newImages[draggedItem];
-    newImages.splice(draggedItem, 1);
-    newImages.splice(dropIndex, 0, draggedImage);
+    const temp = newImages[draggedItem];
+    newImages[draggedItem] = newImages[targetIndex];
+    newImages[targetIndex] = temp;
 
-    // Update sort_order based on new position
+    // Update sort_order
     const updatedImages = newImages.map((img, idx) => ({
       ...img,
       sort_order: idx
@@ -284,6 +360,49 @@ export default function EditListingPage() {
 
     setInitialImages(updatedImages);
     setDraggedItem(null);
+    setDropTargetIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItem(null);
+    setDropTargetIndex(null);
+  };
+
+  // New file drag handlers
+  const handleNewFileDragStart = (index: number) => {
+    setDraggedNewFileIndex(index);
+  };
+
+  const handleNewFileDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDropTargetNewFileIndex(index);
+  };
+
+  const handleNewFileDragLeave = () => {
+    setDropTargetNewFileIndex(null);
+  };
+
+  const handleNewFileDrop = (targetIndex: number) => {
+    if (draggedNewFileIndex === null || draggedNewFileIndex === targetIndex) {
+      setDraggedNewFileIndex(null);
+      setDropTargetNewFileIndex(null);
+      return;
+    }
+
+    // Simple swap
+    const newFiles = [...selectedFiles];
+    const temp = newFiles[draggedNewFileIndex];
+    newFiles[draggedNewFileIndex] = newFiles[targetIndex];
+    newFiles[targetIndex] = temp;
+
+    setSelectedFiles(newFiles);
+    setDraggedNewFileIndex(null);
+    setDropTargetNewFileIndex(null);
+  };
+
+  const handleNewFileDragEnd = () => {
+    setDraggedNewFileIndex(null);
+    setDropTargetNewFileIndex(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -375,11 +494,27 @@ export default function EditListingPage() {
         }
       }
 
-      // 3. FILE UPLOAD 
+      // 3. FILE UPLOAD + UPDATE THUMBNAIL
+      let newThumbnailUrl = '';
       if (selectedFiles.length > 0) {
-        await Promise.all(selectedFiles.map((file) =>
-          uploadListingAttachments(file, listingId)
+        // Check if all old images are deleted or no old images exist
+        const remainingOldImages = initialImages.filter(img => !deletedApiImages.includes(img.id));
+        
+        // If no old images remain, first uploaded image will be the thumbnail
+        const shouldSetThumbnail = remainingOldImages.length === 0;
+        
+        // Calculate starting sort_order for new files (after existing images)
+        const startingSortOrder = remainingOldImages.length;
+        
+        const uploadResults = await Promise.all(selectedFiles.map((file, idx) =>
+          uploadListingAttachments(file, listingId, accessToken || undefined, startingSortOrder + idx)
         ));
+        
+        // Set thumbnail from first uploaded image if needed
+        if (shouldSetThumbnail && uploadResults[0]?.secure_url) {
+          newThumbnailUrl = uploadResults[0].secure_url;
+        }
+        
         setSelectedFiles([]);
       }
 
@@ -391,8 +526,20 @@ export default function EditListingPage() {
         setDeletedApiImages([]);
       }
 
+      // 5. UPDATE THUMBNAIL URL if new images were uploaded and no old images remain
+      if (newThumbnailUrl) {
+        await fetchWithRetry(`/api/listings/${listingId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ thumbnail_url: newThumbnailUrl }),
+          token: accessToken || undefined,
+          isAdmin: false
+        });
+      }
+
       addToast("Cập nhật bài đăng thành công!", "success");
-      router.push("/tai-khoan"); // Come back to accout profile
+      await router.push("/tai-khoan"); // Come back to accout profile
+      router.refresh();
 
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Có lỗi xảy ra khi cập nhật";
@@ -643,43 +790,58 @@ export default function EditListingPage() {
 
                 <div className="space-y-4">
                   {/* Cũ (API) - Kéo để sắp xếp */}
-                  {initialImages.filter(img => !deletedApiImages.includes(img.id)).length > 0 && (
-                    <div>
-                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3">Ảnh hiện tại (kéo để sắp xếp)</p>
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        {initialImages.filter(img => !deletedApiImages.includes(img.id)).map((img, idx) => (
-                          <div
-                            key={img.id}
-                            draggable
-                            onDragStart={() => handleDragStart(idx)}
-                            onDragOver={handleDragOver}
-                            onDrop={() => handleDrop(idx)}
-                            className={`relative aspect-square rounded-xl overflow-hidden border-2 cursor-move transition-all ${draggedItem === idx ? 'opacity-50 border-emerald-500' : 'border-slate-200 dark:border-slate-700'
-                              }`}
-                          >
-                            <img src={img.secure_url || img.url} alt="Listing File" className="w-full h-full object-cover" />
-                            {img.sort_order === 0 && (
-                              <span className="absolute bottom-2 left-2 bg-emerald-500 text-white text-[10px] uppercase font-bold px-2 py-1 rounded">Chính</span>
-                            )}
-                            {img.sort_order !== 0 && (
-                              <span className="absolute bottom-2 left-2 bg-slate-700 text-white text-[10px] uppercase font-bold px-2 py-1 rounded">#{img.sort_order || 0}</span>
-                            )}
-                            <button type="button" onClick={() => handleRemoveApiImage(img.id)} className="absolute top-2 right-2 font-bold w-6 h-6 bg-red-500 text-white rounded-full text-xs hover:bg-red-600">×</button>
-                          </div>
-                        ))}
+                  {(() => {
+                    const visibleImages = initialImages.filter(img => !deletedApiImages.includes(img.id));
+                    return visibleImages.length > 0 ? (
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3">Ảnh hiện tại (kéo để sắp xếp)</p>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                          {visibleImages.map((img, idx) => {
+                            const realIndex = initialImages.indexOf(img);
+                            const isFirstImage = idx === 0;
+                            return (
+                              <div
+                                key={img.id}
+                                draggable
+                                onDragStart={() => handleDragStart(realIndex)}
+                                onDragOver={(e) => handleDragOver(e, realIndex)}
+                                onDragLeave={handleDragLeave}
+                                onDrop={() => handleDrop(realIndex)}
+                                onDragEnd={handleDragEnd}
+                                className={`relative aspect-square rounded-xl overflow-hidden border-2 cursor-move transition-all duration-200 ${draggedItem === realIndex ? 'opacity-50 scale-95 border-emerald-500 ring-2 ring-emerald-500/30' : dropTargetIndex === realIndex ? 'scale-105 border-emerald-500 ring-2 ring-emerald-500/50' : 'border-slate-200 dark:border-slate-700 hover:border-emerald-400'
+                                  }`}
+                              >
+                                <img src={img.secure_url || img.url} alt="Listing File" className="w-full h-full object-cover" />
+                                {isFirstImage ? (
+                                  <span className="absolute bottom-2 left-2 bg-emerald-500 text-white text-[10px] uppercase font-bold px-2 py-1 rounded">Chính</span>
+                                ) : (
+                                  <span className="absolute bottom-2 left-2 bg-slate-700 text-white text-[10px] uppercase font-bold px-2 py-1 rounded">#{idx + 1}</span>
+                                )}
+                                <button type="button" onClick={() => handleRemoveApiImage(img.id)} className="absolute top-2 right-2 font-bold w-6 h-6 bg-red-500 text-white rounded-full text-xs hover:bg-red-600">×</button>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    ) : null;
+                  })()}
 
-                  {/* Mới (Local File) */}
+                  {/* Mới (Local File) - Kéo để sắp xếp */}
                   {selectedFiles.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3">Ảnh mới thêm</p>
+                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3">Ảnh mới thêm (kéo để sắp xếp)</p>
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         {selectedFiles.map((file, idx) => (
                           <div
                             key={idx}
-                            className="relative aspect-square rounded-xl overflow-hidden border-2 border-dashed border-emerald-400"
+                            draggable
+                            onDragStart={() => handleNewFileDragStart(idx)}
+                            onDragOver={(e) => handleNewFileDragOver(e, idx)}
+                            onDragLeave={handleNewFileDragLeave}
+                            onDrop={() => handleNewFileDrop(idx)}
+                            onDragEnd={handleNewFileDragEnd}
+                            className={`relative aspect-square rounded-xl overflow-hidden border-2 cursor-move transition-all duration-200 ${draggedNewFileIndex === idx ? 'opacity-50 scale-95 border-emerald-500 ring-2 ring-emerald-500/30' : dropTargetNewFileIndex === idx ? 'scale-105 border-emerald-500 ring-2 ring-emerald-500/50' : 'border-dashed border-emerald-400 hover:border-emerald-500'
+                              }`}
                           >
                             <img src={URL.createObjectURL(file)} alt="New file" className="w-full h-full object-cover" />
                             <span className="absolute top-2 left-2 bg-emerald-500 text-white text-[10px] uppercase font-bold px-1.5 py-0.5 rounded">Mới</span>

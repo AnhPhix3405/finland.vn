@@ -24,7 +24,7 @@ async function verifyAuth(request: NextRequest) {
   }
 
   const role = (payload as Record<string, unknown>).role as string;
-  
+
   if (role === 'admin') {
     return { valid: true, brokerId: (payload as Record<string, unknown>).id as string, isAdmin: true };
   }
@@ -61,15 +61,15 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || 'all';
     const search = searchParams.get('search') || '';
     const transactionType = searchParams.get('transaction_type') || '';
-    
+
     const skip = (page - 1) * limit;
 
     const whereClause: Record<string, unknown> = {
       broker_id: brokerId
     };
-    
+
     if (status && status !== 'all') {
-       whereClause.status = status;
+      whereClause.status = status;
     }
 
     if (search) {
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
         }
       },
       orderBy: {
-        created_at: 'desc'
+        updated_at: 'desc'
       }
     });
 

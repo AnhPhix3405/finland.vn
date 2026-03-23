@@ -195,9 +195,10 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      orderBy: {
-        created_at: 'desc'
-      }
+      orderBy: [
+        orderBy,
+        { id: 'desc' }
+      ]
     });
 
     const listingIds = listings.map(l => l.id);
