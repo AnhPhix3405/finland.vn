@@ -40,6 +40,7 @@ export default function AdminProjectList() {
   const [filterProvince, setFilterProvince] = useState('');
   const [filterWard, setFilterWard] = useState('');
   const [filterPropertyType, setFilterPropertyType] = useState('');
+  const [filterSortBy, setFilterSortBy] = useState('');
   const [propertyTypes, setPropertyTypes] = useState<PropertyType[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -51,7 +52,7 @@ export default function AdminProjectList() {
     totalPages: 0,
   });
 
-  const fetchProjects = async (page = 1) => {
+  const fetchProjectsData = async (page = 1, forceSort?: string) => {
     setLoading(true);
     try {
       const params: Record<string, string | number> = {
@@ -62,6 +63,9 @@ export default function AdminProjectList() {
       if (filterProvince) params.province = filterProvince;
       if (filterWard) params.ward = filterWard;
       if (filterPropertyType) params.property_type_id = filterPropertyType;
+      
+      const sortByValue = forceSort !== undefined ? forceSort : filterSortBy;
+      if (sortByValue !== undefined && sortByValue !== '') params.sortBy = sortByValue;
 
       const json = await getAdminProjects(params);
 
@@ -98,7 +102,7 @@ export default function AdminProjectList() {
     };
 
     fetchPropertyTypes();
-    fetchProjects();
+    fetchProjectsData();
   }, []);
 
   if (isLoading) {
@@ -111,13 +115,13 @@ export default function AdminProjectList() {
 
   const handleSearch = () => {
     setPagination(prev => ({ ...prev, page: 1 }));
-    fetchProjects(1);
+    fetchProjectsData(1);
   };
 
   const handlePageChange = (page: number) => {
     if (page < 1 || page > pagination.totalPages) return;
     setPagination(prev => ({ ...prev, page }));
-    fetchProjects(page);
+    fetchProjectsData(page);
   };
 
   const handleDelete = async () => {
@@ -177,13 +181,35 @@ export default function AdminProjectList() {
 
             <select
               value={filterPropertyType}
-              onChange={(e) => setFilterPropertyType(e.target.value)}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                setFilterPropertyType(newValue);
+                // Trigger reload for property type change
+                setPagination(prev => ({ ...prev, page: 1 }));
+              }}
               className="py-2 px-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm text-sm focus:ring-primary focus:border-primary dark:text-white text-slate-700 min-w-[140px]"
             >
               <option value="">Tất cả loại hình</option>
               {propertyTypes.map(type => (
                 <option key={type.id} value={type.id}>{type.name}</option>
               ))}
+            </select>
+
+            <select
+              value={filterSortBy}
+              onChange={(e) => {
+                const newSort = e.target.value;
+                setFilterSortBy(newSort);
+                setPagination(prev => ({ ...prev, page: 1 }));
+                setTimeout(() => fetchProjectsData(1, newSort), 0);
+              }}
+              className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm text-sm dark:text-white flex-1 sm:flex-initial font-medium text-emerald-600 dark:text-emerald-400"
+            >
+              <option value="">Mới cập nhật</option>
+              <option value="newest">Mới nhất</option>
+              <option value="oldest">Cũ nhất</option>
+              <option value="views_desc">Lượt xem (Giảm dần)</option>
+              <option value="views_asc">Lượt xem (Tăng dần)</option>
             </select>
 
             <button
@@ -194,7 +220,7 @@ export default function AdminProjectList() {
               Tìm
             </button>
             <button
-              onClick={() => handleSearch()}
+              onClick={() => fetchProjectsData()}
               disabled={loading}
               className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-sm text-sm font-medium flex items-center gap-1 transition-colors disabled:opacity-50"
               title="Làm mới"

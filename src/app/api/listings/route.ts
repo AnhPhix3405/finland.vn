@@ -171,6 +171,7 @@ export async function GET(request: NextRequest) {
     if (sortBy === 'price_asc') orderBy = { price: 'asc' };
     else if (sortBy === 'price_desc') orderBy = { price: 'desc' };
     else if (sortBy === 'oldest') orderBy = { created_at: 'asc' };
+    else if (sortBy === 'popular') orderBy = { views_count: 'desc' };
 
     const listings = await prisma.listings.findMany({
       where: whereClause,

@@ -99,6 +99,7 @@ export async function getListings(
     province?: string;
     ward?: string;
     search?: string;
+    sortBy?: string;
   }
 ): Promise<ListingListResponse & { statusCode?: number }> {
   try {
@@ -112,6 +113,7 @@ export async function getListings(
     if (filters?.province) params.set('province', filters.province);
     if (filters?.ward) params.set('ward', filters.ward);
     if (filters?.search) params.set('search', filters.search);
+    if (filters?.sortBy) params.set('sortBy', filters.sortBy);
 
     const response = await fetchWithRetry(`/api/admin/listings?${params.toString()}`, {
       ...(adminToken ? { token: adminToken } : {}),

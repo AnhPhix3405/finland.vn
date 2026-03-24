@@ -33,6 +33,7 @@ export default function AdminNewsListPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("");
   const [confirmModal, setConfirmModal] = useState<{
     open: boolean;
     title: string;
@@ -51,7 +52,7 @@ export default function AdminNewsListPage() {
     setMounted(true);
   }, []);
 
-  const fetchNews = async (page = 1) => {
+  const fetchNewsData = async (page = 1, currentSort = sortBy) => {
     setLoading(true);
     setError(null);
     try {
@@ -61,6 +62,9 @@ export default function AdminNewsListPage() {
       });
       if (searchQuery) {
         params.set('search', searchQuery);
+      }
+      if (currentSort) {
+        params.set('sortBy', currentSort);
       }
       const res = await fetchWithRetry(`/api/admin/news?${params}`, {
         token: adminToken || undefined,
@@ -95,18 +99,18 @@ export default function AdminNewsListPage() {
 
   useEffect(() => {
     if (!mounted) return;
-    fetchNews();
+    fetchNewsData(1);
   }, [adminToken, mounted]);
 
   const handleSearch = () => {
     setPagination(prev => ({ ...prev, page: 1 }));
-    fetchNews(1);
+    fetchNewsData(1);
   };
 
   const handlePageChange = (page: number) => {
     if (page < 1 || page > pagination.totalPages) return;
     setPagination(prev => ({ ...prev, page }));
-    fetchNews(page);
+    fetchNewsData(page);
   };
 
   const handleDeleteNews = async (newsItem: NewsArticle) => {
@@ -196,6 +200,20 @@ export default function AdminNewsListPage() {
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
             </div>
+            <select
+              value={sortBy}
+              onChange={(e) => {
+                const newSort = e.target.value;
+                setSortBy(newSort);
+                setPagination(prev => ({ ...prev, page: 1 }));
+                fetchNewsData(1, newSort);
+              }}
+              className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm text-xs sm:text-sm dark:text-white sm:flex-initial font-medium text-emerald-600 dark:text-emerald-400 min-w-[140px]"
+            >
+              <option value="">Mới cập nhật</option>
+              <option value="newest">Mới nhất</option>
+              <option value="oldest">Cũ nhất</option>
+            </select>
             <div className="flex gap-2 sm:gap-3">
               <button
                 onClick={handleSearch}
@@ -207,7 +225,7 @@ export default function AdminNewsListPage() {
                 <span className="hidden sm:inline">Tìm</span>
               </button>
               <button
-                onClick={() => fetchNews(1)}
+                onClick={() => fetchNewsData(1)}
                 disabled={loading}
                 className="h-8 sm:h-9 w-8 sm:w-auto sm:px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-sm text-xs sm:text-sm font-medium flex items-center justify-center sm:gap-2 disabled:opacity-50 transition-colors"
                 title="Làm mới"
