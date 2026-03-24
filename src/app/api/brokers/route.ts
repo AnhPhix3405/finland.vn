@@ -169,6 +169,19 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    // Check if email is changing to reset verification status
+    let shouldResetEmailVerification = false;
+    if (email !== undefined) {
+      const currentBroker = await prisma.brokers.findUnique({
+        where: { id: brokerId },
+        select: { email: true }
+      });
+      
+      if (currentBroker && currentBroker.email !== email) {
+        shouldResetEmailVerification = true;
+      }
+    }
+
     // Update broker by id
     const updatedBroker = await prisma.brokers.update({
       where: { id: brokerId },
@@ -180,6 +193,7 @@ export async function PATCH(request: NextRequest) {
         ...(ward !== undefined && { ward }),
         ...(address !== undefined && { address }),
         ...(bio !== undefined && { bio }),
+        ...(shouldResetEmailVerification && { is_email_verified: false }),
       }
     });
 
