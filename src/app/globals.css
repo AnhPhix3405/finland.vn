@@ -153,89 +153,102 @@
 
 /* Markdown Content Styling */
 .markdown-content {
-  @apply max-w-none;
+  @apply max-w-none break-words;
 }
 
 .markdown-content h1 {
-  @apply text-3xl font-black mt-8 mb-4 text-slate-900 dark:text-white;
+  @apply text-3xl font-black mt-10 mb-6 text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-2;
 }
 
 .markdown-content h2 {
-  @apply text-2xl font-bold mt-7 mb-3 text-slate-900 dark:text-white;
+  @apply text-2xl font-bold mt-8 mb-4 text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800/50 pb-1;
 }
 
 .markdown-content h3 {
-  @apply text-xl font-bold mt-6 mb-3 text-slate-900 dark:text-white;
+  @apply text-xl font-bold mt-7 mb-3 text-slate-900 dark:text-white;
 }
 
 .markdown-content h4 {
-  @apply text-lg font-bold mt-5 mb-2 text-slate-900 dark:text-white;
-}
-
-.markdown-content h5 {
-  @apply text-base font-bold mt-4 mb-2 text-slate-900 dark:text-white;
-}
-
-.markdown-content h6 {
-  @apply text-sm font-bold mt-3 mb-2 text-slate-900 dark:text-white;
+  @apply text-lg font-bold mt-6 mb-2 text-slate-900 dark:text-white;
 }
 
 .markdown-content p {
-  @apply mb-4 text-slate-700 dark:text-slate-300 leading-relaxed;
+  @apply mb-5 text-slate-700 dark:text-slate-300 leading-7;
 }
 
 .markdown-content strong {
-  @apply font-bold text-slate-900 dark:text-white;
+  @apply font-bold text-slate-950 dark:text-white;
 }
 
 .markdown-content em {
   @apply italic text-slate-700 dark:text-slate-300;
 }
 
+.markdown-content del {
+  @apply line-through text-slate-400;
+}
+
 .markdown-content a {
-  @apply text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 underline transition-colors;
+  @apply text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 underline underline-offset-4 decoration-emerald-600/30 transition-all;
 }
 
 .markdown-content ul {
-  @apply list-disc list-inside mb-4 ml-4 space-y-2;
+  @apply list-disc list-outside mb-5 pl-6 space-y-2;
 }
 
 .markdown-content ol {
-  @apply list-decimal list-inside mb-4 ml-4 space-y-2;
+  @apply list-decimal list-outside mb-5 pl-6 space-y-2;
 }
 
 .markdown-content li {
-  @apply text-slate-700 dark:text-slate-300;
+  @apply text-slate-700 dark:text-slate-300 pl-1;
+}
+
+/* Task list styling (remark-gfm) */
+.markdown-content li input[type="checkbox"] {
+  @apply mr-2 mt-1 rounded border-slate-300 dark:border-slate-700;
 }
 
 .markdown-content blockquote {
-  @apply border-l-4 border-emerald-600 pl-4 py-2 my-4 italic text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-900/30 rounded;
+  @apply border-l-4 border-emerald-500 pl-6 py-1 my-6 italic text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-900/30 rounded-r-lg;
 }
 
 .markdown-content code {
-  @apply bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-sm font-mono text-slate-900 dark:text-slate-100;
+  @apply bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[0.9em] font-mono text-emerald-700 dark:text-emerald-400 font-medium;
 }
 
 .markdown-content pre {
-  @apply bg-slate-100 dark:bg-slate-800 p-4 rounded-lg overflow-auto mb-4;
+  @apply bg-slate-950 dark:bg-slate-950 p-5 rounded-xl overflow-auto mb-6 shadow-inner border border-white/5;
 }
 
 .markdown-content pre code {
-  @apply bg-transparent px-0 py-0;
+  @apply bg-transparent px-0 py-0 text-slate-300 text-sm leading-6 font-normal;
 }
 
 .markdown-content hr {
-  @apply my-6 border-slate-200 dark:border-slate-700;
+  @apply my-8 border-slate-200 dark:border-slate-800;
+}
+
+.markdown-content img {
+  @apply rounded-xl shadow-md my-8 mx-auto max-w-full;
 }
 
 .markdown-content table {
-  @apply w-full border-collapse mb-4;
+  @apply w-full border-collapse mb-6 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800;
 }
 
 .markdown-content table th {
-  @apply bg-slate-100 dark:bg-slate-800 font-bold text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 px-3 py-2;
+  @apply bg-slate-50 dark:bg-slate-800/50 font-bold text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 px-4 py-3 text-left text-sm;
 }
 
 .markdown-content table td {
-  @apply border border-slate-200 dark:border-slate-700 px-3 py-2 text-slate-700 dark:text-slate-300;
+  @apply border border-slate-200 dark:border-slate-800 px-4 py-3 text-slate-700 dark:text-slate-300 text-sm;
 }
+
+.markdown-content figure {
+  @apply my-8;
+}
+
+.markdown-content figcaption {
+  @apply text-center text-sm text-slate-500 mt-2;
+}

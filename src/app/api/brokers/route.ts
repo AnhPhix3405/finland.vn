@@ -18,14 +18,14 @@ async function verifyAuth(request: NextRequest) {
     }
 
     const role = (payload as Record<string, unknown>).role as string;
+    const tokenBrokerId = (payload as Record<string, unknown>).id as string;
 
     if (role === 'admin') {
-      return { valid: true };
+      return { valid: true, brokerId: tokenBrokerId, isAdmin: true };
     }
 
-    const brokerId = (payload as Record<string, unknown>).id as string;
     const broker = await prisma.brokers.findUnique({
-      where: { id: brokerId },
+      where: { id: tokenBrokerId },
       select: { is_active: true }
     });
 
@@ -37,7 +37,7 @@ async function verifyAuth(request: NextRequest) {
       return { valid: false, error: 'Tài khoản của bạn đã bị khóa', status: 403 };
     }
 
-    return { valid: true };
+    return { valid: true, brokerId: tokenBrokerId, isAdmin: false };
   } catch {
     return { valid: false, error: 'Token không hợp lệ', status: 401 };
   }
@@ -158,6 +158,14 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'ID broker hoặc số điện thoại là bắt buộc' },
         { status: 400 }
+      );
+    }
+
+    // [FIX] IDOR Vulnerability: Ensure user can only update their own profile
+    if (!auth.isAdmin && brokerId !== auth.brokerId) {
+      return NextResponse.json(
+        { success: false, error: 'Bạn không có quyền cập nhật thông tin cho tài khoản khác' },
+        { status: 403 }
       );
     }
 
