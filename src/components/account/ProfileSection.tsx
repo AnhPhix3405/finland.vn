@@ -1,7 +1,8 @@
 "use client";
 
-import { User, Camera, Bell, Loader2, MapPin, FileText } from "lucide-react";
+import { User, Camera, Bell, Loader2, MapPin, FileText, CheckCircle2, ShieldCheck, Mail, Send } from "lucide-react";
 import { useUserStore } from "@/src/store/userStore";
+import { useAuthStore } from "@/src/store/authStore";
 import { useNotificationStore } from "@/src/store/notificationStore";
 import { useState, useEffect, useRef } from "react";
 import { updateBroker, UpdateBrokerData } from "@/src/app/modules/broker.service";
@@ -15,6 +16,91 @@ export default function ProfileSection() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Email verification state
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+  const [showVerificationInput, setShowVerificationInput] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [countdown, setCountdown] = useState(0);
+
+  // Countdown timer for resend
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (countdown > 0) {
+      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
+  const handleSendCode = async () => {
+    if (!formData.email) {
+      addToast('Vui lòng nhập email trước khi xác thực', 'error');
+      return;
+    }
+
+    setIsSendingCode(true);
+    try {
+      const accessToken = useAuthStore.getState().accessToken;
+      const response = await fetch('/api/auth/verify-email/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ email: formData.email })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        addToast('Mã xác thực đã được gửi đến email của bạn', 'success');
+        setShowVerificationInput(true);
+        setCountdown(60);
+      } else {
+        addToast(result.error || 'Không thể gửi mã xác thực', 'error');
+      }
+    } catch (error) {
+      addToast('Lỗi kết nối. Vui lòng thử lại.', 'error');
+    } finally {
+      setIsSendingCode(false);
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    if (verificationCode.length !== 6) {
+      addToast('Mã xác thực phải có 6 chữ số', 'error');
+      return;
+    }
+
+    setIsVerifyingCode(true);
+    try {
+      const accessToken = useAuthStore.getState().accessToken;
+      const response = await fetch('/api/auth/verify-email/confirm', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ email: formData.email, code: verificationCode })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        addToast('Xác thực email thành công!', 'success');
+        setShowVerificationInput(false);
+        // Update user store
+        if (user) {
+          useUserStore.getState().setUser({ ...user, is_email_verified: true });
+        }
+      } else {
+        addToast(result.error || 'Mã xác thực không chính xác', 'error');
+      }
+    } catch (error) {
+      addToast('Lỗi kết nối. Vui lòng thử lại.', 'error');
+    } finally {
+      setIsVerifyingCode(false);
+    }
+  };
 
   // Form data state
   const [formData, setFormData] = useState<UpdateBrokerData>({
@@ -236,18 +322,84 @@ export default function ProfileSection() {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="emailAddress" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Email
-              </label>
-              <input
-                id="emailAddress"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                placeholder="Nhập email của bạn"
-                className="w-full rounded-md border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-slate-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500 transition-all text-sm h-10 px-3 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-              />
+              <div className="flex items-center justify-between">
+                <label htmlFor="emailAddress" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Email
+                </label>
+                {user.email && (
+                  user.is_email_verified ? (
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 uppercase tracking-wider bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-800">
+                      <ShieldCheck className="size-3" /> Đã xác thực
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSendCode}
+                      disabled={isSendingCode || countdown > 0}
+                      className="text-[10px] font-bold text-amber-600 hover:text-amber-700 uppercase tracking-wider flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full border border-amber-100 dark:border-amber-800 transition-colors disabled:opacity-50"
+                    >
+                      {isSendingCode ? <Loader2 className="size-3 animate-spin" /> : <Mail className="size-3" />}
+                      {countdown > 0 ? `Gửi lại sau ${countdown}s` : 'Xác thực ngay'}
+                    </button>
+                  )
+                )}
+              </div>
+              <div className="relative">
+                <input
+                  id="emailAddress"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  placeholder="Nhập email của bạn"
+                  className={`w-full rounded-md border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-slate-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500 transition-all text-sm h-10 px-3 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${user.is_email_verified ? 'pr-10' : ''}`}
+                />
+                {user.is_email_verified && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500">
+                    <CheckCircle2 className="size-4" />
+                  </div>
+                )}
+              </div>
+
+              {showVerificationInput && !user.is_email_verified && (
+                <div className="mt-3 p-4 bg-slate-50 dark:bg-slate-800/80 rounded-lg border border-slate-200 dark:border-slate-700 animate-in fade-in slide-in-from-top-2 md:-mr-[60px] relative z-10">
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
+                    Nhập mã 6 chữ số đã được gửi đến <strong>{formData.email}</strong>
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+                      placeholder="000000"
+                      className="flex-1 rounded-md border-slate-300 dark:border-slate-700 dark:bg-slate-900 text-slate-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500 text-center tracking-[0.5em] font-bold h-10 px-3 shadow-sm focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleVerifyCode}
+                      disabled={isVerifyingCode || verificationCode.length !== 6}
+                      className="px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {isVerifyingCode ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}
+                      Xác nhận
+                    </button>
+                  </div>
+                  {countdown > 0 ? (
+                    <p className="text-[10px] text-slate-500 mt-2">
+                      Bạn có thể gửi lại mã sau {countdown} giây
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSendCode}
+                      className="text-[10px] text-emerald-600 hover:underline mt-2 font-semibold"
+                    >
+                      Gửi lại mã
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="space-y-2 md:col-span-2">
