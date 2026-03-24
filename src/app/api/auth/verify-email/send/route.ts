@@ -1,24 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { transporter } from "@/src/lib/email_transporter";
 import { verificationCodes } from "@/src/lib/verification_store";
-import { verifyToken } from "@/src/app/modules/auth/jwt";
+import { prisma } from "@/src/lib/prisma";
 
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("authorization");
-    const token = authHeader?.replace("Bearer ", "");
-    if (!token) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
-
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return NextResponse.json({ success: false, error: "Invalid token" }, { status: 401 });
-    }
-
     const { email } = await request.json();
     if (!email) {
       return NextResponse.json({ success: false, error: "Email is required" }, { status: 400 });
+    }
+
+    // Check if broker exists with this email
+    const broker = await prisma.brokers.findFirst({
+      where: { email },
+      select: { id: true }
+    });
+
+    if (!broker) {
+      return NextResponse.json({
+        success: false,
+        error: "Email này chưa được đăng ký trong hệ thống"
+      }, { status: 404 });
     }
 
     // Generate 6-digit code
