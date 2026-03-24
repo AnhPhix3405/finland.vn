@@ -82,6 +82,8 @@ export function PlanningMap() {
   const [listings, setListings] = useState<any[]>([]);
   const [hoveredListing, setHoveredListing] = useState<any>(null);
   const [hoverPosition, setHoverPosition] = useState<{ x: number, y: number } | null>(null);
+  const [activeOverlay, setActiveOverlay] = useState<'none' | 'qhsdd' | 'ranh_thua' | 'qhlg'>('none');
+  const [overlayOpacity, setOverlayOpacity] = useState(0.7);
 
   // Location Search State
   const [selectedProvince, setSelectedProvince] = useState('Hồ Chí Minh');
@@ -312,8 +314,8 @@ export function PlanningMap() {
           type: 'line',
           source: 'planning-source',
           paint: {
-            'line-color': '#fff',
-            'line-width': 1
+            'line-color': '#f97316', // Vibrant Orange
+            'line-width': 2
           }
         });
       }
@@ -366,7 +368,61 @@ export function PlanningMap() {
         }
       });
 
-      // 6. Update Listings Source (NEW)
+      // 6. Update EstateManner Overlays (NEW)
+      const overlayLayerId = 'estatemanner-overlay';
+      const overlaySourceId = 'estatemanner-source';
+
+      if (activeOverlay !== 'none') {
+        const tileUrl = `https://cdn.estatemanner.com/tile/${activeOverlay}/{z}/{x}/{y}.png`;
+        
+        if (!m.getSource(overlaySourceId)) {
+          m.addSource(overlaySourceId, {
+            type: 'raster',
+            tiles: [tileUrl],
+            tileSize: 256
+          });
+        } else {
+          const source = m.getSource(overlaySourceId) as any;
+          if (source.tiles[0] !== tileUrl) {
+            m.removeLayer(overlayLayerId);
+            m.removeSource(overlaySourceId);
+            m.addSource(overlaySourceId, {
+              type: 'raster',
+              tiles: [tileUrl],
+              tileSize: 256
+            });
+          }
+        }
+
+        if (!m.getLayer(overlayLayerId)) {
+          const layers = m.getStyle().layers;
+          let labelLayerId;
+          if (layers) {
+            for (let i = 0; i < layers.length; i++) {
+              if (layers[i].type === 'symbol') {
+                labelLayerId = layers[i].id;
+                break;
+              }
+            }
+          }
+          
+          m.addLayer({
+            id: overlayLayerId,
+            type: 'raster',
+            source: overlaySourceId,
+            paint: {
+              'raster-opacity': overlayOpacity
+            }
+          }, labelLayerId);
+        } else {
+          m.setPaintProperty(overlayLayerId, 'raster-opacity', overlayOpacity);
+        }
+      } else {
+        if (m.getLayer(overlayLayerId)) m.removeLayer(overlayLayerId);
+        if (m.getSource(overlaySourceId)) m.removeSource(overlaySourceId);
+      }
+
+      // 7. Update Listings Source (NEW)
       const mapFeatures = listings.map(l => ({
         type: 'Feature' as const,
         geometry: {
@@ -726,6 +782,51 @@ export function PlanningMap() {
                     <span className={cn("text-xs font-bold transition-colors", mapStyle === style.id ? "text-orange-500" : "text-white/60")}>{style.name}</span>
                   </button>
                 ))}
+              </div>
+              <div className="pt-4 border-t border-white/5 space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                  <span className="text-white font-bold text-[10px] uppercase tracking-widest opacity-80">Lớp phủ quy hoạch</span>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  {[
+                    { id: 'none', name: 'Không có' },
+                    { id: 'qhsdd', name: 'QH Sử dụng đất' },
+                    { id: 'ranh_thua', name: 'Ranh thửa đất' },
+                    { id: 'qhlg', name: 'QH Lộ giới' }
+                  ].map((overlay) => (
+                    <button
+                      key={overlay.id}
+                      onClick={() => setActiveOverlay(overlay.id as any)}
+                      className={cn(
+                        "flex items-center justify-between p-2.5 rounded-xl border transition-all",
+                        activeOverlay === overlay.id ? "border-orange-500 bg-orange-500/10 text-orange-400" : "border-white/5 bg-white/5 text-white/60 hover:bg-white/10"
+                      )}
+                    >
+                      <span className="text-xs font-bold">{overlay.name}</span>
+                      {activeOverlay === overlay.id && <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.8)]" />}
+                    </button>
+                  ))}
+                </div>
+
+                {activeOverlay !== 'none' && (
+                  <div className="space-y-2 pt-2">
+                    <div className="flex justify-between text-[10px] uppercase font-bold tracking-wider">
+                      <span className="text-white/40">Độ hiển thị</span>
+                      <span className="text-orange-500">{Math.round(overlayOpacity * 100)}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={overlayOpacity}
+                      onChange={(e) => setOverlayOpacity(parseFloat(e.target.value))}
+                      className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                    />
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
