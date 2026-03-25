@@ -72,30 +72,24 @@ export async function GET(request: NextRequest) {
       try {
         const payload = await verifyToken(token);
         if (payload && (payload as Record<string, unknown>).id) {
-          if ((payload as Record<string, unknown>).role !== 'admin') {
+          const brokerIdFromToken = (payload as Record<string, unknown>).id as string;
+          
+          if ((payload as Record<string, unknown>).role === 'admin') {
+            currentBrokerId = brokerIdFromToken;
+          } else {
+            // Check if broker exists and is active - but don't fail the request if not
             const broker = await prisma.brokers.findUnique({
-              where: { id: (payload as Record<string, unknown>).id as string },
+              where: { id: brokerIdFromToken },
               select: { is_active: true }
             });
-            if (!broker) {
-              return NextResponse.json(
-                { success: false, error: 'Tài khoản đã bị khóa' },
-                { status: 403 }
-              );
+
+            if (broker?.is_active) {
+              currentBrokerId = brokerIdFromToken;
             }
-            if (!broker.is_active) {
-              return NextResponse.json(
-                { success: false, error: 'Tài khoản đã bị khóa' },
-                { status: 403 }
-              );
-            }
-            currentBrokerId = (payload as Record<string, unknown>).id as string;
-          } else {
-            currentBrokerId = (payload as Record<string, unknown>).id as string;
           }
         }
       } catch (err) {
-        // Token invalid, continue without broker context
+        // Token invalid, continue as guest
       }
     }
 
@@ -177,6 +171,7 @@ export async function GET(request: NextRequest) {
     if (sortBy === 'price_asc') orderBy = { price: 'asc' };
     else if (sortBy === 'price_desc') orderBy = { price: 'desc' };
     else if (sortBy === 'oldest') orderBy = { created_at: 'asc' };
+    else if (sortBy === 'popular') orderBy = { views_count: 'desc' };
 
     const listings = await prisma.listings.findMany({
       where: whereClause,

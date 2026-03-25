@@ -20,16 +20,12 @@ export default function Footer() {
             <h4 className="text-base font-semibold text-white mb-4 uppercase tracking-wider">Thông tin liên hệ</h4>
             <ul className="space-y-3 text-sm">
               <li className="flex items-start">
-                <span className="material-symbols-outlined text-slate-400 mr-2 text-[18px] mt-0.5">location_on</span>
-                <span className="text-slate-400">Tầng 3, Tòa nhà Landmark, Quận Nam Từ Liêm, Hà Nội</span>
-              </li>
-              <li className="flex items-start">
-                <span className="material-symbols-outlined text-slate-400 mr-2 text-[18px] mt-0.5">location_on</span>
-                <span className="text-slate-400">Tầng 5, Tòa nhà Bitexco, Quận 1, TP.HCM</span>
+                <span className="material-symbols-outlined text-slate-400 mr-2 text-[18px] -mt-0.5">location_on</span>
+                <span className="text-slate-400">Số 7 ngõ 146 trần phú hà đông hà nội</span>
               </li>
               <li className="flex items-center">
                 <span className="material-symbols-outlined text-slate-400 mr-2 text-[18px]">phone</span>
-                <span className="text-slate-400">1900 1234</span>
+                <span className="text-slate-400">0335766001</span>
               </li>
               <li className="flex items-center">
                 <span className="material-symbols-outlined text-slate-400 mr-2 text-[18px]">email</span>

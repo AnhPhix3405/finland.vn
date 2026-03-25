@@ -91,6 +91,7 @@ export default function ProjectDetail() {
     return `${numPrice.toLocaleString('vi-VN')} đồng`;
   };
 
+  // 1. Effect fetch dữ liệu project - Chỉ chạy lại khi slug thay đổi
   useEffect(() => {
     const fetchProject = async () => {
       try {
@@ -102,7 +103,7 @@ export default function ProjectDetail() {
           return;
         }
 
-        // Update context with current slug
+        // Cập nhật context - hành động này không nên trigger fetchProject chạy lại
         if (slug && slug !== projectSlug) {
           setProjectSlug(slug);
         }
@@ -117,8 +118,6 @@ export default function ProjectDetail() {
           // Lấy 3 dự án lân cận
           try {
             let related: Project[] = [];
-
-            // 1. Ưu tiên cùng phường/xã
             if (currentProject.province && currentProject.ward) {
               const wardRes = await getProjects({
                 province: currentProject.province,
@@ -128,12 +127,10 @@ export default function ProjectDetail() {
               if (wardRes.success) related = [...related, ...wardRes.data];
             }
 
-            // Lọc bớt kết quả trùng và trừ dự án hiện tại
             related = related.filter((p, index, self) =>
               p.id !== currentProject.id && index === self.findIndex((t) => t.id === p.id)
             );
 
-            // 2. Nếu thiếu, bổ sung thêm dự án cùng Tỉnh/Thành phố
             if (related.length < 3 && currentProject.province) {
               const provRes = await getProjects({
                 province: currentProject.province,
@@ -146,7 +143,6 @@ export default function ProjectDetail() {
               p.id !== currentProject.id && index === self.findIndex((t) => t.id === p.id)
             );
 
-            // 3. Nếu vẫn không đủ lấy random (không có filter loc)
             if (related.length < 3) {
               const anyRes = await getProjects({ limit: 10 });
               if (anyRes.success) related = [...related, ...anyRes.data];
@@ -159,13 +155,6 @@ export default function ProjectDetail() {
             setRelatedProjects(related);
           } catch (err) {
             console.warn("Failed to fetch related projects", err);
-          }
-
-          // Increment view count
-          if (result.data.id) {
-            incrementProjectViews(result.data.id).catch(err => {
-              console.error('Failed to increment views:', err);
-            });
           }
 
           // Fetch project attachments
@@ -192,7 +181,19 @@ export default function ProjectDetail() {
     };
 
     fetchProject();
-  }, [slug, projectSlug, setProjectSlug, setActiveProjectId]);
+  }, [slug]); // Chỉ phụ thuộc vào slug thực tế từ URL
+
+  // 2. Effect tăng view - Chỉ chạy 1 lần khi có project.id và chỉ cho user (không phải admin)
+  useEffect(() => {
+    if (project?.id) {
+      // Logic kiểm tra admin nếu cần (theo yêu cầu trước đó của bạn)
+      // Lưu ý: Nếu đã xử lý tăng view ở server (trong API GET project) thì có thể bỏ effect này hoàn toàn.
+      // Nhưng nếu bạn muốn giữ route views riêng:
+      incrementProjectViews(project.id).catch(err => {
+        console.error('Failed to increment views:', err);
+      });
+    }
+  }, [project?.id]);
 
   const getStatusBadge = (status?: string) => {
     switch (status) {

@@ -16,6 +16,7 @@ export interface User {
     created_at?: string | Date;
     updated_at?: string | Date;
     role?: 'broker' | 'admin';
+    is_email_verified?: boolean;
 }
 
 interface UserState {

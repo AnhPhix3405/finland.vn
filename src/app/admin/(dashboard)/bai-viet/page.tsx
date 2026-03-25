@@ -63,21 +63,19 @@ export default function AdminArticleList() {
     status: "",
     transaction: "",
     province: "",
-    ward: ""
+    ward: "",
+    sortBy: ""
   });
 
-  useEffect(() => {
-    loadListings();
-  }, []);
-
-  const loadListings = async (page = 1) => {
+  const loadListingsData = async (page = 1, currentFilters = filters) => {
     try {
       setLoading(true);
       const result = await getListings(page, pagination.limit, {
-        status: filters.status || undefined,
-        transaction_type: filters.transaction || undefined,
-        province: filters.province || undefined,
-        ward: filters.ward || undefined,
+        status: currentFilters.status || undefined,
+        transaction_type: currentFilters.transaction || undefined,
+        sortBy: currentFilters.sortBy || undefined,
+        province: currentFilters.province || undefined,
+        ward: currentFilters.ward || undefined,
         search: searchTerm || undefined,
       });
 
@@ -101,15 +99,19 @@ export default function AdminArticleList() {
     }
   };
 
+  useEffect(() => {
+    loadListingsData(1);
+  }, []);
+
   const handleSearch = () => {
     setPagination(prev => ({ ...prev, page: 1 }));
-    loadListings(1);
+    loadListingsData(1);
   };
 
   const handlePageChange = (page: number) => {
     if (page < 1 || page > pagination.totalPages) return;
     setPagination(prev => ({ ...prev, page }));
-    loadListings(page);
+    loadListingsData(page);
   };
 
   const handleApprove = (listingId: string) => {
@@ -265,24 +267,50 @@ export default function AdminArticleList() {
               <input
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && loadListings()}
+                onKeyDown={(e) => e.key === "Enter" && loadListingsData()}
                 className="pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white w-full"
                 placeholder="Tìm theo tiêu đề, tên tác giả, mã bài viết..."
               />
             </div>
             <select
               value={filters.status}
-              onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+              onChange={(e) => {
+                const newFilters = { ...filters, status: e.target.value };
+                setFilters(newFilters);
+                setPagination(prev => ({ ...prev, page: 1 }));
+                loadListingsData(1, newFilters);
+              }}
               className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm text-sm dark:text-white flex-1 sm:flex-initial"
             >
               {STATUS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
             </select>
             <select
               value={filters.transaction}
-              onChange={(e) => setFilters(prev => ({ ...prev, transaction: e.target.value }))}
+              onChange={(e) => {
+                const newFilters = { ...filters, transaction: e.target.value };
+                setFilters(newFilters);
+                setPagination(prev => ({ ...prev, page: 1 }));
+                loadListingsData(1, newFilters);
+              }}
               className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm text-sm dark:text-white flex-1 sm:flex-initial"
             >
               {TRANSACTION_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+            </select>
+            <select
+              value={filters.sortBy}
+              onChange={(e) => {
+                const newFilters = { ...filters, sortBy: e.target.value };
+                setFilters(newFilters);
+                setPagination(prev => ({ ...prev, page: 1 }));
+                loadListingsData(1, newFilters);
+              }}
+              className="px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm text-sm dark:text-white flex-1 sm:flex-initial font-medium text-emerald-600 dark:text-emerald-400"
+            >
+              <option value="">Mới cập nhật</option>
+              <option value="newest">Mới nhất</option>
+              <option value="oldest">Cũ nhất</option>
+              <option value="views_desc">Lượt xem (Giảm dần)</option>
+              <option value="views_asc">Lượt xem (Tăng dần)</option>
             </select>
           </div>
 
@@ -298,7 +326,7 @@ export default function AdminArticleList() {
               />
             </div>
             <button
-              onClick={() => loadListings()}
+              onClick={() => loadListingsData(1)}
               disabled={loading}
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-sm text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
             >
@@ -306,7 +334,7 @@ export default function AdminArticleList() {
               Lọc
             </button>
             <button
-              onClick={() => loadListings()}
+              onClick={() => loadListingsData()}
               disabled={loading}
               className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-3 py-2 rounded-sm text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
               title="Làm mới dữ liệu"

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, signAccessToken } from '@/src/app/modules/auth/jwt';
+import { prisma } from '@/src/lib/prisma';
 
 export async function POST(request: NextRequest) {
     try {
@@ -14,16 +15,36 @@ export async function POST(request: NextRequest) {
 
         const payload = await verifyToken(refreshToken);
 
-        if (!payload) {
+        if (!payload || !(payload as Record<string, unknown>).id) {
             return NextResponse.json(
                 { success: false, error: 'Unauthorized: Invalid or expired refresh token' },
                 { status: 401 }
             );
         }
 
-        // Generate new access token
-        // Remove exp and iat from payload to sign a fresh one
         const { exp, iat, ...userData } = payload as Record<string, unknown>;
+
+        // [FIX] Verify user still exists and is active in DB
+        const user = await prisma.brokers.findUnique({
+            where: { id: userData.id as string },
+            select: { is_active: true }
+        });
+
+        if (!user) {
+            return NextResponse.json(
+                { success: false, error: 'Unauthorized: User no longer exists' },
+                { status: 401 }
+            );
+        }
+
+        if (!user.is_active) {
+            return NextResponse.json(
+                { success: false, error: 'Unauthorized: Account is locked' },
+                { status: 403 }
+            );
+        }
+
+        // Generate new access token
         const accessToken = await signAccessToken(userData);
 
         return NextResponse.json({

@@ -88,6 +88,19 @@ export async function GET(request: NextRequest) {
       ];
     }
 
+    // Sort
+    const sortBy = searchParams.get('sortBy');
+    let orderBy: any = { updated_at: 'desc' };
+    if (sortBy === 'newest') {
+      orderBy = { created_at: 'desc' };
+    } else if (sortBy === 'oldest') {
+      orderBy = { created_at: 'asc' };
+    } else if (sortBy === 'views_desc') {
+      orderBy = { views_count: 'desc' };
+    } else if (sortBy === 'views_asc') {
+      orderBy = { views_count: 'asc' };
+    }
+
     const listings = await prisma.listings.findMany({
       where: whereClause,
       skip,
@@ -124,9 +137,7 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      orderBy: {
-        created_at: 'desc'
-      }
+      orderBy: orderBy
     });
 
     const total = await prisma.listings.count({ where: whereClause });

@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     const province = searchParams.get('province');
     const ward = searchParams.get('ward');
     const property_type_id = searchParams.get('property_type_id');
-
+    const sortBy = searchParams.get('sortBy');
     const skip = (page - 1) * limit;
 
     const where: Prisma.projectsWhereInput = {};
@@ -60,15 +60,25 @@ export async function GET(request: NextRequest) {
 
     const totalCount = await prisma.projects.count({ where });
 
+    let orderBy: Prisma.projectsOrderByWithRelationInput[] = [{ updated_at: 'desc' }];
+    if (sortBy === 'newest') {
+      orderBy = [{ created_at: 'desc' }];
+    } else if (sortBy === 'oldest') {
+      orderBy = [{ created_at: 'asc' }];
+    } else if (sortBy === 'views_desc') {
+      orderBy = [{ views_count: 'desc' }, { updated_at: 'desc' }];
+    } else if (sortBy === 'views_asc') {
+      orderBy = [{ views_count: 'asc' }, { updated_at: 'desc' }];
+    }
+
     const projects = await prisma.projects.findMany({
       where,
       skip,
       take: limit,
-      orderBy: [{ updated_at: 'desc' }, { name: 'asc' }],
+      orderBy,
       include: {
         property_types: true,
       },
-
     });
 
     return NextResponse.json({

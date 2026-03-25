@@ -71,6 +71,7 @@ export default function BrokerList() {
   };
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     fetchBrokers();
   }, []);
 

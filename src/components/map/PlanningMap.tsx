@@ -353,7 +353,7 @@ export function PlanningMap() {
           type: 'line',
           source: 'selected-source',
           paint: {
-            'line-color': '#ffff00',
+            'line-color': '#fcd34d', // Bright Yellow
             'line-width': 4
           }
         });
@@ -382,6 +382,7 @@ export function PlanningMap() {
             tileSize: 256
           });
         } else {
+          // If source exists but URL changed, we need to replace it
           const source = m.getSource(overlaySourceId) as any;
           if (source.tiles[0] !== tileUrl) {
             m.removeLayer(overlayLayerId);
@@ -395,6 +396,7 @@ export function PlanningMap() {
         }
 
         if (!m.getLayer(overlayLayerId)) {
+          // Find the first symbol layer to insert below (so labels stay on top)
           const layers = m.getStyle().layers;
           let labelLayerId;
           if (layers) {

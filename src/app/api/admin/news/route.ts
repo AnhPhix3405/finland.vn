@@ -38,10 +38,17 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const skip = (page - 1) * limit;
     const search = searchParams.get('search');
-
+    const sortBy = searchParams.get('sortBy');
     const whereClause: Record<string, unknown> = {};
     if (search) {
       whereClause.title = { contains: search, mode: 'insensitive' };
+    }
+
+    let orderBy: any = { updated_at: 'desc' };
+    if (sortBy === 'newest') {
+      orderBy = { created_at: 'desc' };
+    } else if (sortBy === 'oldest') {
+      orderBy = { created_at: 'asc' };
     }
 
     // Get all news with tags
@@ -61,9 +68,7 @@ export async function GET(request: NextRequest) {
             }
           }
         },
-        orderBy: {
-          updated_at: 'desc'
-        },
+        orderBy: orderBy,
         take: limit,
         skip: skip
       }),
