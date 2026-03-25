@@ -92,6 +92,23 @@ export function PlanningMap() {
   const [reconcileTrigger, setReconcileTrigger] = useState(0);
   const [revGeocodeAddr, setRevGeocodeAddr] = useState<string>('');
 
+  // Valuation Specific States
+  const [valuationLoading, setValuationLoading] = useState(false);
+  const [valuationResult, setValuationResult] = useState<any>(null);
+  const [valuationError, setValuationError] = useState<string | null>(null);
+  const [valuationTimeout, setValuationTimeout] = useState(300);
+  const [showValuationModal, setShowValuationModal] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   const fetchReverseGeocode = useCallback(async (latitude: number, longitude: number) => {
     try {
       const res = await fetch(
@@ -374,7 +391,7 @@ export function PlanningMap() {
 
       if (activeOverlay !== 'none') {
         const tileUrl = `https://cdn.estatemanner.com/tile/${activeOverlay}/{z}/{x}/{y}.png`;
-        
+
         if (!m.getSource(overlaySourceId)) {
           m.addSource(overlaySourceId, {
             type: 'raster',
@@ -407,7 +424,7 @@ export function PlanningMap() {
               }
             }
           }
-          
+
           m.addLayer({
             id: overlayLayerId,
             type: 'raster',
@@ -579,12 +596,20 @@ export function PlanningMap() {
   }, []);
 
   const handleSearchByCoord = useCallback(async (latitude: number, longitude: number) => {
+    // Cancel any pending requests (planning or valuation)
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     console.log('DEBUG: handleSearchByCoord triggered with:', { latitude, longitude });
     setLoading(true);
     setSelectedInfo(null);
     setShowInfo(false);
     setHistoryFeatures([]);
     setRevGeocodeAddr('');
+    setValuationResult(null); // Reset valuation result on new click
+    setValuationError(null); // Reset valuation error
     fetchReverseGeocode(latitude, longitude);
 
     try {
@@ -592,7 +617,8 @@ export function PlanningMap() {
       const res = await fetch('/api/bestimate/planning', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'coord', lat: latitude, lng: longitude })
+        body: JSON.stringify({ type: 'coord', lat: latitude, lng: longitude }),
+        signal: abortControllerRef.current.signal
       });
       const response = await res.json();
       console.log('DEBUG: Planning API Response received:', response);
@@ -603,12 +629,61 @@ export function PlanningMap() {
       } else {
         console.warn('DEBUG: No geo_data or segment in response data:', data);
       }
-    } catch (err) {
-      console.error('DEBUG: Search error:', err);
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        console.log('DEBUG: Planning request aborted');
+      } else {
+        console.error('DEBUG: Search error:', err);
+      }
     } finally {
-      setLoading(false);
+      if (!abortControllerRef.current?.signal.aborted) {
+        setLoading(false);
+      }
     }
   }, []);
+
+  const handleValuation = async () => {
+    if (!selectedInfo?.parcel && !selectedInfo?.valuation_input) return;
+
+    setValuationLoading(true);
+    setValuationError(null);
+    setShowValuationModal(false);
+
+    try {
+      const res = await fetch('/api/bestimate/valuation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          valuation_input: selectedInfo.valuation_input || selectedInfo.parcel,
+          timeout: valuationTimeout
+        }),
+        signal: abortControllerRef.current?.signal
+      });
+      const data = await res.json();
+      if (data.success && data.data) {
+        setValuationResult(data.data);
+      } else {
+        const errorMessage = data.message || data.error || 'Có lỗi xảy ra trong quá trình định giá';
+        if (errorMessage.includes('Hết thời gian chờ') || errorMessage.includes('timeout')) {
+          setValuationError('Hệ thống cần thêm thời gian để phân tích. Vui lòng tăng thời gian chờ (ví dụ: 300s) và thử lại.');
+        } else {
+          setValuationError(errorMessage);
+        }
+        console.error('Valuation error:', errorMessage);
+      }
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        console.log('DEBUG: Valuation request aborted');
+      } else {
+        setValuationError('Không thể kết nối tới máy chủ định giá');
+        console.error('Valuation error:', err);
+      }
+    } finally {
+      if (!abortControllerRef.current?.signal.aborted) {
+        setValuationLoading(false);
+      }
+    }
+  };
 
   const searchHandlerRef = useRef(handleSearchByCoord);
   useEffect(() => {
@@ -999,6 +1074,66 @@ export function PlanningMap() {
                       </div>
                     </div>
 
+                    {/* Price / Valuation Section */}
+                    <div className={cn(
+                      "p-4 rounded-2xl border transition-all duration-500",
+                      valuationResult ? "bg-emerald-500/5 border-emerald-500/20" : "bg-white/5 border-white/10"
+                    )}>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className={cn("w-1.5 h-1.5 rounded-full", valuationResult ? "bg-emerald-500" : "bg-orange-500")} />
+                          <span className={cn("font-black text-[10px] uppercase tracking-widest", valuationResult ? "text-emerald-500" : "text-orange-500")}>
+                            {valuationResult ? "Kết quả định giá" : "Giá trị ước tính"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {(() => {
+                        const price = valuationResult?.final_valuation?.final_price || selectedInfo.estimated_price_vnd;
+                        if (price) {
+                          return (
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-white text-2xl font-black">
+                                {(price / 1000000000).toFixed(2)}
+                              </span>
+                              <span className="text-white/40 text-sm font-bold uppercase">Tỷ VNĐ</span>
+                              {valuationResult && (
+                                <span className="ml-auto px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-[10px] font-bold">
+                                  Đã định giá
+                                </span>
+                              )}
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="flex flex-col gap-3">
+                            <p className="text-white/40 text-xs font-medium">Chưa có thông tin giá cho thửa đất này.</p>
+                            {valuationError && (
+                              <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-medium animate-in fade-in slide-in-from-top-1">
+                                {valuationError}
+                              </div>
+                            )}
+                            <Button
+                              onClick={() => setShowValuationModal(true)}
+                              className="w-full bg-orange-500 hover:bg-orange-600 text-white rounded-xl h-10 font-bold transition-all shadow-lg shadow-orange-500/20"
+                            >
+                              Định giá ngay
+                            </Button>
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {valuationResult && valuationResult.insights && (
+                      <div className="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-3">
+                        <span className="text-white/30 text-[9px] uppercase font-bold tracking-widest block">Phân tích thị trường</span>
+                        <p className="text-white/80 text-xs leading-relaxed italic">
+                          "{valuationResult.insights.quick_verdict}"
+                        </p>
+                      </div>
+                    )}
+
 
                     <div className="pt-4 border-t border-white/5">
                       <div className="flex items-start gap-3 text-white/40 p-3 bg-orange-500/[0.03] rounded-xl border border-orange-500/10">
@@ -1007,6 +1142,89 @@ export function PlanningMap() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Valuation Timeout Modal */}
+                  <AnimatePresence>
+                    {showValuationModal && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-[60] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md"
+                      >
+                        <motion.div
+                          initial={{ scale: 0.9, y: 20 }}
+                          animate={{ scale: 1, y: 0 }}
+                          className="bg-slate-900 border border-white/10 rounded-3xl p-6 w-full shadow-2xl space-y-4"
+                        >
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-white font-bold">Cấu hình định giá</h4>
+                            <button onClick={() => setShowValuationModal(false)} className="text-white/40 hover:text-white"><X className="w-5 h-5" /></button>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-[10px] uppercase font-bold tracking-wider">
+                              <span className="text-white/40">Thời gian chờ (giây)</span>
+                              <span className="text-orange-500">{valuationTimeout}s</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="120"
+                              max="300"
+                              step="10"
+                              value={valuationTimeout}
+                              onChange={(e) => setValuationTimeout(parseInt(e.target.value))}
+                              className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                            />
+                            <div className="flex justify-between text-[9px] text-white/20 font-bold">
+                              <span>120s</span>
+                              <span>300s</span>
+                            </div>
+                          </div>
+
+                          <Button
+                            onClick={handleValuation}
+                            className="w-full bg-orange-500 hover:bg-orange-600 text-white rounded-xl h-12 font-bold shadow-xl shadow-orange-500/20"
+                          >
+                            Bắt đầu định giá
+                          </Button>
+                        </motion.div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Loading Overlay inside Info Panel */}
+                  <AnimatePresence>
+                    {valuationLoading && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-[70] flex flex-col items-center justify-center bg-slate-950/60 backdrop-blur-sm p-8 text-center"
+                      >
+                        <div className="relative">
+                          <Loader2 className="w-12 h-12 text-orange-500 animate-spin" />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-6 h-6 bg-orange-500/20 rounded-full animate-ping" />
+                          </div>
+                        </div>
+                        <h4 className="text-white font-bold mt-4 mb-2">Đang thực hiện định giá...</h4>
+                        <p className="text-white/40 text-[10px] leading-relaxed max-w-[200px]">
+                          Vui lòng đợi trong giây lát. Hệ thống đang thu thập dữ liệu thị trường và phân tích thửa đất của bạn.
+                        </p>
+                        <Button 
+                          onClick={() => {
+                            abortControllerRef.current?.abort();
+                            setValuationLoading(false);
+                          }}
+                          variant="ghost" 
+                          className="mt-6 text-white/40 hover:text-white"
+                        >
+                          Hủy yêu cầu
+                        </Button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               );
             })()}
