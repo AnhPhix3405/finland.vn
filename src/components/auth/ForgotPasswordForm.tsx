@@ -200,20 +200,20 @@ export function ForgotPasswordForm() {
             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-4">Nhập mã xác thực</h3>
             
             <div className="flex flex-col gap-4">
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
                   maxLength={6}
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
                   placeholder="000000"
-                  className="flex-1 rounded-md border-slate-300 dark:border-slate-700 dark:bg-slate-900 text-slate-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500 text-center tracking-[0.5em] font-bold h-12 px-3 shadow-sm focus:outline-none"
+                  className="w-full sm:flex-1 rounded-md border-slate-300 dark:border-slate-700 dark:bg-slate-900 text-slate-900 dark:text-white focus:border-emerald-500 focus:ring-emerald-500 text-center tracking-[0.5em] font-bold h-12 px-3 shadow-sm focus:outline-none"
                 />
                 <button
                   type="button"
                   onClick={handleVerifyCode}
                   disabled={isVerifyingCode || verificationCode.length !== 6}
-                  className="px-6 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-sm font-bold transition-all disabled:opacity-50 flex items-center gap-2"
+                  className="w-full sm:w-auto h-12 px-6 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-sm font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {isVerifyingCode ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}
                   Xác nhận
