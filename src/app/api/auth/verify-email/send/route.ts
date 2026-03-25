@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     await transporter.sendMail({
       from: process.env.EMAIL_USER || 'phamphi30042005102@gmail.com',
       to: email,
-      subject: "Mã xác thực Email - Finland Project",
+      subject: "Mã xác thực Email - Finland",
       html: `
         <div style="font-family: sans-serif; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
           <h2 style="color: #10b981; text-align: center;">Xác thực Email</h2>
