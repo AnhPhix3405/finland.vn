@@ -71,10 +71,19 @@ export class BestimateClient {
     return response;
   }
 
-  async cadastralLookup(lat: number, lng: number) {
+  async cadastralLookup(lat: number, lng: number, signal?: AbortSignal) {
     return this.fetch('/cadastral/lookup', {
       method: 'POST',
       body: JSON.stringify({ lat, lng }),
+      signal
+    });
+  }
+
+  async valuationSync(data: any, timeout: number = 300, signal?: AbortSignal) {
+    return this.fetch(`/valuation/sync?timeout=${timeout}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+      signal
     });
   }
 }

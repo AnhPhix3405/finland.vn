@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`DEBUG: API Route received lookup: lat=${lat}, lng=${lng}`);
 
-    const fb = await bestimateClient.cadastralLookup(lat, lng);
+    const fb = await bestimateClient.cadastralLookup(lat, lng, req.signal);
     
     if (fb && fb.success) {
       console.log('DEBUG: Bestimate Lookup Success');
@@ -26,6 +26,9 @@ export async function POST(req: NextRequest) {
         land_type: fb.parcel?.loai_dat_quy_hoach || fb.extra?.mdsdd || fb.valuation_input?.mdsdd || fb.parcel?.mdsdd || fb.attributes?.loai_dat || fb.land_type,
         lat: lat,
         lng: lng,
+        estimated_price_vnd: fb.estimated_price_vnd,
+        valuation_input: fb.valuation_input,
+        parcel: fb.parcel,
         _debug: { source: 'bestimate_only' }
       };
 
