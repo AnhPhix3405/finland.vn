@@ -3,6 +3,9 @@
 import { Megaphone, Bell, Info, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 
 export default function ServicesPage() {
   const [data, setData] = useState<{ title: string; content: string } | null>(null);
@@ -51,11 +54,24 @@ export default function ServicesPage() {
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{data.title}</h2>
               </div>
-              
-              <div className="text-slate-600 dark:text-slate-300 leading-relaxed text-lg prose prose-slate dark:prose-invert max-w-none">
-                <div dangerouslySetInnerHTML={{ __html: data.content }} />
-                
-                <div className="pt-10 border-t border-slate-100 dark:border-slate-800 mt-12 flex flex-col sm:flex-row items-center justify-between gap-6 not-prose">
+
+              <div className="markdown-content text-slate-600 dark:text-slate-300 leading-relaxed text-lg max-w-none">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
+                  components={{
+                    img: ({ ...props }) => (
+                      <img {...props} src={props.src || undefined} className="rounded-xl shadow-lg my-8 mx-auto" />
+                    ),
+                    a: ({ ...props }) => (
+                      <a {...props} className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 underline underline-offset-4" />
+                    )
+                  }}
+                >
+                  {data.content}
+                </ReactMarkdown>
+
+                <div className="pt-10 border-t border-slate-100 dark:border-slate-800 mt-12 flex flex-col sm:flex-row items-center justify-between gap-6">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-400 ring-2 ring-emerald-500/20">
                       BQT
@@ -65,9 +81,9 @@ export default function ServicesPage() {
                       <p className="text-sm text-slate-500 font-medium">finland.vn</p>
                     </div>
                   </div>
-                  
-                  <Link 
-                    href="/ho-tro"
+
+                  <Link
+                    href="#"
                     className="px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold hover:scale-105 active:scale-95 transition-all shadow-lg shadow-slate-900/10"
                   >
                     Liên hệ hỗ trợ
