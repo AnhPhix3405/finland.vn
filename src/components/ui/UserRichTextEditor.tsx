@@ -152,8 +152,8 @@ export default function UserRichTextEditor({ value, onChange, placeholder }: { v
                 <button
                     type="button"
                     className={`p-1 px-2 rounded border transition-all flex items-center gap-1.5 shadow-sm font-bold text-[10px] uppercase tracking-wider ${viewMode.html
-                            ? "bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100"
-                            : "bg-white border-slate-300 text-slate-500 hover:bg-slate-50"
+                        ? "bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100"
+                        : "bg-white border-slate-300 text-slate-500 hover:bg-slate-50"
                         }`}
                     onClick={() => setViewMode(prev => ({ ...prev, html: !prev.html }))}
                     title={viewMode.html ? "Đóng preview" : "Mở preview"}
@@ -166,8 +166,8 @@ export default function UserRichTextEditor({ value, onChange, placeholder }: { v
                 <button
                     type="button"
                     className={`p-1.5 rounded border transition-all flex items-center justify-center shadow-sm ${isFullScreen
-                            ? "bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100"
-                            : "bg-white border-slate-300 text-slate-500 hover:bg-slate-50"
+                        ? "bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100"
+                        : "bg-white border-slate-300 text-slate-500 hover:bg-slate-50"
                         }`}
                     onClick={toggleFullScreen}
                     title={isFullScreen ? "Thu nhỏ" : "Toàn màn hình"}

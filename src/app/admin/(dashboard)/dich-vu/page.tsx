@@ -7,6 +7,7 @@ import { useAdminStore } from "@/src/store/adminStore";
 import { useNotificationStore } from "@/src/store/notificationStore";
 import RichTextEditor from '@/src/components/ui/RichTextEditor';
 import { Save, Megaphone, Loader2 } from 'lucide-react';
+import { fetchWithRetry } from "@/src/lib/api/fetch-with-retry";
 
 export default function AdminServicesPage() {
   const router = useRouter();
@@ -29,10 +30,9 @@ export default function AdminServicesPage() {
       if (!adminToken) return;
       
       try {
-        const res = await fetch('/api/admin/services', {
-          headers: {
-            'Authorization': `Bearer ${adminToken}`
-          }
+        const res = await fetchWithRetry('/api/admin/services', {
+          token: adminToken || undefined,
+          isAdmin: true
         });
         const result = await res.json();
         
@@ -60,11 +60,12 @@ export default function AdminServicesPage() {
 
     setIsSaving(true);
     try {
-      const res = await fetch('/api/admin/services', {
+      const res = await fetchWithRetry('/api/admin/services', {
         method: 'POST',
+        token: adminToken || undefined,
+        isAdmin: true,
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminToken}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ id, title, content })
       });

@@ -371,8 +371,10 @@ export const updateFeatureHashtag = async (data: {
 // DELETE - Xóa feature hashtag
 export const deleteFeatureHashtag = async (id: string): Promise<FeatureHashtagResponse> => {
     try {
-        const response = await fetch(`/api/feature_hashtags?id=${id}`, {
+        const response = await fetchWithRetry(`/api/admin/feature_hashtags?id=${id}`, {
             method: 'DELETE',
+            token: useAdminStore.getState().accessToken || undefined,
+            isAdmin: true,
         });
         return await response.json();
     } catch (error) {

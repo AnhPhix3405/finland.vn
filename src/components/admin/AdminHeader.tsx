@@ -14,6 +14,8 @@ export default function AdminHeader() {
     pageName = pathname.split("/").length > 3 ? "Thông tin bài viết" : "Quản lý Bài viết";
   } else if (pathname?.includes("/moi-gioi")) {
     pageName = pathname.split("/").length > 3 ? "Thông tin môi giới" : "Quản lý Môi giới";
+  } else if (pathname?.includes("/dich-vu")) {
+    pageName = "Dịch vụ";
   }
 
   return (
