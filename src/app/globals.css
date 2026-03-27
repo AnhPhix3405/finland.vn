@@ -188,6 +188,18 @@
   @apply line-through text-slate-400;
 }
 
+.markdown-content u {
+  @apply underline decoration-slate-400 underline-offset-2;
+}
+
+.markdown-content div[align="center"] {
+  @apply text-center;
+}
+
+.markdown-content div[align="right"] {
+  @apply text-right;
+}
+
 .markdown-content a {
   @apply text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 underline underline-offset-4 decoration-emerald-600/30 transition-all;
 }

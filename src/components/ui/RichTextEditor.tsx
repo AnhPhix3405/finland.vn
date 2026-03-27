@@ -1,22 +1,48 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
-import MarkdownIt from 'markdown-it';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import MdEditor from 'react-markdown-editor-lite';
 import 'react-markdown-editor-lite/lib/index.css';
-import { Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Eye, EyeOff } from 'lucide-react';
+import {
+    Image as ImageIcon,
+    AlignLeft,
+    AlignCenter,
+    AlignRight,
+    Eye,
+    EyeOff,
+    Underline as UnderlineIcon,
+    Strikethrough as StrikeIcon,
+    List,
+    ListOrdered,
+    Maximize,
+    Minimize
+} from 'lucide-react';
 import { AdminMediaPicker } from '../feature/AdminMediaPicker';
-
-const mdParser = new MarkdownIt({
-    html: true,
-    linkify: true,
-    typographer: true
-});
+import md from '@/src/components/ui/markdown';
 
 export default function RichTextEditor({ value, onChange, placeholder }: { value?: string, onChange?: (val: string) => void, placeholder?: string }) {
     const mdEditorRef = useRef<MdEditor>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
     const [viewMode, setViewMode] = useState({ menu: true, md: true, html: false });
+    const [isFullScreen, setIsFullScreen] = useState(false);
+
+    // Theo dõi trạng thái fullscreen qua browser API
+    useEffect(() => {
+        const handleFsChange = () => {
+            setIsFullScreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFsChange);
+        return () => document.removeEventListener('fullscreenchange', handleFsChange);
+    }, []);
+
+    const toggleFullScreen = useCallback(() => {
+        if (!document.fullscreenElement) {
+            containerRef.current?.requestFullscreen();
+        } else {
+            document.exitFullscreen();
+        }
+    }, []);
 
     const handleMediaSelect = (urls: string[]) => {
         if (!mdEditorRef.current || urls.length === 0) return;
@@ -30,13 +56,46 @@ export default function RichTextEditor({ value, onChange, placeholder }: { value
         editor.insertText?.(markdownImages, true);
     };
 
+    const handleFormat = (type: 'underline' | 'strikethrough') => {
+        if (!mdEditorRef.current) return;
+        const editor = mdEditorRef.current as any;
+        const selection = editor.getSelection?.() || { text: '' };
+        const text = selection.text || '';
+
+        let wrapped = "";
+        if (type === 'underline') wrapped = `<u>${text}</u>`;
+        if (type === 'strikethrough') wrapped = `~~${text}~~`;
+
+        editor.insertText?.(wrapped, true);
+    };
+
+    const handleList = (type: 'bullet' | 'ordered') => {
+        if (!mdEditorRef.current) return;
+        const editor = mdEditorRef.current as any;
+        const selection = editor.getSelection?.() || { text: '' };
+        const text = selection.text || '';
+
+        if (!text) {
+            const prefix = type === 'bullet' ? '- ' : '1. ';
+            editor.insertText?.(prefix, true);
+            return;
+        }
+
+        const lines = text.split('\n');
+        const formattedLines = lines.map((line: string, index: number) => {
+            if (type === 'bullet') return `- ${line}`;
+            return `${index + 1}. ${line}`;
+        });
+
+        editor.insertText?.(formattedLines.join('\n'), true);
+    };
+
     const handleAlign = (alignment: 'left' | 'center' | 'right') => {
         if (!mdEditorRef.current) return;
         const editor = mdEditorRef.current as any;
         const selection = editor.getSelection?.() || { text: '' };
         let text = (selection.text || '').trim();
-        
-        // Remove existing align div if it's already there (more forgiving regex)
+
         const alignRegex = /^<div align="(?:left|center|right)">\n\n([\s\S]*?)\n\n<\/div>$/;
         const match = text.match(alignRegex);
         if (match) {
@@ -48,41 +107,98 @@ export default function RichTextEditor({ value, onChange, placeholder }: { value
     };
 
     return (
-        <div className="relative">
+        <div ref={containerRef} className="relative bg-white">
             <MdEditor
                 key={viewMode.html ? "preview-on" : "preview-off"}
                 ref={mdEditorRef}
                 value={value || ''}
                 className="custom-markdown-editor"
-                style={{ height: '500px' }}
+                style={{ height: isFullScreen ? '100vh' : '500px' }}
                 view={viewMode}
-                renderHTML={text => mdParser.render(text)}
+                htmlClass="markdown-content"
+                plugins={['header', 'font-bold', 'font-italic', 'link', 'block-quote', 'block-code-inline', 'block-code-block', 'table', 'full-screen']}
+                renderHTML={text => md.render(text)}
                 onChange={({ text }) => onChange?.(text)}
             />
 
-            <div className="absolute top-2.5 right-8 z-10 flex items-center gap-2">
+            {/* Custom toolbar — nằm ở góc phải của toolbar mặc định */}
+            <div className="absolute top-0 right-0 h-[40px] z-10 flex items-center gap-1.5 pr-2">
+                {/* View Toggle */}
                 <button
                     type="button"
-                    className={`p-1 px-2 rounded border transition-all flex items-center gap-1.5 shadow-sm font-bold text-[10px] uppercase tracking-wider ${
-                        viewMode.html 
-                        ? "bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100" 
-                        : "bg-white border-slate-300 text-slate-500 hover:bg-slate-50"
-                    }`}
+                    className={`p-1 px-2 rounded border transition-all flex items-center gap-1.5 shadow-sm font-bold text-[10px] uppercase tracking-wider ${viewMode.html
+                            ? "bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100"
+                            : "bg-white border-slate-300 text-slate-500 hover:bg-slate-50"
+                        }`}
                     onClick={() => setViewMode(prev => ({ ...prev, html: !prev.html }))}
                     title={viewMode.html ? "Đóng preview" : "Mở preview"}
                 >
-                    {viewMode.html ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                    <span>{viewMode.html ? "Đóng preview" : "Mở preview"}</span>
+                    {viewMode.html ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
+                    <span>Preview</span>
                 </button>
 
-                <div className="flex bg-white border border-slate-300 rounded shadow-sm overflow-hidden selection-none">
+                {/* Full Screen Toggle — chỉ icon, không text */}
+                <button
+                    type="button"
+                    className={`p-1.5 rounded border transition-all flex items-center justify-center shadow-sm ${isFullScreen
+                            ? "bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100"
+                            : "bg-white border-slate-300 text-slate-500 hover:bg-slate-50"
+                        }`}
+                    onClick={toggleFullScreen}
+                    title={isFullScreen ? "Thu nhỏ" : "Toàn màn hình"}
+                >
+                    {isFullScreen ? <Minimize className="size-3.5" /> : <Maximize className="size-3.5" />}
+                </button>
+
+                {/* Text Decoration Group */}
+                <div className="flex bg-white border border-slate-200 rounded overflow-hidden shadow-sm">
+                    <button
+                        type="button"
+                        className="p-1 px-1.5 hover:bg-slate-100 text-slate-700 transition-colors border-r border-slate-200"
+                        onClick={() => handleFormat('underline')}
+                        title="Gạch chân"
+                    >
+                        <UnderlineIcon className="size-3.5" />
+                    </button>
+                    <button
+                        type="button"
+                        className="p-1 px-1.5 hover:bg-slate-100 text-slate-700 transition-colors"
+                        onClick={() => handleFormat('strikethrough')}
+                        title="Gạch ngang"
+                    >
+                        <StrikeIcon className="size-3.5" />
+                    </button>
+                </div>
+
+                {/* List Group */}
+                <div className="flex bg-white border border-slate-200 rounded overflow-hidden shadow-sm">
+                    <button
+                        type="button"
+                        className="p-1 px-1.5 hover:bg-slate-100 text-slate-700 transition-colors border-r border-slate-200"
+                        onClick={() => handleList('bullet')}
+                        title="Danh sách dấu chấm"
+                    >
+                        <List className="size-3.5" />
+                    </button>
+                    <button
+                        type="button"
+                        className="p-1 px-1.5 hover:bg-slate-100 text-slate-700 transition-colors"
+                        onClick={() => handleList('ordered')}
+                        title="Danh sách số"
+                    >
+                        <ListOrdered className="size-3.5" />
+                    </button>
+                </div>
+
+                {/* Alignment Group */}
+                <div className="flex bg-white border border-slate-200 rounded overflow-hidden shadow-sm">
                     <button
                         type="button"
                         className="p-1 px-1.5 hover:bg-slate-100 text-slate-700 transition-colors border-r border-slate-200"
                         onClick={() => handleAlign('left')}
                         title="Căn trái"
                     >
-                        <AlignLeft className="w-[14px] h-[14px]" />
+                        <AlignLeft className="size-3.5" />
                     </button>
                     <button
                         type="button"
@@ -90,7 +206,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: { value
                         onClick={() => handleAlign('center')}
                         title="Căn giữa"
                     >
-                        <AlignCenter className="w-[14px] h-[14px]" />
+                        <AlignCenter className="size-3.5" />
                     </button>
                     <button
                         type="button"
@@ -98,17 +214,18 @@ export default function RichTextEditor({ value, onChange, placeholder }: { value
                         onClick={() => handleAlign('right')}
                         title="Căn phải"
                     >
-                        <AlignRight className="w-[14px] h-[14px]" />
+                        <AlignRight className="size-3.5" />
                     </button>
                 </div>
 
+                {/* Image Button */}
                 <button
                     type="button"
-                    className="p-1 bg-white hover:bg-slate-100 text-slate-700 rounded transition-colors flex items-center gap-1 border border-slate-300 shadow-sm"
+                    className="p-1 bg-white hover:bg-slate-100 text-slate-700 rounded transition-colors flex items-center gap-1 border border-slate-200 shadow-sm"
                     onClick={() => setIsMediaPickerOpen(true)}
                     title="Thêm ảnh"
                 >
-                    <ImageIcon className="w-[14px] h-[14px]" />
+                    <ImageIcon className="size-3.5" />
                     <span className="text-[11px] font-medium leading-none px-1 uppercase whitespace-nowrap">Thêm ảnh</span>
                 </button>
             </div>
@@ -120,4 +237,4 @@ export default function RichTextEditor({ value, onChange, placeholder }: { value
             />
         </div>
     );
-}
+}

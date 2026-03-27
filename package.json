@@ -43,6 +43,7 @@
     "resend": "^6.9.4",
     "tailwind-merge": "^3.5.0",
     "uuid": "^13.0.0",
+    "viblo-sdk": "^0.1.0-beta.34",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
@@ -51,6 +52,7 @@
     "@types/node": "^20",
     "@types/nodemailer": "^7.0.11",
     "@types/pg": "^8.18.0",
+    "@types/prop-types": "^15.7.15",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/uuid": "^11.0.0",
