@@ -3,6 +3,9 @@ import { prisma } from "@/src/lib/prisma";
 import { verifyToken } from "@/src/app/modules/auth/jwt";
 import { processStreamingUpload, UploadError } from "@/src/lib/api/upload-stream";
 
+export const maxDuration = 300;
+export const dynamic = "force-dynamic";
+
 async function verifyAuth(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
@@ -28,20 +31,17 @@ async function verifyAuth(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        console.log("[Upload] Starting upload request");
-        
         const auth = await verifyAuth(request);
         if (!auth.valid) {
-            console.log("[Upload] Auth failed:", auth.error);
             return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
         }
 
-        console.log("[Upload] Auth success, userId:", auth.userId);
+        const isAdmin = auth.role === "admin";
+        const maxFileSize = isAdmin ? undefined : 6 * 1024 * 1024;
+        const customFolder = isAdmin ? "finland/admin" : undefined;
         
-        const { files, fields } = await processStreamingUpload(request, auth.userId!);
-        console.log("[Upload] Files processed:", files.length, "| Fields:", fields);
+        const { files, fields } = await processStreamingUpload(request, auth.userId!, customFolder, { maxFileSize });
 
-        // Prepare database records
         const target_id = fields.target_id;
         const target_type = fields.target_type || 'admin';
         const sort_order = fields.sort_order ? parseInt(fields.sort_order) : 0;
@@ -52,17 +52,14 @@ export async function POST(request: NextRequest) {
             size_bytes: file.bytes ? BigInt(file.bytes) : null,
             original_name: file.original_filename,
             public_id: file.public_id,
-            target_id: target_id || auth.userId, // Default to user's id if no target_id
+            target_id: target_id || auth.userId,
             target_type: target_type,
             sort_order: sort_order + index
         }));
 
-        // Batch create attachments
-        console.log("[Upload] Creating attachments in DB:", attachmentsData.length);
         const createdAttachments = await Promise.all(
             attachmentsData.map(data => prisma.attachments.create({ data }))
         );
-        console.log("[Upload] Attachments created successfully");
 
         const serialized = createdAttachments.map(item => ({
             ...item,

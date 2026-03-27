@@ -61,7 +61,8 @@ function sanitizeFilename(filename: string): string {
 export async function processStreamingUpload(
   request: Request,
   userId: string,
-  customFolder?: string
+  customFolder?: string,
+  options?: { maxFileSize?: number }
 ): Promise<UploadStreamingResult> {
   const contentType = request.headers.get("content-type");
 
@@ -77,13 +78,19 @@ export async function processStreamingUpload(
   let sizeLimitExceeded = false;
   let firstError: Error | null = null;
 
+  const maxFileSize = options?.maxFileSize;
   const folderPath = customFolder || `${UPLOAD_CONFIG.BASE_FOLDER}/${userId}`;
-  log.info("started", { folder: folderPath, userId });
+  log.info("started", { folder: folderPath, userId, maxFileSize: maxFileSize || "unlimited" });
 
-  const bb = busboy({
+  const busboyConfig: { headers: Record<string, string>; limits: Record<string, number> } = {
     headers: { "content-type": contentType },
-    limits: { fileSize: UPLOAD_CONFIG.MAX_FILE_SIZE },
-  });
+    limits: {},
+  };
+  if (maxFileSize) {
+    busboyConfig.limits.fileSize = maxFileSize;
+  }
+
+  const bb = busboy(busboyConfig);
 
   request.signal?.addEventListener("abort", () => {
     log.warn("request_aborted");
@@ -99,6 +106,8 @@ export async function processStreamingUpload(
       log.stream("field_received", { name, value });
     }
   });
+
+  const uploads: Promise<CloudinaryUploadResult>[] = [];
 
   bb.on("file", (_fieldname, file, info) => {
     const rawFilename = info.filename;
@@ -179,12 +188,12 @@ export async function processStreamingUpload(
       });
 
       file.on("limit", () => {
-        log.warn("size_limit_exceeded", { file: safeFilename, max: `${UPLOAD_CONFIG.MAX_FILE_SIZE}B` });
+        log.warn("size_limit_exceeded", { file: safeFilename, max: `${maxFileSize}B` });
 
         sizeLimitExceeded = true;
         settled = true;
         firstError = new UploadError(
-          `File ${safeFilename} exceeds ${UPLOAD_CONFIG.MAX_FILE_SIZE} byte limit`,
+          `File ${safeFilename} exceeds ${maxFileSize} byte limit`,
           400
         );
 
@@ -200,8 +209,6 @@ export async function processStreamingUpload(
 
     uploads.push(uploadPromise);
   });
-
-  const uploads: Promise<CloudinaryUploadResult>[] = [];
 
   bb.on("error", (err: Error) => {
     if (firstError) return;

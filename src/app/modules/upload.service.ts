@@ -2,16 +2,6 @@
 import { useAuthStore } from '@/src/store/authStore';
 import { fetchWithRetry } from '@/src/lib/api/fetch-with-retry';
 
-function validateFile(file: File) {
-  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-  // Mở rộng type nếu cần, nhưng user chủ yếu dùng ảnh. 
-  // User yêu cầu max 6MB
-  const MAX_SIZE = 6 * 1024 * 1024; // 6MB
-  if (file.size > MAX_SIZE) {
-    throw new Error('Dung lượng tệp không được vượt quá 6MB.');
-  }
-}
-
 /**
  * Generic Streaming Upload function
  * Gửi file lên server, server dùng busboy pipe thẳng vào Cloudinary
@@ -25,7 +15,6 @@ async function uploadFileStreaming(
         isAdmin?: boolean;
     }
 ) {
-  validateFile(file);
   const token = useAuthStore.getState().accessToken;
   const adminStore = (await import('@/src/store/adminStore')).useAdminStore.getState();
   const accessToken = options.isAdmin ? adminStore.accessToken : (token || adminStore.accessToken);

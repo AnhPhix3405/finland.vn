@@ -25,7 +25,10 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       }
     ]
-  }
+  },
+  experimental: {
+    proxyClientMaxBodySize: 25 * 1024 * 1024,
+  },
 };
 
 export default nextConfig;

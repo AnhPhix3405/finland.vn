@@ -103,15 +103,7 @@ export default function AdminCreateProject() {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const filesArray = Array.from(e.target.files);
-            const MAX_SIZE = 6 * 1024 * 1024; // 6MB
-            const validFiles = filesArray.filter(file => file.size <= MAX_SIZE);
-            const largeFiles = filesArray.filter(file => file.size > MAX_SIZE);
-
-            if (largeFiles.length > 0) {
-                addToast(`${largeFiles.length} ảnh bị bỏ qua do vượt quá 6MB`, 'error');
-            }
-
-            setNewFiles(prev => [...prev, ...validFiles]);
+            setNewFiles(prev => [...prev, ...filesArray]);
             if (e.target) e.target.value = '';
         }
     };

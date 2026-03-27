@@ -89,19 +89,11 @@ export function AdminMediaPicker({ isOpen, onClose, onSelect }: AdminMediaPicker
     };
 
     const handleFiles = (files: File[]) => {
-        const MAX_SIZE = 6 * 1024 * 1024; // 6MB
-        const validFiles = files.filter(file => file.size <= MAX_SIZE);
-        const oversizedFiles = files.filter(file => file.size > MAX_SIZE);
+        if (files.length === 0) return;
 
-        if (oversizedFiles.length > 0) {
-            addToast(`${oversizedFiles.length} ảnh bị loại bỏ vì vượt quá 6MB`, "error");
-        }
-
-        if (validFiles.length === 0) return;
-
-        const newImageUrls = validFiles.map((file) => URL.createObjectURL(file));
+        const newImageUrls = files.map((file) => URL.createObjectURL(file));
         const newFileMap = { ...fileMap };
-        validFiles.forEach((file, index) => {
+        files.forEach((file: File, index: number) => {
             newFileMap[newImageUrls[index]] = file;
         });
         setFileMap(newFileMap);
