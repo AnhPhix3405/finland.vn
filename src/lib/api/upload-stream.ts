@@ -28,6 +28,36 @@ export interface UploadStreamingResult {
   fields: Record<string, string>;
 }
 
+const log = {
+  info: (msg: string, params?: Record<string, string | number>) => {
+    const paramStr = params ? " " + Object.entries(params).map(([k, v]) => `${k}=${v}`).join(" ") : "";
+    console.log(`[UPLOAD][INFO] ${msg}${paramStr}`);
+  },
+  warn: (msg: string, params?: Record<string, string | number>) => {
+    const paramStr = params ? " " + Object.entries(params).map(([k, v]) => `${k}=${v}`).join(" ") : "";
+    console.log(`[UPLOAD][WARN] ${msg}${paramStr}`);
+  },
+  error: (msg: string, params?: Record<string, string | number>) => {
+    const paramStr = params ? " " + Object.entries(params).map(([k, v]) => `${k}=${v}`).join(" ") : "";
+    console.log(`[UPLOAD][ERROR] ${msg}${paramStr}`);
+  },
+  stream: (msg: string, params?: Record<string, string | number>) => {
+    const paramStr = params ? " " + Object.entries(params).map(([k, v]) => `${k}=${v}`).join(" ") : "";
+    console.log(`[UPLOAD][STREAM] ${msg}${paramStr}`);
+  },
+};
+
+const EXPECTED_PARSER_ERRORS = [
+  "Unexpected end of form",
+  "Unexpected end of file",
+];
+
+const SENSITIVE_FIELDS = ["token", "password", "email", "phone", "secret", "key"];
+
+function sanitizeFilename(filename: string): string {
+  return filename.replace(/[^\w.-]/g, "_").substring(0, 200);
+}
+
 export async function processStreamingUpload(
   request: Request,
   userId: string,
@@ -44,44 +74,43 @@ export async function processStreamingUpload(
   }
 
   const fields: Record<string, string> = {};
-  const uploads: Promise<CloudinaryUploadResult>[] = [];
-  let aborted = false;
+  let sizeLimitExceeded = false;
+  let firstError: Error | null = null;
+
+  const folderPath = customFolder || `${UPLOAD_CONFIG.BASE_FOLDER}/${userId}`;
+  log.info("started", { folder: folderPath, userId });
 
   const bb = busboy({
     headers: { "content-type": contentType },
-    limits: {
-      fileSize: UPLOAD_CONFIG.MAX_FILE_SIZE,
-    },
+    limits: { fileSize: UPLOAD_CONFIG.MAX_FILE_SIZE },
   });
 
   request.signal?.addEventListener("abort", () => {
-    console.log("[Request Abort] Upload cancelled by client");
-    aborted = true;
+    log.warn("request_aborted");
+    firstError = firstError || new UploadError("Client aborted upload", 499);
     bb.destroy();
   });
 
   bb.on("field", (name, value) => {
-    console.log(`[Busboy] Field: ${name}=${value}`);
     fields[name] = value;
+    if (SENSITIVE_FIELDS.some((f) => name.toLowerCase().includes(f))) {
+      log.stream("field_received", { name });
+    } else {
+      log.stream("field_received", { name, value });
+    }
   });
 
   bb.on("file", (_fieldname, file, info) => {
-    const { filename, mimeType } = info;
+    const rawFilename = info.filename;
+    const safeFilename = sanitizeFilename(rawFilename);
+    const { mimeType } = info;
+    log.info("file_detected", { name: safeFilename, mime: mimeType });
 
-    console.log(`[Busboy] File detected: ${filename}, mimeType=${mimeType}`);
-
-    if (aborted) {
+    if (sizeLimitExceeded) {
+      log.warn("file_skipped", { name: safeFilename, reason: "size_limit_exceeded" });
       file.resume();
       return;
     }
-
-    if (!fields.target_type && !customFolder) {
-      console.warn(`[Warning] target_type not ready before file ${filename}`);
-    }
-
-    const folderPath =
-      customFolder ||
-      `${UPLOAD_CONFIG.BASE_FOLDER}/${userId}/${fields.target_type || "general"}`;
 
     const startTime = Date.now();
     let chunkCount = 0;
@@ -92,7 +121,7 @@ export async function processStreamingUpload(
       const safeReject = (err: Error) => {
         if (settled) return;
         settled = true;
-        aborted = true;
+        if (!firstError) firstError = err;
         reject(err);
       };
 
@@ -106,7 +135,7 @@ export async function processStreamingUpload(
         {
           folder: folderPath,
           resource_type: "auto",
-          filename_override: filename,
+          filename_override: safeFilename,
           use_filename: true,
           unique_filename: false,
         },
@@ -114,54 +143,56 @@ export async function processStreamingUpload(
           const duration = Date.now() - startTime;
 
           if (err) {
-            console.log(`[Cloudinary Error] ${filename}: ${err.message}`);
-            return safeReject(err);
+            log.error("cloudinary_error", { file: safeFilename, reason: err.message });
+            safeReject(err);
+            return;
           }
 
-          console.log(
-            `[Upload Complete] ${filename} | chunks=${chunkCount} | total=${(
-              totalBytes /
-              (1024 * 1024)
-            ).toFixed(2)}MB | duration=${duration}ms`
-          );
-
+          log.info("upload_complete", {
+            file: safeFilename,
+            chunks: chunkCount,
+            total: `${(totalBytes / (1024 * 1024)).toFixed(2)}MB`,
+            duration: `${duration}ms`,
+          });
           safeResolve(result as CloudinaryUploadResult);
         }
       );
 
       uploadStream.on("error", (err: Error) => {
-        console.log(`[UploadStream Error] ${filename}: ${err.message}`);
-        file.unpipe(uploadStream);
+        log.error("upload_stream_error", { file: safeFilename, reason: err.message });
+        file.unpipe();
         file.resume();
-        uploadStream.destroy();
         safeReject(err);
       });
 
       file.on("data", (chunk: Buffer) => {
         chunkCount++;
         totalBytes += chunk.length;
-
         const elapsed = Date.now() - startTime;
-        const speedKBps =
-          elapsed > 0 ? Math.round((totalBytes / 1024 / elapsed) * 1000) : 0;
-
-        console.log(
-          `[Chunk] ${filename} | #${chunkCount} | size=${chunk.length}B | total=${totalBytes}B | t=${elapsed}ms | speed=${speedKBps}KB/s`
-        );
+        log.stream("chunk", {
+          file: safeFilename,
+          index: chunkCount,
+          size: `${chunk.length}B`,
+          total: `${totalBytes}B`,
+          elapsed: `${elapsed}ms`,
+        });
       });
 
       file.on("limit", () => {
-        console.log(`[File Limit] ${filename} exceeded size limit`);
+        log.warn("size_limit_exceeded", { file: safeFilename, max: `${UPLOAD_CONFIG.MAX_FILE_SIZE}B` });
 
-        file.unpipe(uploadStream);
+        sizeLimitExceeded = true;
+        settled = true;
+        firstError = new UploadError(
+          `File ${safeFilename} exceeds ${UPLOAD_CONFIG.MAX_FILE_SIZE} byte limit`,
+          400
+        );
+
+        file.unpipe();
         uploadStream.destroy();
         file.resume();
 
-        safeReject(
-          new UploadError(
-            `File ${filename} exceeds ${UPLOAD_CONFIG.MAX_FILE_SIZE} bytes`
-          )
-        );
+        reject(firstError);
       });
 
       file.pipe(uploadStream);
@@ -170,29 +201,64 @@ export async function processStreamingUpload(
     uploads.push(uploadPromise);
   });
 
-  const nodeStream = Readable.fromWeb(request.body as any);
+  const uploads: Promise<CloudinaryUploadResult>[] = [];
 
-  await new Promise<void>((resolve, reject) => {
-    bb.on("finish", () => {
-      console.log("[Busboy] Parsing complete");
-      resolve();
-    });
+  bb.on("error", (err: Error) => {
+    if (firstError) return;
 
-    bb.on("error", (err: Error) => {
-      console.log(`[Busboy Error] ${err.message}`);
-      aborted = true;
-      reject(err);
-    });
+    const isExpected = sizeLimitExceeded && EXPECTED_PARSER_ERRORS.some((e) => err.message.includes(e));
 
-    nodeStream.pipe(bb);
+    if (isExpected) {
+      log.warn("parser_error_swallowed", { reason: err.message });
+      return;
+    }
+
+    log.error("parser_error", { reason: err.message });
+    firstError = err;
   });
 
-  const results = await Promise.all(uploads);
+  const nodeStream = Readable.fromWeb(request.body as any);
 
-  console.log(`[All Uploads Complete] files=${results.length}`);
+  try {
+    nodeStream.pipe(bb);
+  } catch (err: unknown) {
+    const error = err as Error;
+    const isExpected =
+      sizeLimitExceeded &&
+      EXPECTED_PARSER_ERRORS.some((e) => error.message?.includes(e));
 
-  return {
-    files: results,
-    fields,
-  };
+    if (isExpected) {
+      log.warn("pipe_error_swallowed", { reason: error.message });
+    } else {
+      log.error("pipe_error", { reason: error.message });
+      if (!firstError) firstError = error;
+    }
+  }
+
+  await new Promise<void>((resolve) => {
+    bb.on("close", () => {
+      log.info("parser_closed");
+      resolve();
+    });
+    bb.on("error", () => resolve());
+  });
+
+  log.info("processing_uploads", { count: uploads.length });
+
+  const settledResults = await Promise.allSettled(uploads);
+
+  const failedCount = settledResults.filter((r) => r.status === "rejected").length;
+  const successCount = settledResults.filter((r) => r.status === "fulfilled").length;
+
+  log.info("uploads_complete", { success: successCount, failed: failedCount });
+
+  if (firstError) {
+    throw firstError;
+  }
+
+  const files = settledResults
+    .filter((r): r is PromiseFulfilledResult<CloudinaryUploadResult> => r.status === "fulfilled")
+    .map((r) => r.value);
+
+  return { files, fields };
 }
