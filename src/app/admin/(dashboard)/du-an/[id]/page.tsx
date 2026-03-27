@@ -256,12 +256,12 @@ export default function AdminProjectDetail() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
-      const MAX_SIZE = 3 * 1024 * 1024; // 3MB
+      const MAX_SIZE = 6 * 1024 * 1024; // 6MB
       const validFiles = filesArray.filter(file => file.size <= MAX_SIZE);
       const largeFiles = filesArray.filter(file => file.size > MAX_SIZE);
 
       if (largeFiles.length > 0) {
-        addToast(`${largeFiles.length} ảnh bị bỏ qua do vượt quá 3MB`, 'error');
+        addToast(`${largeFiles.length} ảnh bị bỏ qua do vượt quá 6MB`, 'error');
       }
 
       setNewFiles(prev => [...prev, ...validFiles]);
@@ -553,7 +553,7 @@ export default function AdminProjectDetail() {
                       <span className="font-medium text-primary bg-transparent text-emerald-600">Tải ảnh lên</span>
                       <p className="pl-1">hoặc kéo thả vào đây</p>
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">PNG, JPG tối đa 3MB</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">PNG, JPG tối đa 6MB</p>
                   </div>
                 </div>
 

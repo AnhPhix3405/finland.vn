@@ -140,13 +140,13 @@ export function ListingForm({ onSuccess }: ListingFormProps) {
     const validFiles = files.filter(file => file.type.startsWith('image/'));
     const invalidFiles = files.filter(file => !file.type.startsWith('image/'));
 
-    // Validate file sizes (max 3MB)
-    const MAX_SIZE = 3 * 1024 * 1024; // 3MB
+    // Validate file sizes (max 6MB)
+    const MAX_SIZE = 6 * 1024 * 1024; // 6MB
     const finalValidFiles = validFiles.filter(file => file.size <= MAX_SIZE);
     const oversizedFiles = validFiles.filter(file => file.size > MAX_SIZE);
 
     if (oversizedFiles.length > 0) {
-      addToast(`${oversizedFiles.length} ảnh bị loại bỏ vì vượt quá 3MB`, "error");
+      addToast(`${oversizedFiles.length} ảnh bị loại bỏ vì vượt quá 6MB`, "error");
     }
 
     if (invalidFiles.length > 0) {

@@ -139,8 +139,8 @@ export default function ProfileSection() {
       addToast('Chỉ chấp nhận file ảnh (JPG, PNG, GIF)', 'error');
       return;
     }
-    if (file.size > 3 * 1024 * 1024) { // 3MB
-      addToast('Kích thước file không được vượt quá 3MB', 'error');
+    if (file.size > 6 * 1024 * 1024) { // 6MB
+      addToast('Kích thước file không được vượt quá 6MB', 'error');
       return;
     }
 

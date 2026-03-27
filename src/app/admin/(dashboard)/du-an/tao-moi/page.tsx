@@ -103,19 +103,19 @@ export default function AdminCreateProject() {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const filesArray = Array.from(e.target.files);
-            const MAX_SIZE = 3 * 1024 * 1024; // 3MB
+            const MAX_SIZE = 6 * 1024 * 1024; // 6MB
             const validFiles = filesArray.filter(file => file.size <= MAX_SIZE);
             const largeFiles = filesArray.filter(file => file.size > MAX_SIZE);
 
             if (largeFiles.length > 0) {
-                addToast(`${largeFiles.length} ảnh bị bỏ qua do vượt quá 3MB`, 'error');
+                addToast(`${largeFiles.length} ảnh bị bỏ qua do vượt quá 6MB`, 'error');
             }
 
             setNewFiles(prev => [...prev, ...validFiles]);
             if (e.target) e.target.value = '';
         }
     };
-    
+
     // Drag & Drop handlers for new files
     const handleDragStart = (index: number) => {
         setDraggedItem(index);
@@ -130,7 +130,7 @@ export default function AdminCreateProject() {
         const reorderedFiles = [...newFiles];
         const [movedFile] = reorderedFiles.splice(draggedItem, 1);
         reorderedFiles.splice(index, 0, movedFile);
-        
+
         setNewFiles(reorderedFiles);
         setDraggedItem(null);
     };
@@ -426,41 +426,41 @@ export default function AdminCreateProject() {
                                             <span className="font-medium text-primary bg-transparent text-emerald-600">Chọn ảnh dự án</span>
                                             <p className="pl-1">hoặc kéo thả</p>
                                         </div>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">PNG, JPG, GIF tối đa 3MB</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">PNG, JPG, GIF tối đa 6MB</p>
                                     </div>
                                 </div>
 
                                 {newFiles.length > 0 && (
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                            {newFiles.map((file, idx) => {
-                                                const previewUrl = URL.createObjectURL(file);
-                                                return (
-                                                    <div
-                                                        key={idx}
-                                                        className="relative group rounded-sm overflow-hidden border-2 border-slate-200 dark:border-slate-700 cursor-move"
-                                                        draggable
-                                                        onDragStart={() => handleDragStart(idx)}
-                                                        onDragOver={handleDragOver}
-                                                        onDrop={() => handleDrop(idx)}
-                                                    >
-                                                        {idx === 0 && (
-                                                            <span className="absolute top-2 left-2 bg-emerald-500 text-white text-[10px] uppercase font-bold px-2 py-1 rounded z-10">Ảnh bìa</span>
-                                                        )}
-                                                        <img src={previewUrl} alt={file.name} className="w-full h-32 object-cover" onLoad={() => URL.revokeObjectURL(previewUrl)} />
-                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                                                            <span className="material-symbols-outlined text-white">drag_indicator</span>
-                                                        </div>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleRemoveNewFile(idx)}
-                                                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 flex items-center justify-center w-6 h-6 z-20"
-                                                        >
-                                                            <span className="material-symbols-outlined text-[16px]">close</span>
-                                                        </button>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        {newFiles.map((file, idx) => {
+                                            const previewUrl = URL.createObjectURL(file);
+                                            return (
+                                                <div
+                                                    key={idx}
+                                                    className="relative group rounded-sm overflow-hidden border-2 border-slate-200 dark:border-slate-700 cursor-move"
+                                                    draggable
+                                                    onDragStart={() => handleDragStart(idx)}
+                                                    onDragOver={handleDragOver}
+                                                    onDrop={() => handleDrop(idx)}
+                                                >
+                                                    {idx === 0 && (
+                                                        <span className="absolute top-2 left-2 bg-emerald-500 text-white text-[10px] uppercase font-bold px-2 py-1 rounded z-10">Ảnh bìa</span>
+                                                    )}
+                                                    <img src={previewUrl} alt={file.name} className="w-full h-32 object-cover" onLoad={() => URL.revokeObjectURL(previewUrl)} />
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                                        <span className="material-symbols-outlined text-white">drag_indicator</span>
                                                     </div>
-                                                );
-                                            })}
-                                        </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveNewFile(idx)}
+                                                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 flex items-center justify-center w-6 h-6 z-20"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[16px]">close</span>
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 )}
                             </div>
                         </div>

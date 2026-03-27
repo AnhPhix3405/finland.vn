@@ -20,6 +20,7 @@
     "@tiptap/starter-kit": "^3.20.1",
     "@types/mapbox-gl": "^3.4.1",
     "bcryptjs": "^3.0.3",
+    "busboy": "^1.6.0",
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.9.0",
     "clsx": "^2.1.1",
@@ -49,6 +50,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/busboy": "^1.5.4",
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^20",
     "@types/nodemailer": "^7.0.11",

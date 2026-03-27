@@ -96,12 +96,12 @@ export function UserMediaPicker({ isOpen, onClose, onSelect }: UserMediaPickerPr
     };
 
     const handleFiles = (files: File[]) => {
-        const MAX_SIZE = 3 * 1024 * 1024; // 3MB
+        const MAX_SIZE = 6 * 1024 * 1024; // 6MB
         const validFiles = files.filter(file => file.size <= MAX_SIZE);
         const oversizedFiles = files.filter(file => file.size > MAX_SIZE);
 
         if (oversizedFiles.length > 0) {
-            addToast(`${oversizedFiles.length} ảnh bị loại bỏ vì vượt quá 3MB`, "error");
+            addToast(`${oversizedFiles.length} ảnh bị loại bỏ vì vượt quá 6MB`, "error");
         }
 
         if (validFiles.length === 0) return;
