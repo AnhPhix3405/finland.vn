@@ -251,4 +251,9 @@
 
 .markdown-content figcaption {
   @apply text-center text-sm text-slate-500 mt-2;
-}
+}
+/* Custom RichTextEditor Caret Color */
+.custom-markdown-editor textarea:hover,
+.custom-markdown-editor textarea:focus {
+  caret-color: #ef4444 !important;
+}

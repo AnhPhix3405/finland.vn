@@ -28,6 +28,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import { toggleBookmark } from "@/src/app/modules/bookmarks.service";
 import { useNotificationStore } from "@/src/store/notificationStore";
 import { useAuthStore } from "@/src/store/authStore";
@@ -516,6 +517,7 @@ export function PropertyDetail({ type, listing, project, attachments: propsAttac
             <div className="markdown-content text-sm md:text-base">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw]}
                 components={{
                   img: ({ node, ...props }) => <img {...props} src={props.src || undefined} />
                 }}

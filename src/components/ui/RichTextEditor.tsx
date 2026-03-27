@@ -4,7 +4,7 @@ import React, { useState, useRef } from 'react';
 import MarkdownIt from 'markdown-it';
 import MdEditor from 'react-markdown-editor-lite';
 import 'react-markdown-editor-lite/lib/index.css';
-import { Image as ImageIcon, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
+import { Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, Eye, EyeOff } from 'lucide-react';
 import { AdminMediaPicker } from '../feature/AdminMediaPicker';
 
 const mdParser = new MarkdownIt({
@@ -16,6 +16,7 @@ const mdParser = new MarkdownIt({
 export default function RichTextEditor({ value, onChange, placeholder }: { value?: string, onChange?: (val: string) => void, placeholder?: string }) {
     const mdEditorRef = useRef<MdEditor>(null);
     const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
+    const [viewMode, setViewMode] = useState({ menu: true, md: true, html: false });
 
     const handleMediaSelect = (urls: string[]) => {
         if (!mdEditorRef.current || urls.length === 0) return;
@@ -25,9 +26,8 @@ export default function RichTextEditor({ value, onChange, placeholder }: { value
             markdownImages += `\n![image](${url})\n`;
         });
 
-        const currentValue = value || '';
-        const newValue = currentValue + markdownImages;
-        onChange?.(newValue);
+        const editor = mdEditorRef.current as any;
+        editor.insertText?.(markdownImages, true);
     };
 
     const handleAlign = (alignment: 'left' | 'center' | 'right') => {
@@ -50,14 +50,31 @@ export default function RichTextEditor({ value, onChange, placeholder }: { value
     return (
         <div className="relative">
             <MdEditor
+                key={viewMode.html ? "preview-on" : "preview-off"}
                 ref={mdEditorRef}
                 value={value || ''}
+                className="custom-markdown-editor"
                 style={{ height: '500px' }}
+                view={viewMode}
                 renderHTML={text => mdParser.render(text)}
                 onChange={({ text }) => onChange?.(text)}
             />
 
-            <div className="absolute top-2 right-4 z-10 flex items-center gap-2">
+            <div className="absolute top-2.5 right-8 z-10 flex items-center gap-2">
+                <button
+                    type="button"
+                    className={`p-1 px-2 rounded border transition-all flex items-center gap-1.5 shadow-sm font-bold text-[10px] uppercase tracking-wider ${
+                        viewMode.html 
+                        ? "bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100" 
+                        : "bg-white border-slate-300 text-slate-500 hover:bg-slate-50"
+                    }`}
+                    onClick={() => setViewMode(prev => ({ ...prev, html: !prev.html }))}
+                    title={viewMode.html ? "Đóng preview" : "Mở preview"}
+                >
+                    {viewMode.html ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                    <span>{viewMode.html ? "Đóng preview" : "Mở preview"}</span>
+                </button>
+
                 <div className="flex bg-white border border-slate-300 rounded shadow-sm overflow-hidden selection-none">
                     <button
                         type="button"
@@ -103,4 +120,4 @@ export default function RichTextEditor({ value, onChange, placeholder }: { value
             />
         </div>
     );
-}
+}
