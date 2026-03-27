@@ -27,7 +27,6 @@ const ROWS = [
     {
         label: 'Khối code',
         syntax: '```javascript\nvar s = \'Đánh dấu cú pháp\';\n```',
-        note: 'Hỗ trợ 64+ ngôn ngữ: PHP, JS, XML, YAML...',
     },
     {
         label: 'Liên kết',

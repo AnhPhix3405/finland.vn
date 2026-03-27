@@ -1,5 +1,5 @@
 import React from 'react';
-import md from '@/src/components/ui/markdown';
+import { renderMarkdownSafe } from '@/src/lib/renderMarkdownSafe';
 
 // Mock content để test các tính năng vừa thêm
 const MOCK_CONTENT = `
@@ -31,11 +31,17 @@ Văn bản này được **căn phải**.
 
 ### Hình ảnh test:
 ![image](https://picsum.photos/800/400)a
+
+### Video nhúng:
+{@embed: https://www.youtube.com/watch?v=OZYOyuLU5pg&list=RDOZYOyuLU5pg&start_radio=1}
+
+### HTML Raw nhúng:
+<iframe width="560" height="315" src="https://www.youtube.com/embed/OZYOyuLU5pg" frameborder="0" allowfullscreen></iframe>
 `;
 
 const TestMarkdownPage = () => {
     // Render markdown thành HTML
-    const rawHtml = md.render(MOCK_CONTENT);
+    const rawHtml = renderMarkdownSafe(MOCK_CONTENT);
 
     return (
         <div className="container mx-auto p-10 max-w-4xl bg-white shadow-lg my-10 rounded-xl">

@@ -3,6 +3,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import MdEditor from 'react-markdown-editor-lite';
 import 'react-markdown-editor-lite/lib/index.css';
+import 'katex/dist/katex.min.css';
 import {
     Image as ImageIcon,
     AlignLeft,
@@ -20,8 +21,7 @@ import {
 } from 'lucide-react';
 import MarkdownHelpModal from './MarkdownHelpModal';
 import { AdminMediaPicker } from '../feature/AdminMediaPicker';
-import md from '@/src/components/ui/markdown';
-import { parseEmbed } from '@/src/lib/parseEmbed';
+import { renderMarkdownSafe } from '@/src/lib/renderMarkdownSafe';
 
 export default function RichTextEditor({ value, onChange, placeholder }: { value?: string, onChange?: (val: string) => void, placeholder?: string }) {
     const mdEditorRef = useRef<MdEditor>(null);
@@ -121,10 +121,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: { value
                 view={viewMode}
                 htmlClass="markdown-content"
                 plugins={['header', 'font-bold', 'font-italic', 'link', 'block-quote', 'block-code-inline', 'block-code-block', 'table', 'full-screen']}
-                renderHTML={text => {
-                    const parsed = parseEmbed(text);
-                    return md.render(parsed);
-                }}
+                renderHTML={text => renderMarkdownSafe(text)}
                 onChange={({ text }) => onChange?.(text)}
             />
 

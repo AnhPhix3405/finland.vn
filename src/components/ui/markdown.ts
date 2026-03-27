@@ -18,4 +18,12 @@ const md = createRenderer({
     } as any
 });
 
+import { createEmbedPlugin } from '@/src/lib/markdownEmbedPlugin';
+
+// Bật phân tích HTML (bao gồm iframe)
+md.set({ html: true });
+
+// Plugin cho parse {@embed: ...}
+md.use(createEmbedPlugin());
+
 export default md;
