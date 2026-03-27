@@ -31,6 +31,7 @@ export default function AdminSidebar() {
     { href: "/admin/bai-viet", label: "Quản lý Bài viết", icon: "description", exact: false },
     { href: "/admin/tin-tuc", label: "Quản lý Tin tức", icon: "newspaper", exact: false },
     { href: "/admin/moi-gioi", label: "Quản lý Môi giới", icon: "group", exact: false },
+    { href: "/admin/dich-vu", label: "Quản lý Dịch vụ", icon: "campaign", exact: false },
     { href: "/admin/doi-mat-khau", label: "Đổi mật khẩu", icon: "lock", exact: false },
   ];
 

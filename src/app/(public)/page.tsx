@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ChevronDown, MapPin, Phone, FileText, Calendar } from "lucide-react";
+import {
+  Search, ChevronDown, MapPin, Phone, FileText, Calendar, Building,
+  Newspaper, Key, Users, LogIn, UserPlus, Home as HomeIcon, Megaphone,
+  Library, BadgeDollarSign, Calculator, BookOpen, FileEdit, FileSearch,
+  HandCoins, Coins, Crown
+} from "lucide-react";
 import { PropertyCard } from "@/src/components/property/PropertyCard";
 
 type SearchCategory = "du-an" | "mua-ban" | "cho-thue";
@@ -13,6 +18,34 @@ const categories: { value: SearchCategory; label: string; placeholder: string }[
   { value: "mua-ban", label: "Mua bán", placeholder: "Tìm kiếm theo tiêu đề bài đăng hoặc tên tác giả..." },
   { value: "cho-thue", label: "Cho thuê", placeholder: "Tìm kiếm theo tiêu đề bài đăng hoặc tên tác giả..." },
 ];
+
+function QuickLink({
+  href,
+  label,
+  icon: Icon,
+  iconColor = "text-emerald-600",
+  bgColor = "bg-emerald-50 dark:bg-emerald-900/20",
+}: {
+  href: string;
+  label: string;
+  icon: any;
+  iconColor?: string;
+  bgColor?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`flex items-center gap-4 p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group`}
+    >
+      <div className={`w-12 h-12 flex-shrink-0 rounded-lg flex items-center justify-center ${bgColor} group-hover:scale-110 transition-transform duration-300`}>
+        <Icon className={`w-6 h-6 ${iconColor}`} />
+      </div>
+      <span className="text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors leading-tight">
+        {label}
+      </span>
+    </Link>
+  );
+}
 
 function HomeSearchWidget() {
   const router = useRouter();
@@ -30,8 +63,8 @@ function HomeSearchWidget() {
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      <form onSubmit={handleSearch} className="flex shadow-xl rounded-lg overflow-visible">
+    <div className="w-full max-w-2xl mx-auto shadow-2xl rounded-lg overflow-visible">
+      <form onSubmit={handleSearch} className="flex rounded-lg overflow-visible">
         {/* Category Dropdown */}
         <div className="relative flex-shrink-0">
           <button
@@ -123,9 +156,9 @@ function FeaturedProjects() {
       {projects.map((project) => {
         const location = [project.ward, project.province].filter(Boolean).join(", ");
         return (
-          <div key={project.id} className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 flex flex-col hover:shadow-lg transition-shadow rounded-sm overflow-hidden">
-            <Link href={`/du-an/${project.slug || project.id}`} className="relative h-48 block group">
-              <img alt={project.name} className="w-full h-full object-cover transition-transform group-hover:scale-105" src={project.thumbnail_url || DEFAULT_PROJECT_IMAGE} />
+          <div key={project.id} className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 flex flex-col hover:shadow-lg transition-all duration-300 rounded-sm overflow-hidden group">
+            <Link href={`/du-an/${project.slug || project.id}`} className="relative h-48 block overflow-hidden">
+              <img alt={project.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" src={project.thumbnail_url || DEFAULT_PROJECT_IMAGE} />
               {project.status && <div className="absolute top-2 left-2 bg-emerald-600 text-white text-[10px] font-bold px-2 py-1 uppercase rounded-sm z-10">{project.status}</div>}
             </Link>
             <div className="p-4 flex-grow flex flex-col">
@@ -137,8 +170,8 @@ function FeaturedProjects() {
                 {location || "Đang cập nhật"}
               </div>
               <div className="mt-auto flex justify-between items-center pt-3 border-t border-slate-100 dark:border-slate-700">
-                 <span className="text-xs font-bold text-emerald-600 uppercase tracking-tight">Dự án</span>
-                 {project.area && <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{project.area.toLocaleString()} m²</span>}
+                <span className="text-xs font-bold text-emerald-600 uppercase tracking-tight">Dự án</span>
+                {project.area && <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{project.area.toLocaleString()} m²</span>}
               </div>
             </div>
           </div>
@@ -158,7 +191,7 @@ function FeaturedBrokers() {
       .then(res => {
         if (res.success) setBrokers(res.data || []);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -167,11 +200,11 @@ function FeaturedBrokers() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {brokers.map(broker => (
-        <div key={broker.id} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-sm hover:shadow-md transition-shadow flex flex-col items-center text-center group">
-          <div className="relative w-20 h-20 mb-4">
+        <div key={broker.id} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6 rounded-sm hover:shadow-lg transition-all duration-300 flex flex-col items-center text-center group">
+          <div className="relative w-24 h-24 mb-4 overflow-hidden rounded-full border-2 border-slate-100 dark:border-slate-700 group-hover:border-emerald-500 transition-colors">
             <img 
               src={broker.avatar_url || "/imgs/no-avatar.jpg"} 
-              className="w-full h-full object-cover rounded-full border-2 border-slate-100 dark:border-slate-700 group-hover:border-emerald-500 transition-colors" 
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
               alt={broker.full_name} 
             />
           </div>
@@ -204,7 +237,7 @@ function RecentNews() {
       .then(res => {
         if (res.success) setNews(res.data || []);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -213,10 +246,10 @@ function RecentNews() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {news.map(item => (
-        <div key={item.id} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm overflow-hidden flex flex-col group hover:shadow-md transition-shadow">
-          <Link href={`/tin-tuc/${item.slug}`} className="relative h-40 overflow-hidden bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-400">
+        <div key={item.id} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-sm overflow-hidden flex flex-col group hover:shadow-lg transition-all duration-300">
+          <Link href={`/tin-tuc/${item.slug}`} className="relative h-44 overflow-hidden bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-400">
             {item.thumbnail_url ? (
-              <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+              <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
             ) : (
               <span className="material-symbols-outlined text-4xl opacity-50">image</span>
             )}
@@ -246,7 +279,7 @@ function FeaturedListings({ type }: { type: "mua-ban" | "cho-thue" }) {
       .then(res => {
         if (res.success) setListings(res.data || []);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, [type]);
 
@@ -255,7 +288,7 @@ function FeaturedListings({ type }: { type: "mua-ban" | "cho-thue" }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {listings.map(item => (
-        <PropertyCard 
+        <PropertyCard
           key={item.id}
           id={item.id}
           image={item.thumbnail_url || "/imgs/home-banner.jpg"}
@@ -311,7 +344,7 @@ function SkeletonBroker() {
 export default function Home() {
   return (
     <div className="pb-12">
-      <section className="relative bg-slate-900 h-[360px] flex items-center justify-center">
+      <section className="relative bg-slate-900 min-h-[480px] py-16 flex items-center justify-center">
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute inset-0 bg-black/50 z-10"></div>
           <img alt="Professional urban background" className="w-full h-full object-cover" src="/imgs/home-banner.jpg" />
@@ -321,6 +354,25 @@ export default function Home() {
             Cổng thông tin Bất động sản &amp; Bản đồ Quy hoạch
           </h1>
           <HomeSearchWidget />
+        </div>
+      </section>
+
+      {/* Quick Links Section */}
+      <section className="py-12 bg-slate-50 dark:bg-slate-950">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <QuickLink href="/ban-do-quy-hoach" label="Bản đồ quy hoạch" icon={MapPin} iconColor="text-purple-600" bgColor="bg-purple-50 dark:bg-purple-900/20" />
+            <QuickLink href="/du-an" label="Dự án" icon={Building} iconColor="text-rose-500" bgColor="bg-rose-50 dark:bg-rose-900/20" />
+            <QuickLink href="/tin-tuc" label="Tin tức" icon={Newspaper} iconColor="text-blue-500" bgColor="bg-blue-50 dark:bg-blue-900/20" />
+            
+            <QuickLink href="/mua-ban" label="Mua bán" icon={HomeIcon} iconColor="text-amber-600" bgColor="bg-amber-50 dark:bg-amber-900/20" />
+            <QuickLink href="/cho-thue" label="Cho thuê" icon={Key} iconColor="text-green-600" bgColor="bg-green-50 dark:bg-green-900/20" />
+            <QuickLink href="/moi-gioi" label="Môi giới" icon={Users} iconColor="text-orange-500" bgColor="bg-orange-50 dark:bg-orange-900/20" />
+            
+            <QuickLink href="/dang-nhap" label="Đăng nhập" icon={LogIn} iconColor="text-blue-500" bgColor="bg-blue-50 dark:bg-blue-900/20" />
+            <QuickLink href="/dang-ky" label="Đăng ký" icon={UserPlus} iconColor="text-emerald-500" bgColor="bg-emerald-50 dark:bg-emerald-900/20" />
+            <QuickLink href="/dich-vu" label="Dịch vụ" icon={Megaphone} iconColor="text-sky-500" bgColor="bg-sky-50 dark:bg-sky-900/20" />
+          </div>
         </div>
       </section>
 

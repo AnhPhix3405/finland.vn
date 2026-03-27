@@ -114,10 +114,10 @@ export function PropertyCard({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden rounded-sm hover:shadow-lg transition-shadow flex flex-col h-full">
-      <div className="relative aspect-video">
+    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden rounded-sm hover:shadow-lg transition-all duration-300 flex flex-col h-full group">
+      <div className="relative aspect-video overflow-hidden">
         <div
-          className="w-full h-full bg-cover bg-center rounded-t-sm"
+          className="w-full h-full bg-cover bg-center rounded-t-sm transition-transform duration-500 group-hover:scale-110"
           style={{ backgroundImage: `url('${image}')` }}
           role="img"
           aria-label={title}
