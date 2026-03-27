@@ -1,7 +1,25 @@
-import { Megaphone, Bell, Info } from "lucide-react";
+'use client';
+
+import { Megaphone, Bell, Info, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function ServicesPage() {
+  const [data, setData] = useState<{ title: string; content: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/services')
+      .then(r => r.json())
+      .then(res => {
+        if (res.success) {
+          setData(res.data);
+        }
+      })
+      .catch(err => console.error('Error fetching services:', err))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20">
       {/* Hero Section */}
@@ -19,59 +37,50 @@ export default function ServicesPage() {
 
       {/* Content Section */}
       <div className="max-w-4xl mx-auto px-4 -mt-10">
-        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl shadow-emerald-900/5 border border-slate-100 dark:border-slate-800 overflow-hidden">
-          <div className="p-8 sm:p-12">
-            <div className="flex items-center gap-3 mb-8 pb-6 border-b border-slate-100 dark:border-slate-800">
-              <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                <Bell className="w-5 h-5" />
-              </div>
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">📢 Thông báo từ Ban Quản Trị</h2>
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl shadow-emerald-900/5 border border-slate-100 dark:border-slate-800 overflow-hidden min-h-[400px]">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center p-20 gap-4">
+              <Loader2 className="w-10 h-10 text-emerald-600 animate-spin" />
+              <p className="text-slate-500 font-medium tracking-wide">Đang tải thông báo...</p>
             </div>
-            
-            <div className="space-y-6 text-slate-600 dark:text-slate-300 leading-relaxed text-lg">
-              <p className="font-semibold text-slate-800 dark:text-slate-100">Kính gửi quý khách hàng và người dùng,</p>
-              
-              <p>
-                Nhằm nâng cao chất lượng trải nghiệm trên hệ thống tra cứu, mua bán và cho thuê bất động sản, chúng tôi đang tiến hành cập nhật dữ liệu và cải thiện một số tính năng trên nền tảng.
-              </p>
-              
-              <p>
-                Trong thời gian này, một số thông tin về bất động sản, giá cả, quy hoạch hoặc trạng thái giao dịch có thể được điều chỉnh để đảm bảo tính chính xác và minh bạch.
-              </p>
-              
-              <div className="bg-amber-50 dark:bg-amber-900/10 border-l-4 border-amber-400 p-6 rounded-r-xl my-8">
-                <div className="flex gap-4">
-                  <Info className="w-6 h-6 text-amber-500 flex-shrink-0 mt-1" />
-                  <p className="text-amber-800 dark:text-amber-300 font-medium">
-                    Quý khách vui lòng kiểm tra kỹ thông tin trước khi thực hiện giao dịch, đồng thời liên hệ với bộ phận hỗ trợ nếu cần xác minh thêm về pháp lý, vị trí hoặc tình trạng tài sản.
-                  </p>
+          ) : data ? (
+            <div className="p-8 sm:p-12">
+              <div className="flex items-center gap-3 mb-8 pb-6 border-b border-slate-100 dark:border-slate-800">
+                <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                  <Bell className="w-5 h-5" />
                 </div>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{data.title}</h2>
               </div>
               
-              <p>
-                Xin cảm ơn quý khách đã tin tưởng và đồng hành cùng hệ thống.
-              </p>
-              
-              <div className="pt-10 border-t border-slate-100 dark:border-slate-800 mt-12 flex flex-col sm:flex-row items-center justify-between gap-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-400">
-                    BQT
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-900 dark:text-white">Ban Quản Trị</p>
-                    <p className="text-sm text-slate-500">finland.vn</p>
-                  </div>
-                </div>
+              <div className="text-slate-600 dark:text-slate-300 leading-relaxed text-lg prose prose-slate dark:prose-invert max-w-none">
+                <div dangerouslySetInnerHTML={{ __html: data.content }} />
                 
-                <Link 
-                  href="/ho-tro"
-                  className="px-6 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold hover:scale-105 transition-transform"
-                >
-                  Liên hệ hỗ trợ
-                </Link>
+                <div className="pt-10 border-t border-slate-100 dark:border-slate-800 mt-12 flex flex-col sm:flex-row items-center justify-between gap-6 not-prose">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-400 ring-2 ring-emerald-500/20">
+                      BQT
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-900 dark:text-white">Ban Quản Trị</p>
+                      <p className="text-sm text-slate-500 font-medium">finland.vn</p>
+                    </div>
+                  </div>
+                  
+                  <Link 
+                    href="/ho-tro"
+                    className="px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold hover:scale-105 active:scale-95 transition-all shadow-lg shadow-slate-900/10"
+                  >
+                    Liên hệ hỗ trợ
+                  </Link>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center p-20 gap-4 text-center">
+              <Info className="w-12 h-12 text-slate-300" />
+              <p className="text-slate-500 text-lg">Hiện chưa có thông báo mới nào từ hệ thống.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

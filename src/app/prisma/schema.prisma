@@ -216,6 +216,14 @@ model listing_feature_hashtags {
   @@index([feature_hashtag_id], map: "idx_listing_feature_hashtags_feature_hashtag_id")
 }
 
+model services {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  title      String    @db.VarChar(255)
+  content    String
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+}
+
 enum post_status {
   published
   draft
@@ -225,13 +233,4 @@ enum project_status {
   s_p_m__b_n   @map("sắp mở bán")
   ang_m__b_n   @map("đang mở bán")
   h_ng_th__c_p @map("hàng thứ cấp")
-}
-
-model services {
-  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  title      String    @db.VarChar(255)
-  content    String
-  is_active  Boolean?  @default(true)
-  created_at DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at DateTime? @default(now()) @db.Timestamptz(6)
 }

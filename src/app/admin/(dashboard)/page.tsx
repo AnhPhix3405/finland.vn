@@ -33,7 +33,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     const fetchStats = async () => {
       if (!accessToken) return;
-      
+
       try {
         const res = await fetchWithRetry("/api/admin/stats", {
           headers: {
@@ -87,9 +87,8 @@ export default function AdminDashboardPage() {
         <p className="text-3xl font-bold text-slate-900 dark:text-white">
           {loading ? "..." : value.toLocaleString("vi-VN")}
         </p>
-        <p className={`text-sm flex items-center gap-1 mt-1 ${
-          trend >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-        }`}>
+        <p className={`text-sm flex items-center gap-1 mt-1 ${trend >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+          }`}>
           {trend >= 0 ? <TrendingUp className="size-4" /> : <TrendingDown className="size-4" />}
           <span>{trend >= 0 ? "+" : ""}{trend}% {trendLabel}</span>
         </p>

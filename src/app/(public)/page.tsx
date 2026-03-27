@@ -35,12 +35,12 @@ function QuickLink({
   return (
     <Link
       href={href}
-      className={`flex items-center gap-4 p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group`}
+      className={`flex items-center gap-2 sm:gap-4 p-2 sm:p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group`}
     >
-      <div className={`w-12 h-12 flex-shrink-0 rounded-lg flex items-center justify-center ${bgColor} group-hover:scale-110 transition-transform duration-300`}>
-        <Icon className={`w-6 h-6 ${iconColor}`} />
+      <div className={`w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 rounded-lg flex items-center justify-center ${bgColor} group-hover:scale-110 transition-transform duration-300`}>
+        <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${iconColor}`} />
       </div>
-      <span className="text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors leading-tight">
+      <span className="text-[11px] sm:text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors leading-tight">
         {label}
       </span>
     </Link>
@@ -358,9 +358,9 @@ export default function Home() {
       </section>
 
       {/* Quick Links Section */}
-      <section className="py-12 bg-slate-50 dark:bg-slate-950">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <section className="py-8 sm:py-12 bg-slate-50 dark:bg-slate-950">
+        <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
             <QuickLink href="/ban-do-quy-hoach" label="Bản đồ quy hoạch" icon={MapPin} iconColor="text-purple-600" bgColor="bg-purple-50 dark:bg-purple-900/20" />
             <QuickLink href="/du-an" label="Dự án" icon={Building} iconColor="text-rose-500" bgColor="bg-rose-50 dark:bg-rose-900/20" />
             <QuickLink href="/tin-tuc" label="Tin tức" icon={Newspaper} iconColor="text-blue-500" bgColor="bg-blue-50 dark:bg-blue-900/20" />
