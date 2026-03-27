@@ -23,6 +23,10 @@ import { createEmbedPlugin } from '@/src/lib/markdownEmbedPlugin';
 // Bật phân tích HTML (bao gồm iframe)
 md.set({ html: true });
 
+// Tắt bộ lọc sanitizer mặc định của viblo-sdk vì nó tự ý escape thẻ <u>, <iframe>...
+// Chúng ta đã dùng renderMarkdownSafe.ts để lo khâu bảo mật thay thế.
+md.core.ruler.disable(['sanitize_inline', 'sanitize_balance']);
+
 // Plugin cho parse {@embed: ...}
 md.use(createEmbedPlugin());
 

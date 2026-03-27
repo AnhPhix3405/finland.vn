@@ -63,9 +63,18 @@ export default function UserRichTextEditor({ value, onChange, placeholder }: { v
     const handleFormat = (type: 'underline' | 'strikethrough') => {
         if (!mdEditorRef.current) return;
         const editor = mdEditorRef.current as any;
-        const selection = editor.getSelection?.() || { text: '' };
+        const selection = editor.getSelection?.() || { text: '', start: 0, end: 0 };
         const text = selection.text || '';
 
+        // Xử lý khi không bôi đen chữ
+        if (!text) {
+            const wrapped = type === 'underline' ? `<u></u>` : `~~~~`;
+            const innerCursorPos = type === 'underline' ? selection.start + 3 : selection.start + 2;
+            editor.insertText?.(wrapped, true, { start: innerCursorPos, end: innerCursorPos });
+            return;
+        }
+
+        // Xử lý khi có bôi đen chữ
         let wrapped = "";
         if (type === 'underline') wrapped = `<u>${text}</u>`;
         if (type === 'strikethrough') wrapped = `~~${text}~~`;
