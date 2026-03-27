@@ -30,7 +30,7 @@ Văn bản này được **căn phải**.
 - Dấu chấm thứ hai
 
 ### Hình ảnh test:
-![image](https://picsum.photos/800/400)
+![image](https://picsum.photos/800/400)a
 `;
 
 const TestMarkdownPage = () => {
@@ -42,11 +42,11 @@ const TestMarkdownPage = () => {
             <h1 className="text-2xl font-bold mb-8 pb-4 border-b border-slate-200 text-slate-800">
                 Preview Markdown Renderer
             </h1>
-            
+
             {/* Class markdown-content hoặc md-contents tùy thuộc vào CSS bạn đã định nghĩa ở globals.css */}
-            <div 
-                className="markdown-content" 
-                dangerouslySetInnerHTML={{ __html: rawHtml }} 
+            <div
+                className="markdown-content"
+                dangerouslySetInnerHTML={{ __html: rawHtml }}
             />
         </div>
     );

@@ -15,10 +15,13 @@ import {
     List,
     ListOrdered,
     Maximize,
-    Minimize
+    Minimize,
+    HelpCircle,
 } from 'lucide-react';
 import { UserMediaPicker } from '../feature/UserMediaPicker';
+import MarkdownHelpModal from './MarkdownHelpModal';
 import md from '@/src/components/ui/markdown';
+import { parseEmbed } from '@/src/lib/parseEmbed';
 
 export default function UserRichTextEditor({ value, onChange, placeholder }: { value?: string, onChange?: (val: string) => void, placeholder?: string }) {
     const mdEditorRef = useRef<MdEditor>(null);
@@ -26,6 +29,7 @@ export default function UserRichTextEditor({ value, onChange, placeholder }: { v
     const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
     const [viewMode, setViewMode] = useState({ menu: true, md: true, html: false });
     const [isFullScreen, setIsFullScreen] = useState(false);
+    const [isHelpOpen, setIsHelpOpen] = useState(false);
 
     // Theo dõi trạng thái fullscreen qua browser API
     useEffect(() => {
@@ -117,12 +121,27 @@ export default function UserRichTextEditor({ value, onChange, placeholder }: { v
                 view={viewMode}
                 htmlClass="markdown-content"
                 plugins={['header', 'font-bold', 'font-italic', 'link', 'block-quote', 'block-code-inline', 'block-code-block', 'table', 'full-screen']}
-                renderHTML={text => md.render(text)}
+                renderHTML={text => {
+                    const parsed = parseEmbed(text);
+                    return md.render(parsed);
+                }}
                 onChange={({ text }) => onChange?.(text)}
             />
 
-            {/* Custom toolbar — nằm ở góc phải của toolbar mặc định */}
-            <div className="absolute top-0 right-0 h-[40px] z-10 flex items-center gap-1.5 pr-2">
+            {/* ? Help — standalone ở ngoài cùng bên phải header */}
+            <div className="absolute top-[5px] right-[6px] z-20">
+                <button
+                    type="button"
+                    className="w-6 h-6 flex items-center justify-center rounded-full bg-white border border-slate-300 hover:bg-indigo-50 hover:border-indigo-300 text-slate-400 hover:text-indigo-500 shadow-sm transition-all"
+                    onClick={() => setIsHelpOpen(true)}
+                    title="Hỗ trợ Markdown"
+                >
+                    <HelpCircle className="size-3.5" />
+                </button>
+            </div>
+
+            {/* Custom toolbar — nằm ở góc phải của toolbar, cách nút ? */}
+            <div className="absolute top-0 right-8 h-[40px] z-10 flex items-center gap-1.5 pr-1">
                 {/* View Toggle */}
                 <button
                     type="button"
@@ -234,6 +253,10 @@ export default function UserRichTextEditor({ value, onChange, placeholder }: { v
                 isOpen={isMediaPickerOpen}
                 onClose={() => setIsMediaPickerOpen(false)}
                 onSelect={handleMediaSelect}
+            />
+            <MarkdownHelpModal
+                isOpen={isHelpOpen}
+                onClose={() => setIsHelpOpen(false)}
             />
         </div>
     );
