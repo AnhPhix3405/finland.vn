@@ -39,6 +39,7 @@ export default function Header() {
     { href: "/mua-ban", label: "Mua Bán" },
     { href: "/cho-thue", label: "Cho Thuê" },
     { href: "/moi-gioi", label: "Môi Giới" },
+    { href: "/dich-vu", label: "Dịch Vụ", onlyMobile: true },
   ];
 
   const getLinkClass = (href: string) => {
@@ -63,7 +64,7 @@ export default function Header() {
             </Link>
           </div>
           <nav className="hidden md:flex space-x-6 text-sm">
-            {navLinks.map((link, index) => (
+            {navLinks.filter(link => !link.onlyMobile).map((link, index) => (
               <Link key={index} className={getLinkClass(link.href)} href={link.href}>
                 {link.label}
               </Link>
