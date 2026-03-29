@@ -76,7 +76,7 @@ const ROWS = [
     {
         label: 'Nhúng nội dung',
         syntax: '{@embed: URL}',
-        note: 'Youtube, Vimeo, Slideshare, Codepen, Gist, JsFiddle, Google Slide, Soundcloud',
+        note: 'Youtube',
     },
     {
         label: 'Công thức toán học',

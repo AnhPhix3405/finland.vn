@@ -77,7 +77,7 @@ export default function ServicesPage() {
                       BQT
                     </div>
                     <div>
-                      <p className="font-bold text-slate-900 dark:text-white">Ban Quản Trị</p>
+                      <p className="font-bold text-slate-900 dark:text-white relative top-5">Ban Quản Trị</p>
                       <p className="text-sm text-slate-500 font-medium">finland.vn</p>
                     </div>
                   </div>
